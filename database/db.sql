@@ -54,7 +54,8 @@ SET default_with_oids = false;
 CREATE TABLE public.addresses (
     id bigint NOT NULL,
     address character varying(40) NOT NULL,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    updated_at_block_id bigint
 );
 
 
@@ -72,6 +73,12 @@ COMMENT ON COLUMN public.addresses.address IS 'Address hex string without prefix
 --
 
 COMMENT ON COLUMN public.addresses.updated_at IS 'Last balance parsing time';
+
+--
+-- Name: COLUMN addresses.updated_at_block_id; Type: COMMENT; Schema: public; Owner: foundation
+--
+
+COMMENT ON COLUMN public.addresses.updated_at_block_id IS 'Block id, that have transactions or events, that triggers address record to update from api-method GET /address';
 
 
 --
