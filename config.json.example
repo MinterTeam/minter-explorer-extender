@@ -1,0 +1,25 @@
+{
+  "name": "Minter Gate",
+  "debug": true,
+  "baseCoin": "BIP",
+  "singleNode": true,
+  "database": {
+    "url": "postgres://postgres:postgres@localhost/postgres?sslmode=disable"
+  },
+  "minterApi": {
+    "isSecure": true,
+    "link": "127.0.0.1",
+    "port": "8841"
+  }
+  "gateApi": {
+    "isSecure" : false,
+    "link" : "",
+    "port" : "9000"
+  },
+  "wsServer":{
+    "isSecure" : false,
+    "link" : "127.0.0.1",
+    "port" : "8800",
+    "key"  : "secret key"
+  }
+}
