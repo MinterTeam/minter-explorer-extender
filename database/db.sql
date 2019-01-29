@@ -109,7 +109,7 @@ ALTER SEQUENCE public.addresses_id_seq OWNED BY public.addresses.id;
 CREATE TABLE public.balances (
     id bigint NOT NULL,
     address_id bigint NOT NULL,
-    coind_id integer NOT NULL,
+    coin_id integer NOT NULL,
     value numeric(70,0) NOT NULL
 );
 
@@ -513,7 +513,6 @@ CREATE TABLE public.transactions (
     gas_coin_id integer NOT NULL,
     created_at timestamp with time zone NOT NULL,
     type smallint NOT NULL,
-    fee numeric(70,0) NOT NULL,
     hash character varying(64) NOT NULL,
     service_data text,
     data jsonb NOT NULL,
@@ -731,7 +730,7 @@ SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
 -- Data for Name: balances; Type: TABLE DATA; Schema: public; Owner: foundation
 --
 
-COPY public.balances (id, address_id, coind_id, value) FROM stdin;
+COPY public.balances (id, address_id, coin_id, value) FROM stdin;
 \.
 
 
@@ -994,7 +993,7 @@ CREATE UNIQUE INDEX addresses_address_uindex ON public.addresses USING btree (ad
 -- Name: balances_address_id_coind_id_uindex; Type: INDEX; Schema: public; Owner: foundation
 --
 
-CREATE UNIQUE INDEX balances_address_id_coind_id_uindex ON public.balances USING btree (address_id, coind_id);
+CREATE UNIQUE INDEX balances_address_id_coind_id_uindex ON public.balances USING btree (address_id, coin_id);
 
 
 --
@@ -1008,7 +1007,7 @@ CREATE INDEX balances_address_id_index ON public.balances USING btree (address_i
 -- Name: balances_coind_id_index; Type: INDEX; Schema: public; Owner: foundation
 --
 
-CREATE INDEX balances_coind_id_index ON public.balances USING btree (coind_id);
+CREATE INDEX balances_coind_id_index ON public.balances USING btree (coin_id);
 
 
 --
@@ -1213,7 +1212,7 @@ ALTER TABLE ONLY public.balances
 --
 
 ALTER TABLE ONLY public.balances
-    ADD CONSTRAINT balances_coins_id_fk FOREIGN KEY (coind_id) REFERENCES public.coins(id);
+    ADD CONSTRAINT balances_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins(id);
 
 
 --
