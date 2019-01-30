@@ -5,6 +5,7 @@ import "time"
 type Address struct {
 	ID                  uint64                `json:"id"`
 	Address             string                `json:"address" sql:",unique; type:varchar(64)"`
+	UpdatedAtBlockId    uint64                `json:"updated_at_block_id"`
 	UpdatedAt           time.Time             `json:"updated_at"`
 	Balances            []*Balance            `json:"balances"`             //relation has many to Balances
 	Rewards             []*Reward             `json:"rewards"`              //relation has many to Rewards
