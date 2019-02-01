@@ -6,7 +6,7 @@ import (
 )
 
 type Validator struct {
-	ID               *uint64    `json:"id"`
+	ID               uint64     `json:"id"`
 	RewardAddressID  *uint64    `json:"reward_address_id"`
 	OwnerAddressID   *uint64    `json:"owner_address_id"`
 	CreatedAtBlockID *uint64    `json:"created_at_block_id"`

@@ -9,7 +9,7 @@ type Coin struct {
 	ID                    uint64    `json:"id"`
 	CreationAddressID     uint64    `json:"creation_address_id"`
 	CreationTransactionID uint64    `json:"creation_transaction_id"`
-	DeletedAtBlockID      uint64    `json:"deleted_at_block_id"`
+	DeletedAtBlockID      *uint64   `json:"deleted_at_block_id"`
 	Crr                   uint64    `json:"crr"`
 	UpdatedAt             time.Time `json:"updated_at"`
 	Volume                big.Int   `json:"volume"          sql:"type:numeric(70)"`
