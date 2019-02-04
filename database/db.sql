@@ -931,7 +931,7 @@ ALTER TABLE ONLY public.invalid_transactions
 --
 
 ALTER TABLE ONLY public.rewards
-    ADD CONSTRAINT rewards_pkey PRIMARY KEY (validator_id, address_id, block_id);
+    ADD CONSTRAINT rewards_pkey PRIMARY KEY (validator_id, address_id, role, block_id);
 
 
 --
