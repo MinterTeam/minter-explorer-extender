@@ -1,7 +1,6 @@
 package models
 
 import (
-	"math/big"
 	"time"
 )
 
@@ -12,7 +11,7 @@ type Validator struct {
 	CreatedAtBlockID *uint64    `json:"created_at_block_id"`
 	Status           *uint8     `json:"status"`
 	Commission       *uint64    `json:"commission"`
-	TotalStake       *big.Int   `json:"total_stake" sql:"type:numeric(70)"`
+	TotalStake       *string    `json:"total_stake" sql:"type:numeric(70)"`
 	PublicKey        string     `json:"public_key"  sql:"type:varchar(64)"`
 	UpdateAt         *time.Time `json:"update_at"`
 	RewardAddress    *Address   `json:"reward_address" pg:"fk:reward_address_id"`
