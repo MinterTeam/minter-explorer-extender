@@ -26,6 +26,10 @@ func (s *Service) SetBlockCache(b *models.Block) {
 	s.blockCache = b
 }
 
+func (s *Service) GetBlockCache() (b *models.Block) {
+	return s.blockCache
+}
+
 //Handle response and save block to DB
 func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 
@@ -40,6 +44,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 
 	proposerPk := []rune(response.Result.Proposer)
 	proposerId, err := s.validatorRepository.FindIdOrCreateByPk(string(proposerPk[2:]))
+	helpers.HandleError(err)
 
 	block := &models.Block{
 		ID:                  height,
@@ -53,14 +58,14 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		Hash:                response.Result.Hash,
 	}
 
-	s.blockCache = block
+	s.SetBlockCache(block)
 
 	return s.blockRepository.Save(block)
 }
 
 func (s *Service) getBlockTime(blockTime time.Time) uint64 {
 	if s.blockCache == nil {
-		return 1000000000 //ns, 1 second for the firs block
+		return uint64(1 * time.Second) //ns, 1 second for the first block
 	}
 	result := blockTime.Sub(s.blockCache.CreatedAt)
 	return uint64(result.Nanoseconds())

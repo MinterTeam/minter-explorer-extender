@@ -22,5 +22,5 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		pk := []rune(v.PubKey)
 		validators = append(validators, &models.Validator{PublicKey: string(pk[2:])})
 	}
-	return s.repository.MassSave(validators)
+	return s.repository.SaveAllIfNotExist(validators)
 }

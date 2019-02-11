@@ -13,19 +13,22 @@
   version = "v1.2.6"
 
 [[projects]]
-  digest = "1:e7f1117ec9d37b59ba6d70bbd8feaa9cd2d1c6f676dc88ee152f5a57908fea4b"
+  digest = "1:139709b3b4eab483f24d2ef792e296502dd2a129fef6c5055aef7f9b07f87797"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
     "internal",
+    "internal/iszero",
     "internal/parser",
     "internal/pool",
+    "internal/struct_filter",
+    "internal/tag",
     "orm",
     "types",
   ]
   pruneopts = "UT"
-  revision = "514bed76d8f579d6ff8d40294fa77e476a5c1b3f"
-  version = "v6.15.0"
+  revision = "750698e034bbc0f35e33e69df35cd8cc4c6b7d3d"
+  version = "v7.1.7"
 
 [[projects]]
   branch = "master"
@@ -37,27 +40,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:06dbb3dd9104b854479546944f509a15abbfa0664bd4acbb428a10f53f3acb9b"
-  name = "github.com/olebedev/emitter"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "e8d1457e6aee6368f6abda5ad334fde63e9cc3fa"
-
-[[projects]]
-  branch = "master"
-  digest = "1:c83590426ecf1362e77a9054afed570b201de1a353398a6157ecce06583ea024"
-  name = "github.com/vmihailenco/sasl"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "2f13c189728a02f8cc31b3b9cc06047b383c21cc"
-
-[[projects]]
-  branch = "master"
   digest = "1:f92f6956e4059f6a3efc14924d2dd58ba90da25cc57fe07ae3779ef2f5e0c5f2"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "b01c7a72566457eb1420261cdafef86638fc3861"
+  revision = "193df9c0f06f8bb35fba505183eaf0acc0136505"
+
+[[projects]]
+  digest = "1:999d566ad1ae4303c456af5a155f7b42401cca4fd33552567ed9dd997b107a08"
+  name = "mellium.im/sasl"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e58e780e1378aa4df5dc705364ff5ae9a4dd1e04"
+  version = "v0.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -66,7 +61,6 @@
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",
-    "github.com/olebedev/emitter",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

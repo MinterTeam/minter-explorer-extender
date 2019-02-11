@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/block"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
@@ -14,10 +15,10 @@ import (
 )
 
 type ExtenderEnvironment struct {
-	DbName     *string
-	DbUser     *string
-	DbPassword *string
-	NodeApi    *string
+	DbName     string
+	DbUser     string
+	DbPassword string
+	NodeApi    string
 }
 
 type Extender struct {
@@ -28,19 +29,28 @@ type Extender struct {
 	validatorRepository *validator.Repository
 }
 
+type dbLogger struct{}
+
+func (d dbLogger) BeforeQuery(q *pg.QueryEvent) {}
+
+func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
+	fmt.Println(q.FormattedQuery())
+}
+
 func NewExtender(env *ExtenderEnvironment) *Extender {
 
 	db := pg.Connect(&pg.Options{
-		User:     *env.DbUser,
-		Password: *env.DbPassword,
-		Database: *env.DbName,
+		User:     env.DbUser,
+		Password: env.DbPassword,
+		Database: env.DbName,
 	})
+	db.AddQueryHook(dbLogger{})
 
 	blockRepository := block.NewRepository(db)
 	validatorRepository := validator.NewRepository(db)
 
 	return &Extender{
-		nodeApi:             minter_node_api.New(*env.NodeApi),
+		nodeApi:             minter_node_api.New(env.NodeApi),
 		blockRepository:     blockRepository,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
 		validatorService:    validator.NewService(validatorRepository),

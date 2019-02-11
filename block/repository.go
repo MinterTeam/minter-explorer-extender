@@ -15,7 +15,6 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-//Find address id or create if not exist
 func (r *Repository) Save(block *models.Block) error {
 	_, err := r.db.Model(block).Insert()
 	if err != nil {
@@ -34,17 +33,10 @@ func (r *Repository) GetLastFromDB() (*models.Block, error) {
 }
 
 func (r *Repository) LinkWithValidators(links []*models.BlockValidator) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
+	var args []interface{}
+	for _, l := range links {
+		args = append(args, l)
 	}
-	// Rollback tx on error.
-	defer tx.Rollback()
-	for _, v := range links {
-		_, err = tx.Model(v).OnConflict(`DO NOTHING`).Insert()
-		if err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
+	err := r.db.Insert(args...)
+	return err
 }
