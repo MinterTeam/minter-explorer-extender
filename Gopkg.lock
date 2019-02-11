@@ -2,19 +2,33 @@
 
 
 [[projects]]
-  digest = "1:e7f1117ec9d37b59ba6d70bbd8feaa9cd2d1c6f676dc88ee152f5a57908fea4b"
+  digest = "1:d8af83adb88c74fd43210b19283e3ab0315db69a7168684dd53c6287e666d390"
+  name = "github.com/daniildulin/minter-node-api"
+  packages = [
+    ".",
+    "responses",
+  ]
+  pruneopts = "UT"
+  revision = "3419fd552d590872fb49f154c46936defc030ac2"
+  version = "v1.2.6"
+
+[[projects]]
+  digest = "1:139709b3b4eab483f24d2ef792e296502dd2a129fef6c5055aef7f9b07f87797"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
     "internal",
+    "internal/iszero",
     "internal/parser",
     "internal/pool",
+    "internal/struct_filter",
+    "internal/tag",
     "orm",
     "types",
   ]
   pruneopts = "UT"
-  revision = "514bed76d8f579d6ff8d40294fa77e476a5c1b3f"
-  version = "v6.15.0"
+  revision = "750698e034bbc0f35e33e69df35cd8cc4c6b7d3d"
+  version = "v7.1.7"
 
 [[projects]]
   branch = "master"
@@ -26,26 +40,27 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c83590426ecf1362e77a9054afed570b201de1a353398a6157ecce06583ea024"
-  name = "github.com/vmihailenco/sasl"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "2f13c189728a02f8cc31b3b9cc06047b383c21cc"
-
-[[projects]]
-  branch = "master"
   digest = "1:f92f6956e4059f6a3efc14924d2dd58ba90da25cc57fe07ae3779ef2f5e0c5f2"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "057139ce5d2bdbe6fe73c53679e24e9cf007f637"
+  revision = "193df9c0f06f8bb35fba505183eaf0acc0136505"
+
+[[projects]]
+  digest = "1:999d566ad1ae4303c456af5a155f7b42401cca4fd33552567ed9dd997b107a08"
+  name = "mellium.im/sasl"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e58e780e1378aa4df5dc705364ff5ae9a4dd1e04"
+  version = "v0.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/daniildulin/minter-node-api",
+    "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",
-    "github.com/go-pg/pg/orm",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
