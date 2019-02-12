@@ -19,7 +19,7 @@ func NewRepository(db *pg.DB) *Repository {
 }
 
 //Find address or create if not exist
-func (r *Repository) FindOrCreateBySymbol(symbol string) (uint64, error) {
+func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(symbol)
 	if ok {
@@ -38,4 +38,10 @@ func (r *Repository) FindOrCreateBySymbol(symbol string) (uint64, error) {
 	}
 	r.cache.Store(symbol, coin.ID)
 	return coin.ID, nil
+}
+
+func (r Repository) Create(c *models.Coin) error {
+	err := r.db.Insert(c)
+	r.cache.Store(c.Symbol, c.ID)
+	return err
 }

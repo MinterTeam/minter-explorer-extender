@@ -40,7 +40,7 @@ func (r *Repository) FindIdOrCreateByPk(pk string) (uint64, error) {
 	return validator.ID, nil
 }
 
-//Save list of validators if not exist
+// Save list of validators if not exist
 func (r *Repository) SaveAllIfNotExist(validators []*models.Validator) error {
 	var args []interface{}
 
@@ -58,8 +58,9 @@ func (r *Repository) SaveAllIfNotExist(validators []*models.Validator) error {
 	if len(args) == 0 {
 		return nil
 	}
-
-	return r.db.Insert(args...)
+	err := r.db.Insert(args...)
+	r.addToCache(validators)
+	return err
 }
 
 // Find validators by PK
@@ -71,13 +72,16 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 	for _, v := range validators {
 		pkList = append(pkList, v.PublicKey)
 	}
-	err := r.db.Model(&vList).Where(`public_key in (?)`, pg.In(pkList)).Select()
+	err := r.db.Model(&vList).Where("public_key in (?)", pg.In(pkList)).Select()
 	r.addToCache(vList)
 	return vList, err
 }
 
 func (r *Repository) addToCache(validators []*models.Validator) {
 	for _, v := range validators {
-		r.cache.Store(v.PublicKey, v.ID)
+		_, exist := r.cache.Load(v.PublicKey)
+		if !exist {
+			r.cache.Store(v.PublicKey, v.ID)
+		}
 	}
 }

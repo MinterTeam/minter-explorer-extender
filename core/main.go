@@ -2,9 +2,12 @@ package core
 
 import (
 	"fmt"
+	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/block"
+	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
+	"github.com/MinterTeam/minter-explorer-extender/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
@@ -27,6 +30,7 @@ type Extender struct {
 	blockRepository     *block.Repository
 	validatorService    *validator.Service
 	validatorRepository *validator.Repository
+	transactionService  *transaction.Service
 }
 
 type dbLogger struct{}
@@ -48,6 +52,10 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 
 	blockRepository := block.NewRepository(db)
 	validatorRepository := validator.NewRepository(db)
+	transactionRepository := transaction.NewRepository(db)
+	addressRepository := address.NewRepository(db)
+	coinRepository := coin.NewRepository(db)
+	coinService := coin.NewService(coinRepository, addressRepository)
 
 	return &Extender{
 		nodeApi:             minter_node_api.New(env.NodeApi),
@@ -55,6 +63,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
 		validatorService:    validator.NewService(validatorRepository),
 		validatorRepository: validatorRepository,
+		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
 	}
 }
 
@@ -103,6 +112,10 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	helpers.HandleError(err)
 
 	err = ext.linkBlockValidator(response)
+	helpers.HandleError(err)
+
+	// Save transactions
+	err = ext.transactionService.HandleBlockResponse(response)
 	helpers.HandleError(err)
 }
 

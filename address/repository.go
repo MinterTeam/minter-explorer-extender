@@ -74,6 +74,9 @@ func (r *Repository) FindAll(addresses []string) ([]*models.Address, error) {
 
 func (r *Repository) addToCache(addresses []*models.Address) {
 	for _, a := range addresses {
-		r.cache.Store(a.Address, a.ID)
+		_, exist := r.cache.Load(a)
+		if !exist {
+			r.cache.Store(a.Address, a.ID)
+		}
 	}
 }
