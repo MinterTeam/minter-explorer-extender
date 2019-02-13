@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
@@ -37,9 +38,6 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	helpers.HandleError(err)
 
 	for _, tx := range response.Result.Transactions {
-		if tx.Type == models.TxTypeCreateCoin {
-			err = s.coinService.CreateFromTx(tx)
-		}
 		txFrom := []rune(tx.From)
 		fromId, err := s.addressRepository.FindIdOrCreate(string(txFrom[2:]))
 		helpers.HandleError(err)
@@ -72,7 +70,54 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 				RawTx:         rawTx,
 			}
 			txList = append(txList, t)
+			if t.Type == models.TxTypeCreateCoin {
+				err = s.coinService.CreateFromTx(tx)
+				helpers.HandleError(err)
+			}
 		}
 	}
-	return s.txRepository.SaveAll(txList)
+	err = s.txRepository.SaveAll(txList)
+	helpers.HandleError(err)
+
+	err = s.SaveAllTxOutputs(txList)
+	helpers.HandleError(err)
+	return err
+}
+
+func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
+	var list []*models.TransactionOutput
+	for _, tx := range txList {
+		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
+			continue
+		}
+		if tx.ID == 0 {
+			return errors.New("no transaction id")
+		}
+		if tx.Type == models.TxTypeSend {
+			to := tx.Data["to"]
+			if to == "" {
+				return errors.New("empty receiver of transaction")
+			}
+			txTo := []rune(tx.Data["to"])
+			toId, err := s.addressRepository.FindIdOrCreate(string(txTo[2:]))
+			coinID, err := s.coinRepository.FindIdBySymbol(tx.Data["coin"])
+			helpers.HandleError(err)
+			list = append(list, &models.TransactionOutput{
+				TransactionID: tx.ID,
+				ToAddressID:   toId,
+				CoinID:        coinID,
+				Value:         tx.Data["value"],
+			})
+		}
+
+		if tx.Type == models.TxTypeMultiSend {
+			//TODO: implement
+		}
+	}
+
+	if len(list) > 0 {
+		return s.txRepository.SaveAllTxOutput(list)
+	}
+
+	return nil
 }
