@@ -33,6 +33,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		return nil
 	}
 	var txList []*models.Transaction
+	//var invalidTxList []*models.InvalidTransaction //TODO: don't forget about
 
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
@@ -98,20 +99,36 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if to == "" {
 				return errors.New("empty receiver of transaction")
 			}
-			txTo := []rune(tx.Data["to"])
+			txTo := []rune(tx.Data["to"].(string))
 			toId, err := s.addressRepository.FindIdOrCreate(string(txTo[2:]))
-			coinID, err := s.coinRepository.FindIdBySymbol(tx.Data["coin"])
+			helpers.HandleError(err)
+			coinID, err := s.coinRepository.FindIdBySymbol(tx.Data["coin"].(string))
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         tx.Data["value"],
+				Value:         tx.Data["value"].(string),
 			})
 		}
 
 		if tx.Type == models.TxTypeMultiSend {
-			//TODO: implement
+			// TODO: refactoring: too much cast
+			data := tx.Data["list"].([]interface{})
+			for _, r := range data {
+				receiver := r.(map[string]interface{})
+				txTo := []rune(receiver["to"].(string))
+				toId, err := s.addressRepository.FindIdOrCreate(string(txTo[2:]))
+				helpers.HandleError(err)
+				coinID, err := s.coinRepository.FindIdBySymbol(receiver["coin"].(string))
+				helpers.HandleError(err)
+				list = append(list, &models.TransactionOutput{
+					TransactionID: tx.ID,
+					ToAddressID:   toId,
+					CoinID:        coinID,
+					Value:         receiver["value"].(string),
+				})
+			}
 		}
 	}
 

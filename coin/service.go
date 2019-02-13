@@ -25,13 +25,13 @@ func (s Service) CreateFromTx(tx responses.Transaction) error {
 		return errors.New("no data for creating a coin")
 	}
 	data := *tx.Data
-	name := data["name"]
-	symbol := data["symbol"]
-	initialAmount := data["initial_amount"]
-	initialReserve := data["initial_reserve"]
+	name := data["name"].(string)
+	symbol := data["symbol"].(string)
+	initialAmount := data["initial_amount"].(string)
+	initialReserve := data["initial_reserve"].(string)
 	txFrom := []rune(tx.From)
 	fromId, err := s.addressRepository.FindIdOrCreate(string(txFrom[2:]))
-	crr, err := strconv.ParseUint(data["constant_reserve_ratio"], 10, 64)
+	crr, err := strconv.ParseUint(data["constant_reserve_ratio"].(string), 10, 64)
 	if err != nil {
 		return err
 	}

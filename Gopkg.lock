@@ -2,15 +2,15 @@
 
 
 [[projects]]
-  digest = "1:440d480fda46aeac986f9a20ba6757df1b1be814a9adfc9cde62e96fd13355c3"
+  digest = "1:e3c0bca7517fdc3b5c13fc5ea1403ac21c51818270a8d4caf9888fb6c2c388c7"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "95f888bec913fec8433a80aa001585d90800d6a4"
-  version = "1.2.7"
+  revision = "fcaa4a2a232ac2d48a618120e4492799702cc60d"
+  version = "v1.2.10"
 
 [[projects]]
   digest = "1:139709b3b4eab483f24d2ef792e296502dd2a129fef6c5055aef7f9b07f87797"
@@ -44,7 +44,7 @@
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "193df9c0f06f8bb35fba505183eaf0acc0136505"
+  revision = "74369b46fc6756741c016591724fd1cb8e26845f"
 
 [[projects]]
   digest = "1:999d566ad1ae4303c456af5a155f7b42401cca4fd33552567ed9dd997b107a08"
