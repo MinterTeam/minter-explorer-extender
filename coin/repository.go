@@ -30,7 +30,6 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	err := r.db.Model(&coin).
 		Where("symbol = ?symbol").
 		Where("deleted_at_block_id isnull").
-		OnConflict("DO NOTHING").
 		Select()
 
 	if err != nil {
@@ -42,6 +41,9 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 
 func (r Repository) Create(c *models.Coin) error {
 	err := r.db.Insert(c)
+	if err != nil {
+		return err
+	}
 	r.cache.Store(c.Symbol, c.ID)
-	return err
+	return nil
 }

@@ -31,6 +31,9 @@ func (s Service) CreateFromTx(tx responses.Transaction) error {
 	initialReserve := data["initial_reserve"].(string)
 	txFrom := []rune(tx.From)
 	fromId, err := s.addressRepository.FindIdOrCreate(string(txFrom[2:]))
+	if err != nil {
+		return err
+	}
 	crr, err := strconv.ParseUint(data["constant_reserve_ratio"].(string), 10, 64)
 	if err != nil {
 		return err

@@ -59,8 +59,11 @@ func (r *Repository) SaveAllIfNotExist(validators []*models.Validator) error {
 		return nil
 	}
 	err := r.db.Insert(args...)
+	if err != nil {
+		return err
+	}
 	r.addToCache(validators)
-	return err
+	return nil
 }
 
 // Find validators by PK
