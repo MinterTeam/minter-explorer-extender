@@ -12,3 +12,22 @@
 The official repository of Minter Explorer Extender service.
 
 _NOTE: This project in active development stage so feel free to send us questions, issues, and wishes_
+
+
+## RUN
+
+Use flags or environment variables to run service. Flags have higher priority
+
+| Flag        | Environment           | Description       |
+|:------------|:----------------------|:------------------|
+| db_name     | EXPLORER_DB_NAME      | Name of database  |
+| db_user     | EXPLORER_DB_USER      | Database user     |
+| db_password | EXPLORER_DB_PASSWORD  | Database password |
+| node_api    | MINTER_NODE_API       | Minter node url   |
+
+
+Examples:
+
+./extender -db_password=password -db_user=minter -db_name=explorer -node_api=http://127.0.0.1:8841
+
+EXPLORER_DB_PASSWORD=password EXPLORER_DB_USER=minter EXPLORER_DB_NAME=explorer MINTER_NODE_API=http://127.0.0.1:8841 ./extender

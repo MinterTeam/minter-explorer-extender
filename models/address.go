@@ -7,11 +7,11 @@ type Address struct {
 	Address             string                `json:"address" sql:",unique; type:varchar(64)"`
 	UpdatedAtBlockId    uint64                `json:"updated_at_block_id"`
 	UpdatedAt           time.Time             `json:"updated_at"`
-	Balances            []*Balance            `json:"balances"`             //relation has many to Balances
-	Rewards             []*Reward             `json:"rewards"`              //relation has many to Rewards
-	Slashes             []*Slash              `json:"slashes"`              //relation has many to Slashes
-	Transactions        []*Transaction        `json:"transactions"`         //relation has many to Transactions
-	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions"` //relation has many to InvalidTransactions
+	Balances            []*Balance            `json:"balances"`                                     //relation has many to Balances
+	Rewards             []*Reward             `json:"rewards"`                                      //relation has many to Rewards
+	Slashes             []*Slash              `json:"slashes"`                                      //relation has many to Slashes
+	Transactions        []*Transaction        `json:"transactions" pg:"fk:from_address_id"`         //relation has many to Transactions
+	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions" pg:"fk:from_address_id"` //relation has many to InvalidTransactions
 }
 
 // Return address with prefix

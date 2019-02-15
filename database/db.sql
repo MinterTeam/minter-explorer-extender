@@ -156,11 +156,11 @@ CREATE TABLE public.block_validator (
 
 CREATE TABLE public.blocks (
     id integer NOT NULL,
-    total_txs bigint NOT NULL,
+    total_txs bigint NOT NULL DEFAULT 0,
     size bigint NOT NULL,
     proposer_validator_id integer NOT NULL,
-    num_txs integer NOT NULL,
-    block_time integer NOT NULL,
+    num_txs integer NOT NULL DEFAULT 0,
+    block_time bigint NOT NULL,
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     block_reward numeric(70,0) NOT NULL,
