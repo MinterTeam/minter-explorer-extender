@@ -49,6 +49,26 @@ type SendTxData struct {
 	Value string `json:"value"`
 }
 
+type SellCoinTxData struct {
+	CoinToSell        string `json:"coin_to_sell"`
+	ValueToSell       string `json:"value_to_sell"`
+	CoinToBuy         string `json:"coin_to_buy"`
+	MinimumValueToBuy string `json:"minimum_value_to_buy"`
+}
+
+type SellAllCoinTxData struct {
+	CoinToSell        string `json:"coin_to_sell"`
+	CoinToBuy         string `json:"coin_to_buy"`
+	MinimumValueToBuy string `json:"minimum_value_to_buy"`
+}
+
+type BuyCoinTxData struct {
+	CoinToBuy          string `json:"coin_to_buy"`
+	ValueToBuy         string `json:"value_to_buy"`
+	CoinToSell         string `json:"coin_to_sell"`
+	MaximumValueToSell string `json:"maximum_value_to_sell"`
+}
+
 type CreateCoinTxData struct {
 	Name                 string `json:"name"`
 	Symbol               string `json:"symbol"`
@@ -57,8 +77,45 @@ type CreateCoinTxData struct {
 	ConstantReserveRatio string `json:"constant_reserve_ratio"`
 }
 
-type MultiSendTxData struct {
-	List []SendTxData `json:"list"`
+type DeclareCandidacyTxData struct {
+	Address    string `json:"address"`
+	PubKey     string `json:"pub_key"`
+	Commission string `json:"commission"`
+	Coin       string `json:"coin"`
+	Stake      string `json:"stake"`
+}
+
+type DelegateTxData struct {
+	PubKey string `json:"pub_key"`
+	Coin   string `json:"coin"`
+	Stake  string `json:"stake"`
+}
+
+type UnbondTxData struct {
+	PubKey string `json:"pub_key"`
+	Coin   string `json:"coin"`
+	Value  string `json:"value"`
+}
+
+type RedeemCheckTxData struct {
+	RawCheck string `json:"raw_check"`
+	Proof    string `json:"proof"`
+}
+
+type SetCandidateTxData struct {
+	PubKey string `json:"pub_key"`
+}
+
+type EditCandidateTxData struct {
+	PubKey        string `json:"pub_key"`
+	RewardAddress string `json:"reward_address"`
+	OwnerAddress  string `json:"owner_address"`
+}
+
+type MultiSendTxData []struct {
+	Coin    string `json:"coin"`
+	Address string `json:"address"`
+	Value   string `json:"value"`
 }
 
 //Return fee for transaction
