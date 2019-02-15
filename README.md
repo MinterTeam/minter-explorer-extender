@@ -18,12 +18,13 @@ _NOTE: This project in active development stage so feel free to send us question
 
 Use flags or environment variables to run service. Flags have higher priority
 
-| Flag        | Environment           | Description       |
-|:------------|:----------------------|:------------------|
-| db_name     | EXPLORER_DB_NAME      | Name of database  |
-| db_user     | EXPLORER_DB_USER      | Database user     |
-| db_password | EXPLORER_DB_PASSWORD  | Database password |
-| node_api    | MINTER_NODE_API       | Minter node url   |
+| Flag          | Environment           | Description             |
+|:--------------|:----------------------|:------------------------|
+| db_name       | EXPLORER_DB_NAME      | Name of database        |
+| db_user       | EXPLORER_DB_USER      | Database user           |
+| db_password   | EXPLORER_DB_PASSWORD  | Database password       |
+| node_api      | MINTER_NODE_API       | Minter node url         |
+| tx_chunk_size | -                     | Transactions chunk  ize |
 
 
 Examples:

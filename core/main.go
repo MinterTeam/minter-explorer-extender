@@ -18,13 +18,15 @@ import (
 )
 
 type ExtenderEnvironment struct {
-	DbName     string
-	DbUser     string
-	DbPassword string
-	NodeApi    string
+	DbName      string
+	DbUser      string
+	DbPassword  string
+	NodeApi     string
+	TxChunkSize int
 }
 
 type Extender struct {
+	env                 *ExtenderEnvironment
 	nodeApi             *minter_node_api.MinterNodeApi
 	blockService        *block.Service
 	addressService      *address.Service
@@ -59,6 +61,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 	coinService := coin.NewService(coinRepository, addressRepository)
 
 	return &Extender{
+		env:                 env,
 		nodeApi:             minter_node_api.New(env.NodeApi),
 		blockRepository:     blockRepository,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
@@ -114,13 +117,25 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	err = ext.linkBlockValidator(response)
 	helpers.HandleError(err)
 
+	//TODO: refactoring
 	if response.Result.TxCount != "0" {
-		// Search and save addresses from block
-		err = ext.addressService.HandleTransactionsFromBlockResponse(response.Result.Transactions)
+		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 		helpers.HandleError(err)
-		// Save transactions
-		err = ext.transactionService.HandleBlockResponse(response)
-		helpers.HandleError(err)
+		if len(response.Result.Transactions) > ext.env.TxChunkSize {
+			var divided [][]responses.Transaction
+			for i := 0; i < len(response.Result.Transactions); i += ext.env.TxChunkSize {
+				end := i + ext.env.TxChunkSize
+				if end > len(response.Result.Transactions) {
+					end = len(response.Result.Transactions)
+				}
+				divided = append(divided, response.Result.Transactions[i:end])
+			}
+			for _, chunk := range divided {
+				go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
+			}
+		} else {
+			go ext.saveAddressesAndTransactions(height, response.Result.Time, response.Result.Transactions)
+		}
 	}
 }
 
@@ -147,4 +162,13 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 		return err
 	}
 	return nil
+}
+
+func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
+	// Search and save addresses from block
+	err := ext.addressService.HandleTransactionsFromBlockResponse(transactions)
+	helpers.HandleError(err)
+	// Save transactions
+	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
+	helpers.HandleError(err)
 }

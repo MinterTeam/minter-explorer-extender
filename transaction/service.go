@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/daniildulin/minter-node-api/responses"
 	"strconv"
+	"time"
 )
 
 type Service struct {
@@ -30,14 +31,11 @@ func NewService(repository *Repository, addressRepository *address.Repository, c
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
+func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) error {
 	var txList []*models.Transaction
 	//var invalidTxList []*models.InvalidTransaction //TODO: don't forget about
 
-	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
-	helpers.HandleError(err)
-
-	for _, tx := range response.Result.Transactions {
+	for _, tx := range transactions {
 		txFrom := []rune(tx.From)
 		fromId, err := s.addressRepository.FindId(string(txFrom[2:]))
 		helpers.HandleError(err)
@@ -60,12 +58,12 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		if tx.Log == nil {
 			t := &models.Transaction{
 				FromAddressID: fromId,
-				BlockID:       height,
+				BlockID:       blockHeight,
 				Nonce:         nonce,
 				GasPrice:      gasPrice,
 				Gas:           gas,
 				GasCoinID:     gasCoin,
-				CreatedAt:     response.Result.Time,
+				CreatedAt:     blockCreatedAt,
 				Type:          tx.Type,
 				Hash:          string(hash[2:]),
 				ServiceData:   tx.ServiceData,
@@ -81,7 +79,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 			}
 		}
 	}
-	err = s.txRepository.SaveAll(txList)
+	err := s.txRepository.SaveAll(txList)
 	helpers.HandleError(err)
 	err = s.SaveAllTxOutputs(txList)
 	helpers.HandleError(err)
