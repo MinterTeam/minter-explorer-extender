@@ -13,6 +13,7 @@ import (
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/go-pg/pg"
 	"log"
+	"math"
 	"strconv"
 	"time"
 )
@@ -108,33 +109,34 @@ func (ext *Extender) Run() {
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
-	//Save validators if not exist
+	// Save validators if not exist
 	err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
-	//Save block
+	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	helpers.HandleError(err)
 	err = ext.linkBlockValidator(response)
 	helpers.HandleError(err)
 
-	//TODO: refactoring
 	if response.Result.TxCount != "0" {
 		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 		helpers.HandleError(err)
-		if len(response.Result.Transactions) > ext.env.TxChunkSize {
-			var divided [][]responses.Transaction
-			for i := 0; i < len(response.Result.Transactions); i += ext.env.TxChunkSize {
-				end := i + ext.env.TxChunkSize
-				if end > len(response.Result.Transactions) {
-					end = len(response.Result.Transactions)
-				}
-				divided = append(divided, response.Result.Transactions[i:end])
+
+		chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
+		chunks := make([][]responses.Transaction, chunksCount)
+
+		for i := 0; i < chunksCount; i++ {
+			start := ext.env.TxChunkSize * i
+			end := start + ext.env.TxChunkSize
+			if end > len(response.Result.Transactions) {
+				end = len(response.Result.Transactions)
 			}
-			for _, chunk := range divided {
-				go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
-			}
-		} else {
-			go ext.saveAddressesAndTransactions(height, response.Result.Time, response.Result.Transactions)
+
+			chunks[i] = response.Result.Transactions[start:end]
+		}
+
+		for _, chunk := range chunks {
+			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
 		}
 	}
 }
