@@ -25,10 +25,9 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	if ok {
 		return id.(uint64), nil
 	}
-
-	coin := models.Coin{Symbol: symbol}
-	err := r.db.Model(&coin).
-		Where("symbol = ?symbol").
+	coin := new(models.Coin)
+	err := r.db.Model(coin).
+		Where("symbol = ?", symbol).
 		Where("deleted_at_block_id isnull").
 		Select()
 
@@ -39,7 +38,7 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	return coin.ID, nil
 }
 
-func (r Repository) Create(c *models.Coin) error {
+func (r Repository) Save(c *models.Coin) error {
 	err := r.db.Insert(c)
 	if err != nil {
 		return err
