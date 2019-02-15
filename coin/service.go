@@ -33,33 +33,30 @@ func (s Service) CreateFromTx(tx responses.Transaction) error {
 	if tx.Data == nil {
 		return errors.New("no data for creating a coin")
 	}
-
-	// TODO: refactor
-	var data CreateCoinData
+	var txData models.CreateCoinTxData
 	jsonData, err := json.Marshal(*tx.Data)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(jsonData, &data)
+	err = json.Unmarshal(jsonData, &txData)
 	if err != nil {
 		return err
 	}
-
 	txFrom := []rune(tx.From)
-	fromId, err := s.addressRepository.FindIdOrCreate(string(txFrom[2:]))
+	fromId, err := s.addressRepository.FindId(string(txFrom[2:]))
 	if err != nil {
 		return err
 	}
-	crr, err := strconv.ParseUint(data.Crr, 10, 64)
+	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
 	if err != nil {
 		return err
 	}
-	return s.repository.Create(&models.Coin{
+	return s.repository.Save(&models.Coin{
 		CreationAddressID: fromId,
 		Crr:               crr,
-		Volume:            data.InitialAmount,
-		ReserveBalance:    data.InitialReserve,
-		Name:              data.Name,
-		Symbol:            data.Symbol,
+		Volume:            txData.InitialAmount,
+		ReserveBalance:    txData.InitialReserve,
+		Name:              txData.Name,
+		Symbol:            txData.Symbol,
 	})
 }

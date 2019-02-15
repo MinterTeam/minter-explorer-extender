@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
@@ -29,9 +31,6 @@ func NewService(repository *Repository, addressRepository *address.Repository, c
 
 //Handle response and save block to DB
 func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
-	if response.Result.TxCount == "0" {
-		return nil
-	}
 	var txList []*models.Transaction
 	//var invalidTxList []*models.InvalidTransaction //TODO: don't forget about
 
@@ -40,9 +39,9 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 
 	for _, tx := range response.Result.Transactions {
 		txFrom := []rune(tx.From)
-		fromId, err := s.addressRepository.FindIdOrCreate(string(txFrom[2:]))
+		fromId, err := s.addressRepository.FindId(string(txFrom[2:]))
 		helpers.HandleError(err)
-		hash := []rune(tx.From)
+		hash := []rune(tx.Hash)
 		nonce, err := strconv.ParseUint(tx.Nonce, 10, 64)
 		helpers.HandleError(err)
 		gasPrice, err := strconv.ParseUint(tx.GasPrice, 10, 64)
@@ -51,7 +50,12 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		helpers.HandleError(err)
 		gasCoin, err := s.coinRepository.FindIdBySymbol(tx.GasCoin)
 		helpers.HandleError(err)
-		rawTx, err := json.Marshal(tx)
+		txData, err := json.Marshal(*tx.Data)
+		helpers.HandleError(err)
+		payload, err := base64.StdEncoding.DecodeString(tx.Payload)
+		helpers.HandleError(err)
+		rawTxData := make([]byte, hex.DecodedLen(len(tx.RawTx)))
+		rawTx, err := hex.Decode(rawTxData, []byte(tx.RawTx))
 		helpers.HandleError(err)
 		if tx.Log == nil {
 			t := &models.Transaction{
@@ -65,10 +69,10 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 				Type:          tx.Type,
 				Hash:          string(hash[2:]),
 				ServiceData:   tx.ServiceData,
-				Data:          *tx.Data,
+				Data:          txData,
 				Tags:          *tx.Tags,
-				Payload:       []byte(tx.Payload),
-				RawTx:         rawTx,
+				Payload:       payload,
+				RawTx:         rawTxData[:rawTx],
 			}
 			txList = append(txList, t)
 			if t.Type == models.TxTypeCreateCoin {
@@ -79,7 +83,6 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	}
 	err = s.txRepository.SaveAll(txList)
 	helpers.HandleError(err)
-
 	err = s.SaveAllTxOutputs(txList)
 	helpers.HandleError(err)
 	return err
@@ -95,46 +98,49 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			return errors.New("no transaction id")
 		}
 		if tx.Type == models.TxTypeSend {
-			to := tx.Data["to"]
-			if to == "" {
+			var txData models.SendTxData
+			err := json.Unmarshal(tx.Data, &txData)
+			if err != nil {
+				return err
+			}
+			if txData.To == "" {
 				return errors.New("empty receiver of transaction")
 			}
-			txTo := []rune(tx.Data["to"].(string))
-			toId, err := s.addressRepository.FindIdOrCreate(string(txTo[2:]))
+			txTo := []rune(txData.To)
+			toId, err := s.addressRepository.FindId(string(txTo[2:]))
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(tx.Data["coin"].(string))
+			coinID, err := s.coinRepository.FindIdBySymbol(txData.Coin)
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         tx.Data["value"].(string),
+				Value:         txData.Value,
 			})
 		}
-
 		if tx.Type == models.TxTypeMultiSend {
-			// TODO: refactoring: too much cast
-			data := tx.Data["list"].([]interface{})
-			for _, r := range data {
-				receiver := r.(map[string]interface{})
-				txTo := []rune(receiver["to"].(string))
-				toId, err := s.addressRepository.FindIdOrCreate(string(txTo[2:]))
+			var txData models.MultiSendTxData
+			err := json.Unmarshal(tx.Data, &txData)
+			if err != nil {
+				return err
+			}
+			for _, receiver := range txData {
+				txTo := []rune(receiver.Address)
+				toId, err := s.addressRepository.FindId(string(txTo[2:]))
 				helpers.HandleError(err)
-				coinID, err := s.coinRepository.FindIdBySymbol(receiver["coin"].(string))
+				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
 				helpers.HandleError(err)
 				list = append(list, &models.TransactionOutput{
 					TransactionID: tx.ID,
 					ToAddressID:   toId,
 					CoinID:        coinID,
-					Value:         receiver["value"].(string),
+					Value:         receiver.Value,
 				})
 			}
 		}
 	}
-
 	if len(list) > 0 {
-		return s.txRepository.SaveAllTxOutput(list)
+		return s.txRepository.SaveAllTxOutputs(list)
 	}
-
 	return nil
 }

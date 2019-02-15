@@ -27,10 +27,11 @@ type ExtenderEnvironment struct {
 type Extender struct {
 	nodeApi             *minter_node_api.MinterNodeApi
 	blockService        *block.Service
+	addressService      *address.Service
 	blockRepository     *block.Repository
 	validatorService    *validator.Service
-	validatorRepository *validator.Repository
 	transactionService  *transaction.Service
+	validatorRepository *validator.Repository
 }
 
 type dbLogger struct{}
@@ -64,6 +65,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		validatorService:    validator.NewService(validatorRepository),
 		validatorRepository: validatorRepository,
 		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
+		addressService:      address.NewService(addressRepository),
 	}
 }
 
@@ -103,20 +105,23 @@ func (ext *Extender) Run() {
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
-	//Save block
-	err := ext.blockService.HandleBlockResponse(response)
-	helpers.HandleError(err)
-
 	//Save validators if not exist
-	err = ext.validatorService.HandleBlockResponse(response)
+	err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
-
+	//Save block
+	err = ext.blockService.HandleBlockResponse(response)
+	helpers.HandleError(err)
 	err = ext.linkBlockValidator(response)
 	helpers.HandleError(err)
 
-	// Save transactions
-	err = ext.transactionService.HandleBlockResponse(response)
-	helpers.HandleError(err)
+	if response.Result.TxCount != "0" {
+		// Search and save addresses from block
+		err = ext.addressService.HandleTransactionsFromBlockResponse(response.Result.Transactions)
+		helpers.HandleError(err)
+		// Save transactions
+		err = ext.transactionService.HandleBlockResponse(response)
+		helpers.HandleError(err)
+	}
 }
 
 func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error {
@@ -129,7 +134,7 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 
 	for _, v := range response.Result.Validators {
 		pk := []rune(v.PubKey)
-		vId, err := ext.validatorRepository.FindIdOrCreateByPk(string(pk[2:]))
+		vId, err := ext.validatorRepository.FindIdByPk(string(pk[2:]))
 		if err != nil {
 			log.Println(err)
 			continue

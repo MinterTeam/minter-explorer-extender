@@ -18,19 +18,15 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-//Find address id or create if not exist
-func (r *Repository) FindIdOrCreate(address string) (uint64, error) {
+//Find address id
+func (r *Repository) FindId(address string) (uint64, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(address)
 	if ok {
 		return id.(uint64), nil
 	}
-
-	a := models.Address{Address: address}
-	_, err := r.db.Model(&a).
-		Where("address = ?address").
-		OnConflict("DO NOTHING").
-		SelectOrInsert()
+	a := new(models.Address)
+	err := r.db.Model(a).Where("address = ?", address).Select(a)
 	if err != nil {
 		return 0, err
 	}
@@ -38,38 +34,41 @@ func (r *Repository) FindIdOrCreate(address string) (uint64, error) {
 	return a.ID, nil
 }
 
-func (r *Repository) FindOrCreateAll(addresses []string) ([]*models.Address, error) {
-	var args []interface{}
-
-	// Search in DB (use for update cache)
-	result, _ := r.FindAll(addresses)
-
-	for _, a := range addresses {
-		_, exist := r.cache.Load(a)
-		if !exist {
-			args = append(args, &models.Address{Address: a})
-		}
-	}
-
-	// if all addresses exists return it
-	if len(args) == 0 {
-		return result, nil
-	}
-
-	// create new addresses
-	err := r.db.Insert(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.FindAll(addresses)
-}
-
 func (r *Repository) FindAll(addresses []string) ([]*models.Address, error) {
 	var aList []*models.Address
 	err := r.db.Model(&aList).Where(`address in (?)`, pg.In(addresses)).Select()
+	if err != nil {
+		return nil, err
+	}
 	r.addToCache(aList)
 	return aList, err
+}
+
+func (r Repository) SaveAllIfNotExist(addresses []string) error {
+	// if all addresses exists in cache do nothing
+	if r.isAllAddressesInCache(addresses) {
+		return nil
+	}
+	var args []interface{}
+	var aList []*models.Address // need for cache update after insert
+	_, _ = r.FindAll(addresses) //use for update cache
+	for _, a := range addresses {
+		_, exist := r.cache.Load(a)
+		if !exist {
+			address := &models.Address{Address: a}
+			args = append(args, address)
+			aList = append(aList, address)
+		}
+	}
+	// if all addresses do nothing
+	if len(args) == 0 {
+		return nil
+	}
+	err := r.db.Insert(args...)
+	if err != nil {
+		r.addToCache(aList)
+	}
+	return err
 }
 
 func (r *Repository) addToCache(addresses []*models.Address) {
@@ -79,4 +78,14 @@ func (r *Repository) addToCache(addresses []*models.Address) {
 			r.cache.Store(a.Address, a.ID)
 		}
 	}
+}
+
+func (r *Repository) isAllAddressesInCache(addresses []string) bool {
+	for _, a := range addresses {
+		_, exist := r.cache.Load(a)
+		if !exist {
+			return false
+		}
+	}
+	return true
 }

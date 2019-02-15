@@ -19,20 +19,15 @@ func NewRepository(db *pg.DB) *Repository {
 }
 
 //Find validator with public key.
-//Create if not exist
 //Return Validator ID
-func (r *Repository) FindIdOrCreateByPk(pk string) (uint64, error) {
+func (r *Repository) FindIdByPk(pk string) (uint64, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(pk)
 	if ok {
 		return id.(uint64), nil
 	}
-
-	validator := models.Validator{PublicKey: pk}
-	_, err := r.db.Model(&validator).
-		Where("public_key = ?public_key").
-		OnConflict("DO NOTHING").
-		SelectOrInsert()
+	validator := new(models.Validator)
+	err := r.db.Model(validator).Where("public_key = ?", pk).Select()
 	if err != nil {
 		return 0, err
 	}
@@ -42,11 +37,12 @@ func (r *Repository) FindIdOrCreateByPk(pk string) (uint64, error) {
 
 // Save list of validators if not exist
 func (r *Repository) SaveAllIfNotExist(validators []*models.Validator) error {
+	if r.isAllAddressesInCache(validators) {
+		return nil
+	}
 	var args []interface{}
-
 	// Search in DB (use for update cache)
 	_, _ = r.FindAllByPK(validators)
-
 	// look PK in cache
 	for _, v := range validators {
 		_, exist := r.cache.Load(v.PublicKey)
@@ -87,4 +83,15 @@ func (r *Repository) addToCache(validators []*models.Validator) {
 			r.cache.Store(v.PublicKey, v.ID)
 		}
 	}
+}
+
+func (r *Repository) isAllAddressesInCache(validators []*models.Validator) bool {
+	// look PK in cache
+	for _, v := range validators {
+		_, exist := r.cache.Load(v.PublicKey)
+		if !exist {
+			return false
+		}
+	}
+	return true
 }
