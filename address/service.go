@@ -40,8 +40,10 @@ func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.T
 		}
 	}
 	addresses := make([]string, len(mapAddresses))
+	i := 0
 	for a := range mapAddresses {
-		addresses = append(addresses, a)
+		addresses[i] = a
+		i++
 	}
 	return s.repository.SaveAllIfNotExist(addresses)
 }
