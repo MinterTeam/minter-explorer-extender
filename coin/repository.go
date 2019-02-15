@@ -18,7 +18,7 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-//Find address or create if not exist
+// Find coin id by symbol
 func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(symbol)

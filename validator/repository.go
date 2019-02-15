@@ -72,6 +72,9 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 		pkList = append(pkList, v.PublicKey)
 	}
 	err := r.db.Model(&vList).Where("public_key in (?)", pg.In(pkList)).Select()
+	if err != nil {
+		return nil, err
+	}
 	r.addToCache(vList)
 	return vList, err
 }

@@ -126,18 +126,15 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 
 func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error {
 	var links []*models.BlockValidator
-
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	if err != nil {
 		return err
 	}
-
 	for _, v := range response.Result.Validators {
 		pk := []rune(v.PubKey)
 		vId, err := ext.validatorRepository.FindIdByPk(string(pk[2:]))
 		if err != nil {
-			log.Println(err)
-			continue
+			return err
 		}
 		links = append(links, &models.BlockValidator{
 			ValidatorID: vId,
@@ -145,11 +142,9 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 			Signed:      v.Signed,
 		})
 	}
-
 	err = ext.blockRepository.LinkWithValidators(links)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
