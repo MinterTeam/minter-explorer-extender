@@ -112,6 +112,12 @@ type EditCandidateTxData struct {
 	OwnerAddress  string `json:"owner_address"`
 }
 
+type CreateMultisigTxData struct {
+	Threshold string `json:"threshold"`
+	Weights   string `json:"weights"`
+	Addresses string `json:"addresses"`
+}
+
 type MultiSendTxData []struct {
 	Coin    string `json:"coin"`
 	Address string `json:"address"`
