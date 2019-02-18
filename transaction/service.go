@@ -122,8 +122,8 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if err != nil {
 				return err
 			}
-			for _, receiver := range txData {
-				txTo := []rune(receiver.Address)
+			for _, receiver := range txData.List {
+				txTo := []rune(receiver.To)
 				toId, err := s.addressRepository.FindId(string(txTo[2:]))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)

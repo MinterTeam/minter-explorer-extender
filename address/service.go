@@ -49,13 +49,28 @@ func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.T
 			if err != nil {
 				return err
 			}
-			for _, receiver := range txData {
-				to := []rune(receiver.Address)
+			for _, receiver := range txData.List {
+				to := []rune(receiver.To)
 				if len(to) > 0 {
 					mapAddresses[string(to[2:])] = struct{}{}
 				}
 			}
 		}
+	}
+	addresses := make([]string, len(mapAddresses))
+	i := 0
+	for a := range mapAddresses {
+		addresses[i] = a
+		i++
+	}
+	return s.repository.SaveAllIfNotExist(addresses)
+}
+
+func (s *Service) HandleEventsResponse(response *responses.EventsResponse) error {
+	var mapAddresses = make(map[string]struct{}) //use as unique array
+	for _, event := range response.Result.Events {
+		a := []rune(event.Value.Address)
+		mapAddresses[string(a[2:])] = struct{}{}
 	}
 	addresses := make([]string, len(mapAddresses))
 	i := 0
