@@ -28,9 +28,9 @@ func NewService(repository *Repository, validatorRepository *validator.Repositor
 //Handle response and save block to DB
 func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.EventsResponse) error {
 	var (
-		rewardsMap = make(map[string]*models.Reward)
-		slashes    []*models.Slash
-		err        error
+		rewards []*models.Reward
+		slashes []*models.Slash
+		err     error
 	)
 
 	for _, event := range response.Result.Events {
@@ -46,21 +46,14 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 
 		switch event.Type {
 		case models.RewardEvent:
-			if rewardsMap[event.Value.Address] == nil {
-				rewardsMap[event.Value.Address] = &models.Reward{
-					BlockID:     blockHeight,
-					Role:        event.Value.Role,
-					Amount:      event.Value.Amount,
-					AddressID:   addressId,
-					ValidatorID: validatorId,
-				}
-				continue
-			}
 
-			rewardsMap[event.Value.Address].Amount, err = helpers.BigAddStrings(rewardsMap[event.Value.Address].Amount, event.Value.Amount)
-			if err != nil {
-				return err
-			}
+			rewards = append(rewards, &models.Reward{
+				BlockID:     blockHeight,
+				Role:        event.Value.Role,
+				Amount:      event.Value.Amount,
+				AddressID:   addressId,
+				ValidatorID: validatorId,
+			})
 
 		case models.SlashEvent:
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
@@ -78,13 +71,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 		}
 	}
 
-	if len(rewardsMap) > 0 {
-		rewards := make([]*models.Reward, len(rewardsMap))
-		i := 0
-		for _, reward := range rewardsMap {
-			rewards[i] = reward
-			i++
-		}
+	if len(rewards) > 0 {
 		err = s.repository.SaveRewards(rewards)
 		if err != nil {
 			return err
