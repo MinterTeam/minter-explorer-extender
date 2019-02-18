@@ -119,10 +119,8 @@ type CreateMultisigTxData struct {
 	Addresses []string `json:"addresses"`
 }
 
-type MultiSendTxData []struct {
-	Coin    string `json:"coin"`
-	Address string `json:"address"`
-	Value   string `json:"value"`
+type MultiSendTxData struct {
+	List []SendTxData `json:"list"`
 }
 
 //Return fee for transaction

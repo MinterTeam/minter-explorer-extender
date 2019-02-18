@@ -52,12 +52,13 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 					AddressID:   addressId,
 					ValidatorID: validatorId,
 				}
-			} else {
-				rewardsMap[event.Value.Address].Amount, err = helpers.BigAddStrings(rewardsMap[event.Value.Address].Amount, event.Value.Amount)
-				if err != nil {
-					return err
-				}
+				continue
 			}
+			rewardsMap[event.Value.Address].Amount, err = helpers.BigAddStrings(rewardsMap[event.Value.Address].Amount, event.Value.Amount)
+			if err != nil {
+				return err
+			}
+
 		} else if event.Type == models.SlashEvent {
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
 			if err != nil {
