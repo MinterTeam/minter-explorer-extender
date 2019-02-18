@@ -36,10 +36,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 	//var invalidTxList []*models.InvalidTransaction //TODO: don't forget about
 
 	for _, tx := range transactions {
-		txFrom := []rune(tx.From)
-		fromId, err := s.addressRepository.FindId(string(txFrom[2:]))
+		fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 		helpers.HandleError(err)
-		hash := []rune(tx.Hash)
 		nonce, err := strconv.ParseUint(tx.Nonce, 10, 64)
 		helpers.HandleError(err)
 		gasPrice, err := strconv.ParseUint(tx.GasPrice, 10, 64)
@@ -65,7 +63,7 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				GasCoinID:     gasCoin,
 				CreatedAt:     blockCreatedAt,
 				Type:          tx.Type,
-				Hash:          string(hash[2:]),
+				Hash:          helpers.RemovePrefix(tx.Hash),
 				ServiceData:   tx.ServiceData,
 				Data:          txData,
 				Tags:          *tx.Tags,
@@ -104,8 +102,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if txData.To == "" {
 				return errors.New("empty receiver of transaction")
 			}
-			txTo := []rune(txData.To)
-			toId, err := s.addressRepository.FindId(string(txTo[2:]))
+			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(txData.To))
 			helpers.HandleError(err)
 			coinID, err := s.coinRepository.FindIdBySymbol(txData.Coin)
 			helpers.HandleError(err)
@@ -123,8 +120,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 			for _, receiver := range txData.List {
-				txTo := []rune(receiver.To)
-				toId, err := s.addressRepository.FindId(string(txTo[2:]))
+				toId, err := s.addressRepository.FindId(helpers.RemovePrefix(receiver.To))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
 				helpers.HandleError(err)

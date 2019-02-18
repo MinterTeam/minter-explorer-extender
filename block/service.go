@@ -40,8 +40,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	helpers.HandleError(err)
 	size, err := strconv.ParseUint(response.Result.Size, 10, 64)
 	helpers.HandleError(err)
-	proposerPk := []rune(response.Result.Proposer)
-	proposerId, err := s.validatorRepository.FindIdByPk(string(proposerPk[2:]))
+	proposerId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Result.Proposer))
 	helpers.HandleError(err)
 	block := &models.Block{
 		ID:                  height,

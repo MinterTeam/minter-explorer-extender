@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
+	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/daniildulin/minter-node-api/responses"
@@ -35,13 +36,11 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 	)
 
 	for _, event := range response.Result.Events {
-		a := []rune(event.Value.Address)
-		addressId, err := s.addressRepository.FindId(string(a[2:]))
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value.Address))
 		if err != nil {
 			return err
 		}
-		v := []rune(event.Value.ValidatorPubKey)
-		validatorId, err := s.validatorRepository.FindIdByPk(string(v[2:]))
+		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value.ValidatorPubKey))
 		if err != nil {
 			return err
 		}

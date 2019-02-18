@@ -178,8 +178,8 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 		return err
 	}
 	for _, v := range response.Result.Validators {
-		pk := []rune(v.PubKey)
-		vId, err := ext.validatorRepository.FindIdByPk(string(pk[2:]))
+		vId, err := ext.validatorRepository.FindIdByPk(
+			helpers.RemovePrefix(v.PubKey))
 		if err != nil {
 			return err
 		}
