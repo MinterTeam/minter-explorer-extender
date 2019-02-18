@@ -1,5 +1,7 @@
 package models
 
+const RewardEvent = "minter/RewardEvent"
+
 type Reward struct {
 	BlockID     uint64 `json:"block_id"     sql:",pk"`
 	AddressID   uint64 `json:"address_id"   sql:",pk"`

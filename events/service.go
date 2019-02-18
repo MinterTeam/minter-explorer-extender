@@ -1,14 +1,12 @@
 package events
 
 import (
-	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/daniildulin/minter-node-api/responses"
-	"math/big"
 )
 
 type Service struct {
@@ -45,7 +43,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			return err
 		}
 
-		if event.Type == "minter/RewardEvent" {
+		if event.Type == models.RewardEvent {
 			if rewardsMap[event.Value.Address] == nil {
 				rewardsMap[event.Value.Address] = &models.Reward{
 					BlockID:     blockHeight,
@@ -55,21 +53,12 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 					ValidatorID: validatorId,
 				}
 			} else {
-				oldAmount := new(big.Int)
-				oldAmount, ok := oldAmount.SetString(rewardsMap[event.Value.Address].Amount, 10)
-				if !ok {
-					return errors.New("error parse reward amount")
+				rewardsMap[event.Value.Address].Amount, err = helpers.BigAddStrings(rewardsMap[event.Value.Address].Amount, event.Value.Amount)
+				if err != nil {
+					return err
 				}
-				amount := new(big.Int)
-				amount, ok = amount.SetString(event.Value.Amount, 10)
-				if !ok {
-					return errors.New("error parse reward amount")
-				}
-
-				amount.Add(amount, oldAmount)
-				rewardsMap[event.Value.Address].Amount = amount.String()
 			}
-		} else if event.Type == "minter/SlashEvent" {
+		} else if event.Type == models.SlashEvent {
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
 			if err != nil {
 				return err
