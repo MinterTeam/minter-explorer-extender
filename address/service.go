@@ -49,8 +49,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.T
 			if err != nil {
 				return err
 			}
-			for _, receiver := range txData {
-				to := []rune(receiver.Address)
+			for _, receiver := range txData.List {
+				to := []rune(receiver.To)
 				if len(to) > 0 {
 					mapAddresses[string(to[2:])] = struct{}{}
 				}
