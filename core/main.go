@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/block"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
+	"github.com/MinterTeam/minter-explorer-extender/events"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/transaction"
@@ -33,8 +34,9 @@ type Extender struct {
 	addressService      *address.Service
 	blockRepository     *block.Repository
 	validatorService    *validator.Service
-	transactionService  *transaction.Service
 	validatorRepository *validator.Repository
+	transactionService  *transaction.Service
+	eventService        *events.Service
 }
 
 type dbLogger struct{}
@@ -54,22 +56,27 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 	})
 	db.AddQueryHook(dbLogger{})
 
+	// Repositories
 	blockRepository := block.NewRepository(db)
 	validatorRepository := validator.NewRepository(db)
 	transactionRepository := transaction.NewRepository(db)
 	addressRepository := address.NewRepository(db)
 	coinRepository := coin.NewRepository(db)
+	eventsRepository := events.NewRepository(db)
+
+	// Services
 	coinService := coin.NewService(coinRepository, addressRepository)
 
 	return &Extender{
 		env:                 env,
 		nodeApi:             minter_node_api.New(env.NodeApi),
-		blockRepository:     blockRepository,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
+		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
+		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(validatorRepository),
-		validatorRepository: validatorRepository,
 		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
 		addressService:      address.NewService(addressRepository),
+		validatorRepository: validatorRepository,
 	}
 }
 
@@ -98,11 +105,26 @@ func (ext *Extender) Run() {
 		elapsed := time.Since(start)
 		log.Println("Pulling block data")
 		log.Printf("Processing time %s", elapsed)
-
+		//Handle block data
 		start = time.Now()
 		ext.handleBlockResponse(resp)
 		elapsed = time.Since(start)
 		log.Println("Handle block")
+		log.Printf("Processing time %s", elapsed)
+
+		// TODO: move to gorutine
+		//Pulling event data
+		start = time.Now()
+		eventsResponse, err := ext.nodeApi.GetBlockEvents(i)
+		helpers.HandleError(err)
+		elapsed = time.Since(start)
+		log.Println("Pulling event data")
+		log.Printf("Processing time %s", elapsed)
+		//Handle event data
+		start = time.Now()
+		ext.handleEventResponse(i, eventsResponse)
+		elapsed = time.Since(start)
+		log.Println("Handle events")
 		log.Printf("Processing time %s", elapsed)
 	}
 
@@ -121,23 +143,31 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	if response.Result.TxCount != "0" {
 		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 		helpers.HandleError(err)
-
 		chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
 		chunks := make([][]responses.Transaction, chunksCount)
-
 		for i := 0; i < chunksCount; i++ {
 			start := ext.env.TxChunkSize * i
 			end := start + ext.env.TxChunkSize
 			if end > len(response.Result.Transactions) {
 				end = len(response.Result.Transactions)
 			}
-
 			chunks[i] = response.Result.Transactions[start:end]
 		}
-
 		for _, chunk := range chunks {
 			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
 		}
+	}
+}
+
+func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses.EventsResponse) {
+	if len(response.Result.Events) > 0 {
+		//TODO: split
+		//Search and save addresses from block
+		err := ext.addressService.HandleEventsResponse(response)
+		helpers.HandleError(err)
+		//Save events
+		err = ext.eventService.HandleEventResponse(blockHeight, response)
+		helpers.HandleError(err)
 	}
 }
 
@@ -148,8 +178,8 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 		return err
 	}
 	for _, v := range response.Result.Validators {
-		pk := []rune(v.PubKey)
-		vId, err := ext.validatorRepository.FindIdByPk(string(pk[2:]))
+		vId, err := ext.validatorRepository.FindIdByPk(
+			helpers.RemovePrefix(v.PubKey))
 		if err != nil {
 			return err
 		}

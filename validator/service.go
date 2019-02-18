@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/daniildulin/minter-node-api/responses"
 )
@@ -19,8 +20,7 @@ func NewService(r *Repository) *Service {
 func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	var validators []*models.Validator
 	for _, v := range response.Result.Validators {
-		pk := []rune(v.PubKey)
-		validators = append(validators, &models.Validator{PublicKey: string(pk[2:])})
+		validators = append(validators, &models.Validator{PublicKey: helpers.RemovePrefix(v.PubKey)})
 	}
 	return s.repository.SaveAllIfNotExist(validators)
 }

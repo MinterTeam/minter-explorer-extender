@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
+	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/daniildulin/minter-node-api/responses"
 	"strconv"
@@ -42,8 +43,7 @@ func (s Service) CreateFromTx(tx responses.Transaction) error {
 	if err != nil {
 		return err
 	}
-	txFrom := []rune(tx.From)
-	fromId, err := s.addressRepository.FindId(string(txFrom[2:]))
+	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return err
 	}

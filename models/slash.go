@@ -1,5 +1,7 @@
 package models
 
+const SlashEvent = "minter/SlashEvent"
+
 type Slash struct {
 	ID          uint64     `json:"id"`
 	CoinID      uint64     `json:"coin_id"`

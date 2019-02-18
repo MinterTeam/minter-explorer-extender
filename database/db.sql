@@ -925,15 +925,6 @@ ALTER TABLE ONLY public.coins
 ALTER TABLE ONLY public.invalid_transactions
     ADD CONSTRAINT invalid_transactions_pkey PRIMARY KEY (id);
 
-
---
--- Name: rewards_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
---
-
-ALTER TABLE ONLY public.rewards
-    ADD CONSTRAINT rewards_pkey PRIMARY KEY (validator_id, address_id, role, block_id);
-
-
 --
 -- Name: slashes_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
 --

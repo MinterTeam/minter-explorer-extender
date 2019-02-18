@@ -46,12 +46,13 @@ func (r *Repository) FindAll(addresses []string) ([]*models.Address, error) {
 
 func (r Repository) SaveAllIfNotExist(addresses []string) error {
 	// if all addresses exists in cache do nothing
-	if r.isAllAddressesInCache(addresses) {
+	loadFromDb := r.checkNotInCache(addresses)
+	if len(loadFromDb) == 0 {
 		return nil
 	}
 	var args []interface{}
-	var aList []*models.Address // need for cache update after insert
-	_, _ = r.FindAll(addresses) //use for update cache
+	var aList []*models.Address  // need for cache update after insert
+	_, _ = r.FindAll(loadFromDb) //use for update cache
 	for _, a := range addresses {
 		_, exist := r.cache.Load(a)
 		if !exist {
@@ -80,12 +81,13 @@ func (r *Repository) addToCache(addresses []*models.Address) {
 	}
 }
 
-func (r *Repository) isAllAddressesInCache(addresses []string) bool {
+func (r *Repository) checkNotInCache(addresses []string) []string {
+	var list []string
 	for _, a := range addresses {
 		_, exist := r.cache.Load(a)
 		if !exist {
-			return false
+			list = append(list, a)
 		}
 	}
-	return true
+	return list
 }
