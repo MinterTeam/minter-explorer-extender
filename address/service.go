@@ -1,6 +1,8 @@
 package address
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/daniildulin/minter-node-api/responses"
 )
@@ -19,20 +21,36 @@ func NewService(repository *Repository) *Service {
 func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.Transaction) error {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
-		data := *tx.Data
+		if tx.Data == nil {
+			return errors.New("empty transaction data")
+		}
 		txFrom := []rune(tx.From)
 		mapAddresses[string(txFrom[2:])] = struct{}{}
 		if tx.Type == models.TxTypeSend {
-			to := []rune(data["to"].(string))
-			if len(to) > 0 {
-				mapAddresses[string(to[2:])] = struct{}{}
+			var txData models.SendTxData
+			jsonData, err := json.Marshal(*tx.Data)
+			if err != nil {
+				return err
 			}
+			err = json.Unmarshal(jsonData, &txData)
+			if err != nil {
+				return err
+			}
+			to := []rune(txData.To)
+			mapAddresses[string(to[2:])] = struct{}{}
 		}
 		if tx.Type == models.TxTypeMultiSend {
-			list := data["list"].([]interface{})
-			for _, item := range list {
-				receiver := item.(map[string]interface{})
-				to := []rune(receiver["to"].(string))
+			var txData models.MultiSendTxData
+			jsonData, err := json.Marshal(*tx.Data)
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(jsonData, &txData)
+			if err != nil {
+				return err
+			}
+			for _, receiver := range txData {
+				to := []rune(receiver.Address)
 				if len(to) > 0 {
 					mapAddresses[string(to[2:])] = struct{}{}
 				}
