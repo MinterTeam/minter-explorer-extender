@@ -32,7 +32,6 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 
 //Handle response and save block to DB
 func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
-
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
 	totalTx, err := strconv.ParseUint(response.Result.TotalTx, 10, 64)
@@ -41,11 +40,9 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	helpers.HandleError(err)
 	size, err := strconv.ParseUint(response.Result.Size, 10, 64)
 	helpers.HandleError(err)
-
 	proposerPk := []rune(response.Result.Proposer)
-	proposerId, err := s.validatorRepository.FindIdOrCreateByPk(string(proposerPk[2:]))
+	proposerId, err := s.validatorRepository.FindIdByPk(string(proposerPk[2:]))
 	helpers.HandleError(err)
-
 	block := &models.Block{
 		ID:                  height,
 		TotalTxs:            totalTx,
@@ -57,9 +54,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		ProposerValidatorID: proposerId,
 		Hash:                response.Result.Hash,
 	}
-
 	s.SetBlockCache(block)
-
 	return s.blockRepository.Save(block)
 }
 

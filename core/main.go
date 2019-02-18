@@ -13,24 +13,28 @@ import (
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/go-pg/pg"
 	"log"
+	"math"
 	"strconv"
 	"time"
 )
 
 type ExtenderEnvironment struct {
-	DbName     string
-	DbUser     string
-	DbPassword string
-	NodeApi    string
+	DbName      string
+	DbUser      string
+	DbPassword  string
+	NodeApi     string
+	TxChunkSize int
 }
 
 type Extender struct {
+	env                 *ExtenderEnvironment
 	nodeApi             *minter_node_api.MinterNodeApi
 	blockService        *block.Service
+	addressService      *address.Service
 	blockRepository     *block.Repository
 	validatorService    *validator.Service
-	validatorRepository *validator.Repository
 	transactionService  *transaction.Service
+	validatorRepository *validator.Repository
 }
 
 type dbLogger struct{}
@@ -58,12 +62,14 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 	coinService := coin.NewService(coinRepository, addressRepository)
 
 	return &Extender{
+		env:                 env,
 		nodeApi:             minter_node_api.New(env.NodeApi),
 		blockRepository:     blockRepository,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
 		validatorService:    validator.NewService(validatorRepository),
 		validatorRepository: validatorRepository,
 		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
+		addressService:      address.NewService(addressRepository),
 	}
 }
 
@@ -103,36 +109,49 @@ func (ext *Extender) Run() {
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
-	//Save block
-	err := ext.blockService.HandleBlockResponse(response)
+	// Save validators if not exist
+	err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
-
-	//Save validators if not exist
-	err = ext.validatorService.HandleBlockResponse(response)
+	// Save block
+	err = ext.blockService.HandleBlockResponse(response)
 	helpers.HandleError(err)
-
 	err = ext.linkBlockValidator(response)
 	helpers.HandleError(err)
 
-	// Save transactions
-	err = ext.transactionService.HandleBlockResponse(response)
-	helpers.HandleError(err)
+	if response.Result.TxCount != "0" {
+		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+		helpers.HandleError(err)
+
+		chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
+		chunks := make([][]responses.Transaction, chunksCount)
+
+		for i := 0; i < chunksCount; i++ {
+			start := ext.env.TxChunkSize * i
+			end := start + ext.env.TxChunkSize
+			if end > len(response.Result.Transactions) {
+				end = len(response.Result.Transactions)
+			}
+
+			chunks[i] = response.Result.Transactions[start:end]
+		}
+
+		for _, chunk := range chunks {
+			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
+		}
+	}
 }
 
 func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error {
 	var links []*models.BlockValidator
-
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	if err != nil {
 		return err
 	}
-
 	for _, v := range response.Result.Validators {
 		pk := []rune(v.PubKey)
-		vId, err := ext.validatorRepository.FindIdOrCreateByPk(string(pk[2:]))
+		vId, err := ext.validatorRepository.FindIdByPk(string(pk[2:]))
 		if err != nil {
-			log.Println(err)
-			continue
+			return err
 		}
 		links = append(links, &models.BlockValidator{
 			ValidatorID: vId,
@@ -140,11 +159,18 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 			Signed:      v.Signed,
 		})
 	}
-
 	err = ext.blockRepository.LinkWithValidators(links)
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
+	// Search and save addresses from block
+	err := ext.addressService.HandleTransactionsFromBlockResponse(transactions)
+	helpers.HandleError(err)
+	// Save transactions
+	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
+	helpers.HandleError(err)
 }

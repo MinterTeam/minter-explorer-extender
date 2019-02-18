@@ -17,13 +17,15 @@ func initEnvironment() *core.ExtenderEnvironment {
 	dbUser := flag.String("db_user", "", "DB user")
 	dbPassword := flag.String("db_password", "", "DB password")
 	nodeApi := flag.String("node_api", "", "DB password")
+	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
 	flag.Parse()
 
 	env := &core.ExtenderEnvironment{
-		DbName:     *dbName,
-		DbUser:     *dbUser,
-		DbPassword: *dbPassword,
-		NodeApi:    *nodeApi,
+		DbName:      *dbName,
+		DbUser:      *dbUser,
+		DbPassword:  *dbPassword,
+		NodeApi:     *nodeApi,
+		TxChunkSize: *txChunkSize,
 	}
 
 	if env.DbUser == `` {

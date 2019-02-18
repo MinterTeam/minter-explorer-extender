@@ -31,7 +31,7 @@ func (r *Repository) SaveAll(transactions []*models.Transaction) error {
 	return r.db.Insert(args...)
 }
 
-func (r *Repository) SaveAllTxOutput(output []*models.TransactionOutput) error {
+func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error {
 	var args []interface{}
 	for _, t := range output {
 		args = append(args, t)
