@@ -38,12 +38,14 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 		if err != nil {
 			return err
 		}
+
 		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value.ValidatorPubKey))
 		if err != nil {
 			return err
 		}
 
-		if event.Type == models.RewardEvent {
+		switch event.Type {
+		case models.RewardEvent:
 			if rewardsMap[event.Value.Address] == nil {
 				rewardsMap[event.Value.Address] = &models.Reward{
 					BlockID:     blockHeight,
@@ -54,16 +56,18 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 				}
 				continue
 			}
+
 			rewardsMap[event.Value.Address].Amount, err = helpers.BigAddStrings(rewardsMap[event.Value.Address].Amount, event.Value.Amount)
 			if err != nil {
 				return err
 			}
 
-		} else if event.Type == models.SlashEvent {
+		case models.SlashEvent:
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
 			if err != nil {
 				return err
 			}
+
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
 				CoinID:      coinId,
@@ -93,5 +97,6 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			return err
 		}
 	}
+
 	return nil
 }
