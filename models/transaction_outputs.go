@@ -7,6 +7,6 @@ type TransactionOutput struct {
 	CoinID        uint64       `json:"coin_id"`
 	Value         string       `json:"value" sql:"type:numeric(70)"`
 	Coin          *Coin        `json:"coin"`                             //Relation has one to Coins
-	Transaction   *Transaction `json:"transaction"`                      //Relation has one to Transactions
 	ToAddress     *Address     `json:"to_address" pg:"fk:to_address_id"` //Relation has one to Addresses
+	Transaction   *Transaction `json:"transaction"`                      //Relation has one to Transactions
 }
