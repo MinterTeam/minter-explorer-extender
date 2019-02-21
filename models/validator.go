@@ -16,6 +16,7 @@ type Validator struct {
 	UpdateAt         *time.Time `json:"update_at"`
 	RewardAddress    *Address   `json:"reward_address" pg:"fk:reward_address_id"`
 	OwnerAddress     *Address   `json:"owner_address"  pg:"fk:owner_address_id"`
+	Stakes           []*Stake   `json:"stakes"`
 }
 
 //Return validators PK with prefix
