@@ -9,17 +9,19 @@ import (
 )
 
 type Service struct {
-	repository *Repository
+	repository         *Repository
+	chBalanceAddresses chan<- models.BlockAddresses
 }
 
-func NewService(repository *Repository) *Service {
+func NewService(repository *Repository, chBalanceAddresses chan<- models.BlockAddresses) *Service {
 	return &Service{
-		repository: repository,
+		repository:         repository,
+		chBalanceAddresses: chBalanceAddresses,
 	}
 }
 
 // Find all addresses in block response and save it
-func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.Transaction) error {
+func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transactions []responses.Transaction) error {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		if tx.Data == nil {
@@ -59,10 +61,12 @@ func (s *Service) HandleTransactionsFromBlockResponse(transactions []responses.T
 		addresses[i] = a
 		i++
 	}
-	return s.repository.SaveAllIfNotExist(addresses)
+	err := s.repository.SaveAllIfNotExist(addresses)
+	s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
+	return err
 }
 
-func (s *Service) HandleEventsResponse(response *responses.EventsResponse) error {
+func (s *Service) HandleEventsResponse(blockHeight uint64, response *responses.EventsResponse) error {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Result.Events {
 		mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
@@ -73,5 +77,7 @@ func (s *Service) HandleEventsResponse(response *responses.EventsResponse) error
 		addresses[i] = a
 		i++
 	}
-	return s.repository.SaveAllIfNotExist(addresses)
+	err := s.repository.SaveAllIfNotExist(addresses)
+	s.chBalanceAddresses <- models.BlockAddresses{Height: blockHeight, Addresses: addresses}
+	return err
 }

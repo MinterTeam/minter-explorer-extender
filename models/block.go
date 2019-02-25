@@ -22,3 +22,8 @@ type Block struct {
 	Rewards             []*Reward             `json:"rewards"`                                   //relation has many to Rewards
 	Slashes             []*Slash              `json:"slashes"`                                   //relation has many to Slashes
 }
+
+type BlockAddresses struct {
+	Height    uint64
+	Addresses []string
+}
