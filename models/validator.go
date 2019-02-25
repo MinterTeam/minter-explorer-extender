@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-const VALIDATOR_STATUS_NOT_READY = 1
-const VALIDATOR_STATUS_READY = 2
+const ValidatorStatusNotReady = 1
+const ValidatorStatusReady = 2
 
 type Validator struct {
 	ID               uint64     `json:"id"`
