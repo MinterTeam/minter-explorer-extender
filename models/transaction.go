@@ -44,6 +44,12 @@ type Transaction struct {
 	TxOutput      *TransactionOutput   `json:"tx_output"`
 }
 
+type TransactionValidator struct {
+	tableName     struct{} `sql:"transaction_validator"`
+	TransactionID uint64
+	ValidatorID   uint64
+}
+
 type SendTxData struct {
 	Coin  string `json:"coin"`
 	To    string `json:"to"`

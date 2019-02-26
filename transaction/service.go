@@ -9,29 +9,36 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
+	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/daniildulin/minter-node-api/responses"
+	"math"
 	"strconv"
 	"time"
 )
 
 type Service struct {
-	txRepository      *Repository
-	addressRepository *address.Repository
-	coinRepository    *coin.Repository
-	coinService       *coin.Service
+	txRepository        *Repository
+	addressRepository   *address.Repository
+	validatorRepository *validator.Repository
+	coinRepository      *coin.Repository
+	coinService         *coin.Service
 }
 
-func NewService(repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service) *Service {
+func NewService(repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
+	coinRepository *coin.Repository, coinService *coin.Service) *Service {
 	return &Service{
-		txRepository:      repository,
-		coinRepository:    coinRepository,
-		addressRepository: addressRepository,
-		coinService:       coinService,
+		txRepository:        repository,
+		coinRepository:      coinRepository,
+		addressRepository:   addressRepository,
+		coinService:         coinService,
+		validatorRepository: validatorRepository,
 	}
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) error {
+func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
+	transactions []responses.Transaction, validators []*models.Validator) error {
+
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction
 
@@ -56,6 +63,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 		err := s.txRepository.SaveAll(txList)
 		helpers.HandleError(err)
 		err = s.SaveAllTxOutputs(txList)
+		helpers.HandleError(err)
+		err = s.LinkWithValidators(txList, validators)
 		helpers.HandleError(err)
 	}
 	if len(invalidTxList) > 0 {
@@ -117,6 +126,48 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	}
 	if len(list) > 0 {
 		return s.txRepository.SaveAllTxOutputs(list)
+	}
+	return nil
+}
+
+func (s Service) LinkWithValidators(transactions []*models.Transaction, validators []*models.Validator) error {
+	var links []*models.TransactionValidator
+	for _, tx := range transactions {
+		for _, vld := range validators {
+			// if validator has been saved not in current block ID = 0
+			validatorId, err := s.validatorRepository.FindIdByPk(vld.PublicKey)
+			if err != nil {
+				return err
+			}
+			links = append(links, &models.TransactionValidator{
+				TransactionID: tx.ID,
+				ValidatorID:   validatorId,
+			})
+		}
+	}
+	if len(links) <= 0 {
+		return nil
+	}
+
+	// Split addresses by chunks
+	chunkSize := 500 //TODO: need to be in config ???
+	chunksCount := int(math.Ceil(float64(len(links)) / float64(chunkSize)))
+	chunks := make([][]*models.TransactionValidator, chunksCount)
+	for i := 0; i < chunksCount; i++ {
+		start := chunkSize * i
+		end := start + chunkSize
+		if end > len(links) {
+			end = len(links)
+		}
+		chunks[i] = links[start:end]
+	}
+
+	//TODO: refactoring
+	for _, links := range chunks {
+		err := s.txRepository.LinkWithValidators(links)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
