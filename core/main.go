@@ -82,7 +82,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
 		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
-		validatorService:    validator.NewService(validatorRepository),
+		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
 		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
 		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
@@ -198,4 +198,22 @@ func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreat
 	// Save transactions
 	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
 	helpers.HandleError(err)
+
+	//TODO: temporary here
+	// have to be handled after addresses
+	go ext.updateValidatorsData(validators, blockHeight)
+}
+
+func (ext Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) error {
+	for _, vlr := range validators {
+		resp, err := ext.nodeApi.GetCandidate(vlr.GetPublicKey(), blockHeight)
+		if err != nil {
+			return err
+		}
+		err = ext.validatorService.UpdateValidatorsInfoAndStakes(resp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
