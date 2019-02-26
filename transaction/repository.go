@@ -31,6 +31,14 @@ func (r *Repository) SaveAll(transactions []*models.Transaction) error {
 	return r.db.Insert(args...)
 }
 
+func (r *Repository) SaveAllInvalid(transactions []*models.InvalidTransaction) error {
+	var args []interface{}
+	for _, t := range transactions {
+		args = append(args, t)
+	}
+	return r.db.Insert(args...)
+}
+
 func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error {
 	var args []interface{}
 	for _, t := range output {
