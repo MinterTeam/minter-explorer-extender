@@ -51,9 +51,12 @@ func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
 func NewExtender(env *ExtenderEnvironment) *Extender {
 
 	db := pg.Connect(&pg.Options{
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
+		User:            env.DbUser,
+		Password:        env.DbPassword,
+		Database:        env.DbName,
+		PoolSize:        20,
+		MinIdleConns:    10,
+		ApplicationName: "Minter Extender",
 	})
 	db.AddQueryHook(dbLogger{})
 

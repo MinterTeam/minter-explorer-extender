@@ -56,22 +56,23 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 		chunks[i] = blockAddresses.Addresses[start:end]
 	}
 
+	//TODO: refactoring
 	for _, chunkAddresses := range chunks {
-		go func(addresses []string) {
-			var addressesWithPrefix []string
-			for _, adr := range addresses {
-				addressesWithPrefix = append(addressesWithPrefix, `"Mx`+adr+`"`)
-			}
-			response, err := s.nodeApi.GetAddresses(addressesWithPrefix, blockAddresses.Height)
-			helpers.HandleError(err)
+		//go func(addresses []string) {
+		addressesWithPrefix := make([]string, len(chunkAddresses))
+		for i, adr := range chunkAddresses {
+			addressesWithPrefix[i] = `"Mx` + adr + `"`
+		}
+		response, err := s.nodeApi.GetAddresses(addressesWithPrefix, blockAddresses.Height)
+		helpers.HandleError(err)
 
-			balances, err := s.HandleBalanceResponse(response)
-			helpers.HandleError(err)
+		balances, err := s.HandleBalanceResponse(response)
+		helpers.HandleError(err)
 
-			if balances != nil {
-				err = s.updateBalances(addresses, balances)
-			}
-		}(chunkAddresses)
+		if balances != nil {
+			go s.updateBalances(chunkAddresses, balances)
+		}
+		//}(chunkAddresses)
 	}
 }
 
@@ -147,7 +148,6 @@ func (s Service) updateBalances(addresses []string, nodeBalances []*models.Balan
 			forDelete = append(forDelete, blc)
 		}
 	}
-
 	if len(forDelete) > 0 {
 		err = s.repository.DeleteAll(forDelete)
 		if err != nil {
@@ -161,9 +161,12 @@ func (s Service) updateBalances(addresses []string, nodeBalances []*models.Balan
 func makeAddressBalanceMap(balances []*models.Balance) map[uint64]map[uint64]*models.Balance {
 	addrMap := make(map[uint64]map[uint64]*models.Balance)
 	for _, balance := range balances {
-		m := make(map[uint64]*models.Balance)
-		m[balance.Coin.ID] = balance
-		addrMap[balance.AddressID] = m
+		if val, ok := addrMap[balance.AddressID]; ok {
+			val[balance.Coin.ID] = balance
+		} else {
+			addrMap[balance.AddressID] = make(map[uint64]*models.Balance)
+			addrMap[balance.AddressID][balance.Coin.ID] = balance
+		}
 	}
 	return addrMap
 }
