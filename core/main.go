@@ -83,7 +83,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(validatorRepository),
-		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
+		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
 		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
@@ -127,7 +127,7 @@ func (ext *Extender) Run() {
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Save validators if not exist
-	err := ext.validatorService.HandleBlockResponse(response)
+	validators, err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
@@ -149,7 +149,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 			chunks[i] = response.Result.Transactions[start:end]
 		}
 		for _, chunk := range chunks {
-			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
+			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk, validators)
 		}
 	}
 }
@@ -191,11 +191,11 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 	return nil
 }
 
-func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
+func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction, validators []*models.Validator) {
 	// Search and save addresses from block
 	err := ext.addressService.HandleTransactionsFromBlockResponse(blockHeight, transactions)
 	helpers.HandleError(err)
 	// Save transactions
-	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
+	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
 	helpers.HandleError(err)
 }

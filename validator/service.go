@@ -17,10 +17,14 @@ func NewService(r *Repository) *Service {
 }
 
 //Get validators PK from response and store it to validators table if not exist
-func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
+func (s *Service) HandleBlockResponse(response *responses.BlockResponse) ([]*models.Validator, error) {
 	var validators []*models.Validator
 	for _, v := range response.Result.Validators {
 		validators = append(validators, &models.Validator{PublicKey: helpers.RemovePrefix(v.PubKey)})
 	}
-	return s.repository.SaveAllIfNotExist(validators)
+	err := s.repository.SaveAllIfNotExist(validators)
+	if err != nil {
+		return nil, err
+	}
+	return validators, err
 }

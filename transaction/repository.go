@@ -46,3 +46,11 @@ func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error 
 	}
 	return r.db.Insert(args...)
 }
+
+func (r *Repository) LinkWithValidators(links []*models.TransactionValidator) error {
+	var args []interface{}
+	for _, t := range links {
+		args = append(args, t)
+	}
+	return r.db.Insert(args...)
+}
