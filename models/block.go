@@ -16,9 +16,14 @@ type Block struct {
 	BlockReward         string                `json:"block_reward" sql:"type:numeric(70)"`
 	Hash                string                `json:"hash"`
 	Proposer            *Validator            `json:"proposer" pg:"fk:proposer_validator_id"`    //relation has one to Validators
-	Validators          []*Validator          `json:"validators" pg:"many2many:block_validator"` //relation has many to Validators
+	BlockValidators     []BlockValidator      `json:"block_validators"`                          //relation has many to BlockValidators
 	Transactions        []*Transaction        `json:"transactions"`                              //relation has many to Transactions
 	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions"`                      //relation has many to InvalidTransactions
 	Rewards             []*Reward             `json:"rewards"`                                   //relation has many to Rewards
 	Slashes             []*Slash              `json:"slashes"`                                   //relation has many to Slashes
+}
+
+//Return block hash with prefix
+func (t *Block) GetHash() string {
+	return `Mh` + t.Hash
 }
