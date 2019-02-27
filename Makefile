@@ -44,7 +44,7 @@ ensure_deps:
 
 ### Build ###################
 build: clean
-	GOOS=${GOOS} go build -ldflags $(BUILD_FLAGS) -o ./builds/$(APP) ./cmd/$(APP)/
+	GOOS=${GOOS} go build -ldflags $(BUILD_FLAGS) -o ./builds/$(APP)
 
 install:
 	GOOS=${GOOS} go install -ldflags $(BUILD_FLAGS)
