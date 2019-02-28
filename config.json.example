@@ -1,25 +1,16 @@
 {
-  "name": "Minter Gate",
-  "debug": true,
-  "baseCoin": "BIP",
-  "singleNode": true,
+  "name": "Minter Extender",
+  "debug": ME_DEBUG,
+  "baseCoin": "ME_BASE_COIN",
   "database": {
-    "url": "postgres://postgres:postgres@localhost/postgres?sslmode=disable"
+    "host": "ME_DB_HOST",
+    "name": "ME_DB_NAME",
+    "user": "ME_DB_USER",
+    "password": "ME_DB_PASSWORD"
   },
   "minterApi": {
-    "isSecure": true,
-    "link": "127.0.0.1",
-    "port": "8841"
-  }
-  "gateApi": {
-    "isSecure" : false,
-    "link" : "",
-    "port" : "9000"
-  },
-  "wsServer":{
-    "isSecure" : false,
-    "link" : "127.0.0.1",
-    "port" : "8800",
-    "key"  : "secret key"
+    "isSecure": false,
+    "link": "ME_NODE_HOST",
+    "port": "ME_NODE_PORT"
   }
 }

@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"github.com/MinterTeam/minter-explorer-extender/core"
+	"github.com/MinterTeam/minter-explorer-extender/env"
 	"os"
 )
 
 func main() {
-	env := initEnvironment()
-	ext := core.NewExtender(env)
+	envData := initEnvironment()
+	ext := core.NewExtender(envData)
 	ext.Run()
 }
 
@@ -18,9 +19,22 @@ func initEnvironment() *core.ExtenderEnvironment {
 	dbPassword := flag.String("db_password", "", "DB password")
 	nodeApi := flag.String("node_api", "", "DB password")
 	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
+	configFile := flag.String("config", "", "Env file")
 	flag.Parse()
 
-	env := &core.ExtenderEnvironment{
+	if *configFile != "" {
+		config := env.NewViperConfig(*configFile)
+		api := "http://" + config.GetString(`minterApi.link`) + `:` + config.GetString(`minterApi.port`)
+		return &core.ExtenderEnvironment{
+			DbName:      config.GetString("database.name"),
+			DbUser:      config.GetString("database.user"),
+			DbPassword:  config.GetString("database.password"),
+			NodeApi:     api,
+			TxChunkSize: *txChunkSize,
+		}
+	}
+
+	envData := &core.ExtenderEnvironment{
 		DbName:      *dbName,
 		DbUser:      *dbUser,
 		DbPassword:  *dbPassword,
@@ -28,21 +42,21 @@ func initEnvironment() *core.ExtenderEnvironment {
 		TxChunkSize: *txChunkSize,
 	}
 
-	if env.DbUser == `` {
+	if envData.DbUser == `` {
 		dbUser := os.Getenv("EXPLORER_DB_USER")
-		env.DbUser = dbUser
+		envData.DbUser = dbUser
 	}
-	if env.DbName == `` {
+	if envData.DbName == `` {
 		dbName := os.Getenv("EXPLORER_DB_NAME")
-		env.DbName = dbName
+		envData.DbName = dbName
 	}
-	if env.DbPassword == `` {
+	if envData.DbPassword == `` {
 		dbPassword := os.Getenv("EXPLORER_DB_PASSWORD")
-		env.DbPassword = dbPassword
+		envData.DbPassword = dbPassword
 	}
-	if env.NodeApi == `` {
+	if envData.NodeApi == `` {
 		nodeApi := os.Getenv("MINTER_NODE_API")
-		env.NodeApi = nodeApi
+		envData.NodeApi = nodeApi
 	}
-	return env
+	return envData
 }
