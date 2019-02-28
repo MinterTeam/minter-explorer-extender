@@ -37,21 +37,11 @@ func (r Repository) SaveAll(balances []*models.Balance) error {
 }
 
 func (r Repository) UpdateAll(balances []*models.Balance) error {
-	for _, balance := range balances {
-		err := r.db.Update(balance)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := r.db.Model(&balances).Update()
+	return err
 }
 
 func (r Repository) DeleteAll(balances []*models.Balance) error {
-	for _, balance := range balances {
-		err := r.db.Delete(balance)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := r.db.Model(&balances).Delete()
+	return err
 }

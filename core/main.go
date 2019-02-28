@@ -149,7 +149,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 			chunks[i] = response.Result.Transactions[start:end]
 		}
 		for _, chunk := range chunks {
-			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk, validators)
+			ext.saveAddressesAndTransactions(height, response.Result.Time, chunk, validators)
 		}
 	}
 }

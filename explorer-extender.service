@@ -1,7 +1,6 @@
 [Unit]
 Description=Minter Explorer Extender Service
 Wants=network-online.target
-Requires=postgreql.service
 After=network.target network-online.target
 
 [Service]
@@ -10,8 +9,8 @@ KillMode=process
 TimeoutStartSec=10
 Restart=always
 RestartSec=15s
-WorkingDirectory=/opt/minter
-ExecStart=/opt/minter/extender
+WorkingDirectory=/opt/minter/extender
+ExecStart=/opt/minter/extender/extender
 
 User=minter
 Group=minter

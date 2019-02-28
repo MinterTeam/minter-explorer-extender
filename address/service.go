@@ -55,12 +55,7 @@ func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transaction
 			}
 		}
 	}
-	addresses := make([]string, len(mapAddresses))
-	i := 0
-	for a := range mapAddresses {
-		addresses[i] = a
-		i++
-	}
+	addresses := addressesMapToSlice(mapAddresses)
 	err := s.repository.SaveAllIfNotExist(addresses)
 	s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
 	return err
@@ -71,13 +66,18 @@ func (s *Service) HandleEventsResponse(blockHeight uint64, response *responses.E
 	for _, event := range response.Result.Events {
 		mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
 	}
+	addresses := addressesMapToSlice(mapAddresses)
+	err := s.repository.SaveAllIfNotExist(addresses)
+	s.chBalanceAddresses <- models.BlockAddresses{Height: blockHeight, Addresses: addresses}
+	return err
+}
+
+func addressesMapToSlice(mapAddresses map[string]struct{}) []string {
 	addresses := make([]string, len(mapAddresses))
 	i := 0
 	for a := range mapAddresses {
 		addresses[i] = a
 		i++
 	}
-	err := s.repository.SaveAllIfNotExist(addresses)
-	s.chBalanceAddresses <- models.BlockAddresses{Height: blockHeight, Addresses: addresses}
-	return err
+	return addresses
 }

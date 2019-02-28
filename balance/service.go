@@ -70,7 +70,8 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 		helpers.HandleError(err)
 
 		if balances != nil {
-			go s.updateBalances(chunkAddresses, balances)
+			err := s.updateBalances(chunkAddresses, balances)
+			helpers.HandleError(err)
 		}
 		//}(chunkAddresses)
 	}
