@@ -91,13 +91,11 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 }
 
 func (ext *Extender) Run() {
-	var i, startHeight uint64
+	var startHeight uint64
 
 	go ext.balanceService.Run()
 
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
-	networkStatus, err := ext.nodeApi.GetStatus()
-	helpers.HandleError(err)
 
 	if lastExplorerBlock != nil {
 		startHeight = lastExplorerBlock.ID + 1
@@ -106,21 +104,24 @@ func (ext *Extender) Run() {
 		startHeight = 1
 	}
 
-	lastBlock, err := strconv.ParseUint(networkStatus.Result.LatestBlockHeight, 10, 64)
-	helpers.HandleError(err)
-
-	for i = startHeight; i <= lastBlock; i++ {
+	for {
 		//Pulling block data
-		resp, err := ext.nodeApi.GetBlock(i)
+		resp, err := ext.nodeApi.GetBlock(startHeight)
 		helpers.HandleError(err)
+		if resp.Error != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
 		ext.handleBlockResponse(resp)
 
 		// TODO: move to gorutine
 		//Pulling event data
-		eventsResponse, err := ext.nodeApi.GetBlockEvents(i)
+		eventsResponse, err := ext.nodeApi.GetBlockEvents(startHeight)
 		helpers.HandleError(err)
 		//Handle event data
-		ext.handleEventResponse(i, eventsResponse)
+		ext.handleEventResponse(startHeight, eventsResponse)
+
+		startHeight++
 	}
 
 }
