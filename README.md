@@ -24,7 +24,7 @@ Use flags or environment variables to run service. Flags have higher priority
 | db_user       | EXPLORER_DB_USER      | Database user           |
 | db_password   | EXPLORER_DB_PASSWORD  | Database password       |
 | node_api      | MINTER_NODE_API       | Minter node url         |
-| tx_chunk_size | -                     | Transactions chunk  ize |
+| tx_chunk_size | -                     | Transactions chunk size |
 
 
 Examples:

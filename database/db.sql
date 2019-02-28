@@ -852,7 +852,7 @@ COPY public.transaction_validator (transaction_id, validator_id) FROM stdin;
 -- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: foundation
 --
 
-COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, gas_coin_id, created_at, type, fee, hash, service_data, data, tags, payload, raw_tx) FROM stdin;
+COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, gas_coin_id, created_at, type, hash, service_data, data, tags, payload, raw_tx) FROM stdin;
 \.
 
 

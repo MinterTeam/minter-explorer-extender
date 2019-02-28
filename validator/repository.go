@@ -79,6 +79,27 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 	return vList, err
 }
 
+func (r Repository) Update(validator *models.Validator) error {
+	return r.db.Update(validator)
+}
+
+func (r Repository) UpdateStakesByValidatorId(validatorId uint64, stakes []*models.Stake) error {
+	// Delete all validators stakes before
+	_, err := r.db.Model(new(models.Stake)).Where("validator_id = ?", validatorId).Delete()
+	if err != nil {
+		return err
+	}
+	var args []interface{}
+	for _, stake := range stakes {
+		args = append(args, stake)
+	}
+	// if all addresses do nothing
+	if len(args) == 0 {
+		return nil
+	}
+	return r.db.Insert(args...)
+}
+
 func (r *Repository) addToCache(validators []*models.Validator) {
 	for _, v := range validators {
 		_, exist := r.cache.Load(v.PublicKey)

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/address"
+	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/block"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/events"
@@ -13,7 +14,6 @@ import (
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/go-pg/pg"
-	"log"
 	"math"
 	"strconv"
 	"time"
@@ -37,6 +37,7 @@ type Extender struct {
 	validatorRepository *validator.Repository
 	transactionService  *transaction.Service
 	eventService        *events.Service
+	balanceService      *balance.Service
 }
 
 type dbLogger struct{}
@@ -50,11 +51,17 @@ func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
 func NewExtender(env *ExtenderEnvironment) *Extender {
 
 	db := pg.Connect(&pg.Options{
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
+		User:            env.DbUser,
+		Password:        env.DbPassword,
+		Database:        env.DbName,
+		PoolSize:        20,
+		MinIdleConns:    10,
+		ApplicationName: "Minter Extender",
 	})
 	db.AddQueryHook(dbLogger{})
+
+	//api
+	nodeApi := minter_node_api.New(env.NodeApi)
 
 	// Repositories
 	blockRepository := block.NewRepository(db)
@@ -63,25 +70,30 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 	addressRepository := address.NewRepository(db)
 	coinRepository := coin.NewRepository(db)
 	eventsRepository := events.NewRepository(db)
+	balanceRepository := balance.NewRepository(db)
 
 	// Services
 	coinService := coin.NewService(coinRepository, addressRepository)
+	balanceService := balance.NewService(balanceRepository, nodeApi, addressRepository, coinRepository)
 
 	return &Extender{
 		env:                 env,
-		nodeApi:             minter_node_api.New(env.NodeApi),
+		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
 		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
-		validatorService:    validator.NewService(validatorRepository),
-		transactionService:  transaction.NewService(transactionRepository, addressRepository, coinRepository, coinService),
-		addressService:      address.NewService(addressRepository),
+		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
+		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
+		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
+		balanceService:      balanceService,
 	}
 }
 
 func (ext *Extender) Run() {
 	var i, startHeight uint64
+
+	go ext.balanceService.Run()
 
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 	networkStatus, err := ext.nodeApi.GetStatus()
@@ -99,40 +111,23 @@ func (ext *Extender) Run() {
 
 	for i = startHeight; i <= lastBlock; i++ {
 		//Pulling block data
-		start := time.Now()
 		resp, err := ext.nodeApi.GetBlock(i)
 		helpers.HandleError(err)
-		elapsed := time.Since(start)
-		log.Println("Pulling block data")
-		log.Printf("Processing time %s", elapsed)
-		//Handle block data
-		start = time.Now()
 		ext.handleBlockResponse(resp)
-		elapsed = time.Since(start)
-		log.Println("Handle block")
-		log.Printf("Processing time %s", elapsed)
 
 		// TODO: move to gorutine
 		//Pulling event data
-		start = time.Now()
 		eventsResponse, err := ext.nodeApi.GetBlockEvents(i)
 		helpers.HandleError(err)
-		elapsed = time.Since(start)
-		log.Println("Pulling event data")
-		log.Printf("Processing time %s", elapsed)
 		//Handle event data
-		start = time.Now()
 		ext.handleEventResponse(i, eventsResponse)
-		elapsed = time.Since(start)
-		log.Println("Handle events")
-		log.Printf("Processing time %s", elapsed)
 	}
 
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Save validators if not exist
-	err := ext.validatorService.HandleBlockResponse(response)
+	validators, err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
@@ -154,7 +149,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 			chunks[i] = response.Result.Transactions[start:end]
 		}
 		for _, chunk := range chunks {
-			go ext.saveAddressesAndTransactions(height, response.Result.Time, chunk)
+			ext.saveAddressesAndTransactions(height, response.Result.Time, chunk, validators)
 		}
 	}
 }
@@ -163,7 +158,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 	if len(response.Result.Events) > 0 {
 		//TODO: split
 		//Search and save addresses from block
-		err := ext.addressService.HandleEventsResponse(response)
+		err := ext.addressService.HandleEventsResponse(blockHeight, response)
 		helpers.HandleError(err)
 		//Save events
 		err = ext.eventService.HandleEventResponse(blockHeight, response)
@@ -196,11 +191,29 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error
 	return nil
 }
 
-func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
+func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction, validators []*models.Validator) {
 	// Search and save addresses from block
-	err := ext.addressService.HandleTransactionsFromBlockResponse(transactions)
+	err := ext.addressService.HandleTransactionsFromBlockResponse(blockHeight, transactions)
 	helpers.HandleError(err)
 	// Save transactions
-	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
+	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
 	helpers.HandleError(err)
+
+	//TODO: temporary here
+	// have to be handled after addresses
+	go ext.updateValidatorsData(validators, blockHeight)
+}
+
+func (ext Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) error {
+	for _, vlr := range validators {
+		resp, err := ext.nodeApi.GetCandidate(vlr.GetPublicKey(), blockHeight)
+		if err != nil {
+			return err
+		}
+		err = ext.validatorService.UpdateValidatorsInfoAndStakes(resp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
