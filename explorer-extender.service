@@ -10,7 +10,7 @@ TimeoutStartSec=10
 Restart=always
 RestartSec=15s
 WorkingDirectory=/opt/minter/extender/current
-ExecStart=/opt/minter/extender/current/extender -config=/opt/minter/extender/current/config.json
+ExecStart=/opt/minter/extender/current/extender -config=config.json
 
 User=minter
 Group=minter

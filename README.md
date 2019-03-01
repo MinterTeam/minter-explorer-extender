@@ -27,7 +27,34 @@ Use flags or environment variables to run service. Flags have higher priority
 | tx_chunk_size | -                     | Transactions chunk size |
 
 
-Examples:
+### Config file
+
+Support JSON and YAML formats 
+
+Example:
+
+```
+{
+  "name": "Minter Extender",
+  "debug": true,
+  "baseCoin": "MNT",
+  "database": {
+    "host": "localhost",
+    "name": "explorer",
+    "user": "minter",
+    "password": "password"
+  },
+  "minterApi": {
+    "isSecure": false,
+    "link": "127.0.0.1",
+    "port": "8841"
+  }
+}
+```
+
+Run examples:
+
+./extender -config=/etc/minter/config.json
 
 ./extender -db_password=password -db_user=minter -db_name=explorer -node_api=http://127.0.0.1:8841
 

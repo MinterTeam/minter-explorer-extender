@@ -22,18 +22,6 @@ func initEnvironment() *core.ExtenderEnvironment {
 	configFile := flag.String("config", "", "Env file")
 	flag.Parse()
 
-	if *configFile != "" {
-		config := env.NewViperConfig(*configFile)
-		api := "http://" + config.GetString(`minterApi.link`) + `:` + config.GetString(`minterApi.port`)
-		return &core.ExtenderEnvironment{
-			DbName:      config.GetString("database.name"),
-			DbUser:      config.GetString("database.user"),
-			DbPassword:  config.GetString("database.password"),
-			NodeApi:     api,
-			TxChunkSize: *txChunkSize,
-		}
-	}
-
 	envData := &core.ExtenderEnvironment{
 		DbName:      *dbName,
 		DbUser:      *dbUser,
@@ -57,6 +45,20 @@ func initEnvironment() *core.ExtenderEnvironment {
 	if envData.NodeApi == `` {
 		nodeApi := os.Getenv("MINTER_NODE_API")
 		envData.NodeApi = nodeApi
+	}
+
+	if *configFile != "" {
+		config := env.NewViperConfig(*configFile)
+		api := "http://"
+		if config.GetBool("minterApi.isSecure") {
+			api = "https://"
+		}
+		api += "http://" + config.GetString(`minterApi.link`) + `:` + config.GetString(`minterApi.port`)
+		envData.DbName = config.GetString("database.name")
+		envData.DbUser = config.GetString("database.user")
+		envData.DbPassword = config.GetString("database.password")
+		envData.NodeApi = api
+		envData.TxChunkSize = *txChunkSize
 	}
 	return envData
 }
