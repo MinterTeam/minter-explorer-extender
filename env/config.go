@@ -33,7 +33,7 @@ func (v *viperConfig) Init(configPath string) {
 	var path string
 
 	if len(fullPath) > 1 {
-		path = strings.Join(fullPath[:len(path)-2], "/")
+		path = strings.Join(fullPath[:len(fullPath)-1], "/")
 	} else {
 		path = "./"
 	}
