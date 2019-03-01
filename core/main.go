@@ -98,7 +98,9 @@ func (ext *Extender) Run() {
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
 	if lastExplorerBlock != nil {
-		startHeight = lastExplorerBlock.ID + 1
+		err := ext.blockRepository.DeleteLastBlockData()
+		helpers.HandleError(err)
+		startHeight = lastExplorerBlock.ID
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
 		startHeight = 1
