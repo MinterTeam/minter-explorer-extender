@@ -53,7 +53,7 @@ func initEnvironment() *core.ExtenderEnvironment {
 		if config.GetBool("minterApi.isSecure") {
 			api = "https://"
 		}
-		api += "http://" + config.GetString(`minterApi.link`) + `:` + config.GetString(`minterApi.port`)
+		api += config.GetString(`minterApi.link`) + `:` + config.GetString(`minterApi.port`)
 		envData.DbName = config.GetString("database.name")
 		envData.DbUser = config.GetString("database.user")
 		envData.DbPassword = config.GetString("database.password")
