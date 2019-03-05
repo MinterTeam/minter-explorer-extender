@@ -20,10 +20,13 @@ import (
 )
 
 type ExtenderEnvironment struct {
+	Debug       bool
 	DbName      string
 	DbUser      string
 	DbPassword  string
 	NodeApi     string
+	ApiHost     string
+	ApiPort     int
 	TxChunkSize int
 }
 
@@ -58,7 +61,10 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		MinIdleConns:    10,
 		ApplicationName: "Minter Extender",
 	})
-	db.AddQueryHook(dbLogger{})
+
+	if env.Debug {
+		db.AddQueryHook(dbLogger{})
+	}
 
 	//api
 	nodeApi := minter_node_api.New(env.NodeApi)
@@ -91,16 +97,16 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 }
 
 func (ext *Extender) Run() {
-	var startHeight uint64
-
 	go ext.balanceService.Run()
 
+	err := ext.blockRepository.DeleteLastBlockData()
+	helpers.HandleError(err)
+
+	var startHeight uint64
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
 	if lastExplorerBlock != nil {
-		err := ext.blockRepository.DeleteLastBlockData()
-		helpers.HandleError(err)
-		startHeight = lastExplorerBlock.ID
+		startHeight = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
 		startHeight = 1
