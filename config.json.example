@@ -12,5 +12,9 @@
     "isSecure": false,
     "link": "ME_NODE_HOST",
     "port": "ME_NODE_PORT"
+  },
+  "extenderApi": {
+    "host": "ME_API_HOST",
+    "port": "ME_API_PORT"
   }
 }
