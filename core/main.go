@@ -20,26 +20,8 @@ import (
 	"time"
 )
 
-var (
-	chBlocks = make(chan *responses.BlockResponse, 1)
-)
-
-type ExtenderEnvironment struct {
-	AppName        string
-	Debug          bool
-	DbName         string
-	DbUser         string
-	DbPassword     string
-	DbMinIdleConns int
-	DbPoolSize     int
-	NodeApi        string
-	ApiHost        string
-	ApiPort        int
-	TxChunkSize    int
-}
-
 type Extender struct {
-	env                 *ExtenderEnvironment
+	env                 *models.ExtenderEnvironment
 	nodeApi             *minter_node_api.MinterNodeApi
 	blockService        *block.Service
 	addressService      *address.Service
@@ -59,7 +41,7 @@ func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
 	fmt.Println(q.FormattedQuery())
 }
 
-func NewExtender(env *ExtenderEnvironment) *Extender {
+func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
 	db := pg.Connect(&pg.Options{
 		User:            env.DbUser,
@@ -94,10 +76,10 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository),
-		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
+		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
-		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
+		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
 		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,

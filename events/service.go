@@ -7,17 +7,20 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/daniildulin/minter-node-api/responses"
+	"math"
 )
 
 type Service struct {
+	env                 *models.ExtenderEnvironment
 	repository          *Repository
 	validatorRepository *validator.Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
 }
 
-func NewService(repository *Repository, validatorRepository *validator.Repository, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
 	return &Service{
+		env:                 env,
 		repository:          repository,
 		validatorRepository: validatorRepository,
 		addressRepository:   addressRepository,
@@ -30,7 +33,6 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 	var (
 		rewards []*models.Reward
 		slashes []*models.Slash
-		err     error
 	)
 
 	for _, event := range response.Result.Events {
@@ -72,18 +74,52 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 	}
 
 	if len(rewards) > 0 {
-		err = s.repository.SaveRewards(rewards)
-		if err != nil {
-			return err
-		}
+		s.saveRewards(rewards)
 	}
 
 	if len(slashes) > 0 {
-		err = s.repository.SaveSlashes(slashes)
-		if err != nil {
-			return err
-		}
+		s.saveSlashes(slashes)
 	}
 
 	return nil
+}
+
+func (s Service) saveRewards(rewards []*models.Reward) {
+	chunksCount := int(math.Ceil(float64(len(rewards)) / float64(s.env.EventsChunkSize)))
+	chunks := make([][]*models.Reward, chunksCount)
+	for i := 0; i < chunksCount; i++ {
+		start := s.env.EventsChunkSize * i
+		end := start + s.env.EventsChunkSize
+		if end > len(rewards) {
+			end = len(rewards)
+		}
+		chunks[i] = rewards[start:end]
+	}
+
+	for _, chunk := range chunks {
+		go func() {
+			err := s.repository.SaveRewards(chunk)
+			helpers.HandleError(err)
+		}()
+	}
+}
+
+func (s Service) saveSlashes(slashes []*models.Slash) {
+	chunksCount := int(math.Ceil(float64(len(slashes)) / float64(s.env.EventsChunkSize)))
+	chunks := make([][]*models.Slash, chunksCount)
+	for i := 0; i < chunksCount; i++ {
+		start := s.env.EventsChunkSize * i
+		end := start + s.env.EventsChunkSize
+		if end > len(slashes) {
+			end = len(slashes)
+		}
+		chunks[i] = slashes[start:end]
+	}
+
+	for _, chunk := range chunks {
+		go func() {
+			err := s.repository.SaveSlashes(chunk)
+			helpers.HandleError(err)
+		}()
+	}
 }

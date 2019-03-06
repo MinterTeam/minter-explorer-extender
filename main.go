@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/api"
 	"github.com/MinterTeam/minter-explorer-extender/core"
 	"github.com/MinterTeam/minter-explorer-extender/env"
+	"github.com/MinterTeam/minter-explorer-extender/models"
 	"os"
 )
 
@@ -18,7 +19,7 @@ func main() {
 	ext.Run()
 }
 
-func initEnvironment() *core.ExtenderEnvironment {
+func initEnvironment() *models.ExtenderEnvironment {
 	appName := flag.String("app_name", "Minter Extender", "App name")
 	debug := flag.Bool("debug", false, "Debug mode")
 	dbName := flag.String("db_name", "", "DB name")
@@ -28,12 +29,13 @@ func initEnvironment() *core.ExtenderEnvironment {
 	dbPoolSize := flag.Int("db_pool_size", 20, "DB pool size")
 	nodeApi := flag.String("node_api", "", "DB password")
 	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
+	eventsChunkSize := flag.Int("event_chunk_size", 100, "Events chunk size")
 	configFile := flag.String("config", "", "Env file")
 	apiHost := flag.String("api_host", "", "API host")
 	apiPort := flag.Int("api_port", 8000, "API port")
 	flag.Parse()
 
-	envData := new(core.ExtenderEnvironment)
+	envData := new(models.ExtenderEnvironment)
 
 	if envData.DbUser == "" {
 		dbUser := os.Getenv("EXPLORER_DB_USER")
@@ -67,6 +69,7 @@ func initEnvironment() *core.ExtenderEnvironment {
 		envData.DbPoolSize = config.GetInt("database.poolSize")
 		envData.NodeApi = nodeApi
 		envData.TxChunkSize = config.GetInt("app.txChunkSize")
+		envData.EventsChunkSize = config.GetInt("app.eventsChunkSize")
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.AppName = config.GetString("name")
@@ -80,6 +83,7 @@ func initEnvironment() *core.ExtenderEnvironment {
 		envData.DbPoolSize = *dbPoolSize
 		envData.NodeApi = *nodeApi
 		envData.TxChunkSize = *txChunkSize
+		envData.EventsChunkSize = *eventsChunkSize
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
 	}
