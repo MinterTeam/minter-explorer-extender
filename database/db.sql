@@ -30,7 +30,7 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
 --
--- Name: rewards_role; Type: TYPE; Schema: public; Owner: foundation
+-- Name: rewards_role; Type: TYPE; Schema: public; Owner: minter
 --
 
 CREATE TYPE public.rewards_role AS ENUM (
@@ -48,7 +48,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: addresses; Type: TABLE; Schema: public; Owner: foundation
+-- Name: addresses; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.addresses (
@@ -62,27 +62,27 @@ CREATE TABLE public.addresses (
 
 
 --
--- Name: COLUMN addresses.address; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN addresses.address; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.addresses.address IS 'Address hex string without prefix(Mx****)';
 
 
 --
--- Name: COLUMN addresses.updated_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN addresses.updated_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.addresses.updated_at IS 'Last balance parsing time';
 
 --
--- Name: COLUMN addresses.updated_at_block_id; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN addresses.updated_at_block_id; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.addresses.updated_at_block_id IS 'Block id, that have transactions or events, that triggers address record to update from api-method GET /address';
 
 
 --
--- Name: addresses_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: addresses_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.addresses_id_seq
@@ -96,14 +96,14 @@ CREATE SEQUENCE public.addresses_id_seq
 
 
 --
--- Name: addresses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: addresses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.addresses_id_seq OWNED BY public.addresses.id;
 
 
 --
--- Name: balances; Type: TABLE; Schema: public; Owner: foundation
+-- Name: balances; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.balances (
@@ -117,7 +117,7 @@ CREATE TABLE public.balances (
 
 
 --
--- Name: balances_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: balances_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.balances_id_seq
@@ -131,14 +131,14 @@ CREATE SEQUENCE public.balances_id_seq
 
 
 --
--- Name: balances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: balances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.balances_id_seq OWNED BY public.balances.id;
 
 
 --
--- Name: block_validator; Type: TABLE; Schema: public; Owner: foundation
+-- Name: block_validator; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.block_validator (
@@ -151,7 +151,7 @@ CREATE TABLE public.block_validator (
 
 
 --
--- Name: blocks; Type: TABLE; Schema: public; Owner: foundation
+-- Name: blocks; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.blocks (
@@ -171,70 +171,70 @@ CREATE TABLE public.blocks (
 
 
 --
--- Name: TABLE blocks; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: TABLE blocks; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON TABLE public.blocks IS 'Address entity table';
 
 
 --
--- Name: COLUMN blocks.total_txs; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.total_txs; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.total_txs IS 'Total count of txs in blockchain';
 
 
 --
--- Name: COLUMN blocks.proposer_validator_id; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.proposer_validator_id; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.proposer_validator_id IS 'Proposer public key (Mp***)';
 
 
 --
--- Name: COLUMN blocks.num_txs; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.num_txs; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.num_txs IS 'Count of txs in block';
 
 
 --
--- Name: COLUMN blocks.block_time; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.block_time; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.block_time IS 'Block operation time (???) in microseconds';
 
 
 --
--- Name: COLUMN blocks.created_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.created_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.created_at IS 'Datetime of block creation("time" field from api)';
 
 
 --
--- Name: COLUMN blocks.updated_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.updated_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.updated_at IS 'Time of record last update';
 
 
 --
--- Name: COLUMN blocks.block_reward; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.block_reward; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.block_reward IS 'Sum of all block rewards';
 
 
 --
--- Name: COLUMN blocks.hash; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN blocks.hash; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.blocks.hash IS 'Hex string';
 
 
 --
--- Name: coins; Type: TABLE; Schema: public; Owner: foundation
+-- Name: coins; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.coins (
@@ -254,21 +254,21 @@ CREATE TABLE public.coins (
 
 
 --
--- Name: COLUMN coins.creation_address_id; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN coins.creation_address_id; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.coins.creation_address_id IS 'Id of creator address in address table';
 
 
 --
--- Name: COLUMN coins.updated_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN coins.updated_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.coins.updated_at IS 'Timestamp of coin balance/value updation(from api for example)';
 
 
 --
--- Name: COLUMN coins.reserve_balance; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN coins.reserve_balance; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.coins.reserve_balance IS 'Reservation balance for coin creation
@@ -276,21 +276,21 @@ COMMENT ON COLUMN public.coins.reserve_balance IS 'Reservation balance for coin 
 
 
 --
--- Name: COLUMN coins.name; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN coins.name; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.coins.name IS 'Name of coin';
 
 
 --
--- Name: COLUMN coins.symbol; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN coins.symbol; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.coins.symbol IS 'Short symbol of coin';
 
 
 --
--- Name: coins_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: coins_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.coins_id_seq
@@ -304,14 +304,14 @@ CREATE SEQUENCE public.coins_id_seq
 
 
 --
--- Name: coins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: coins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.coins_id_seq OWNED BY public.coins.id;
 
 
 --
--- Name: invalid_transactions; Type: TABLE; Schema: public; Owner: foundation
+-- Name: invalid_transactions; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.invalid_transactions (
@@ -328,14 +328,14 @@ CREATE TABLE public.invalid_transactions (
 
 
 --
--- Name: COLUMN invalid_transactions.created_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN invalid_transactions.created_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.invalid_transactions.created_at IS 'Duplicate of block created_at for less joins listings';
 
 
 --
--- Name: invalid_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: invalid_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.invalid_transactions_id_seq
@@ -349,14 +349,14 @@ CREATE SEQUENCE public.invalid_transactions_id_seq
 
 
 --
--- Name: invalid_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: invalid_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.invalid_transactions_id_seq OWNED BY public.invalid_transactions.id;
 
 
 --
--- Name: rewards; Type: TABLE; Schema: public; Owner: foundation
+-- Name: rewards; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.rewards (
@@ -371,7 +371,7 @@ CREATE TABLE public.rewards (
 
 
 --
--- Name: slashes; Type: TABLE; Schema: public; Owner: foundation
+-- Name: slashes; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.slashes (
@@ -387,7 +387,7 @@ CREATE TABLE public.slashes (
 
 
 --
--- Name: slashes_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: slashes_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.slashes_id_seq
@@ -401,14 +401,14 @@ CREATE SEQUENCE public.slashes_id_seq
 
 
 --
--- Name: slashes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: slashes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.slashes_id_seq OWNED BY public.slashes.id;
 
 
 --
--- Name: stakes; Type: TABLE; Schema: public; Owner: foundation
+-- Name: stakes; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.stakes (
@@ -424,7 +424,7 @@ CREATE TABLE public.stakes (
 
 
 --
--- Name: stakes_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: stakes_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.stakes_id_seq
@@ -438,14 +438,14 @@ CREATE SEQUENCE public.stakes_id_seq
 
 
 --
--- Name: stakes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: stakes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.stakes_id_seq OWNED BY public.stakes.id;
 
 
 --
--- Name: transaction_outputs; Type: TABLE; Schema: public; Owner: foundation
+-- Name: transaction_outputs; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.transaction_outputs (
@@ -460,14 +460,14 @@ CREATE TABLE public.transaction_outputs (
 
 
 --
--- Name: COLUMN transaction_outputs.value; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transaction_outputs.value; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transaction_outputs.value IS 'Value of tx output';
 
 
 --
--- Name: transaction_outputs_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: transaction_outputs_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.transaction_outputs_id_seq
@@ -481,14 +481,14 @@ CREATE SEQUENCE public.transaction_outputs_id_seq
 
 
 --
--- Name: transaction_outputs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: transaction_outputs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.transaction_outputs_id_seq OWNED BY public.transaction_outputs.id;
 
 
 --
--- Name: transaction_validator; Type: TABLE; Schema: public; Owner: foundation
+-- Name: transaction_validator; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.transaction_validator (
@@ -500,7 +500,7 @@ CREATE TABLE public.transaction_validator (
 
 
 --
--- Name: transactions; Type: TABLE; Schema: public; Owner: foundation
+-- Name: transactions; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.transactions (
@@ -525,63 +525,63 @@ CREATE TABLE public.transactions (
 
 
 --
--- Name: COLUMN transactions.from_address_id; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.from_address_id; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.from_address_id IS 'Link to address, from that tx was signed';
 
 
 --
--- Name: COLUMN transactions.block_id; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.block_id; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.block_id IS 'Link to block';
 
 
 --
--- Name: COLUMN transactions.created_at; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.created_at; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.created_at IS 'Timestamp of tx = timestamp of block. Duplicate data for less joins on blocks';
 
 
 --
--- Name: COLUMN transactions.type; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.type; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.type IS 'Integer index of tx type';
 
 
 --
--- Name: COLUMN transactions.fee; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.fee; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.fee IS 'Calculated fee in base coin (???)';
 
 
 --
--- Name: COLUMN transactions.hash; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.hash; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.hash IS 'Tx hash 64 symbols hex string without prefix(Mt****). Because of key-value-only filtering uses hash index';
 
 
 --
--- Name: COLUMN transactions.payload; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.payload; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.payload IS 'transaction payload in bytes';
 
 
 --
--- Name: COLUMN transactions.raw_tx; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: COLUMN transactions.raw_tx; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON COLUMN public.transactions.raw_tx IS 'Raw tx data in bytes';
 
 
 --
--- Name: transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.transactions_id_seq
@@ -595,14 +595,14 @@ CREATE SEQUENCE public.transactions_id_seq
 
 
 --
--- Name: transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
 
 
 --
--- Name: validators; Type: TABLE; Schema: public; Owner: foundation
+-- Name: validators; Type: TABLE; Schema: public; Owner: minter
 --
 
 CREATE TABLE public.validators (
@@ -621,14 +621,14 @@ CREATE TABLE public.validators (
 
 
 --
--- Name: TABLE validators; Type: COMMENT; Schema: public; Owner: foundation
+-- Name: TABLE validators; Type: COMMENT; Schema: public; Owner: minter
 --
 
 COMMENT ON TABLE public.validators IS 'ATTENTION - only public _ey is not null field, other fields can be null';
 
 
 --
--- Name: validator_public_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: foundation
+-- Name: validator_public_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
 --
 
 CREATE SEQUENCE public.validator_public_keys_id_seq
@@ -642,77 +642,77 @@ CREATE SEQUENCE public.validator_public_keys_id_seq
 
 
 --
--- Name: validator_public_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: foundation
+-- Name: validator_public_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
 --
 
 ALTER SEQUENCE public.validator_public_keys_id_seq OWNED BY public.validators.id;
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.addresses ALTER COLUMN id SET DEFAULT nextval('public.addresses_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.balances ALTER COLUMN id SET DEFAULT nextval('public.balances_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.coins ALTER COLUMN id SET DEFAULT nextval('public.coins_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.invalid_transactions ALTER COLUMN id SET DEFAULT nextval('public.invalid_transactions_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes ALTER COLUMN id SET DEFAULT nextval('public.slashes_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.stakes ALTER COLUMN id SET DEFAULT nextval('public.stakes_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_outputs ALTER COLUMN id SET DEFAULT nextval('public.transaction_outputs_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transactions ALTER COLUMN id SET DEFAULT nextval('public.transactions_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: foundation
+-- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.validators ALTER COLUMN id SET DEFAULT nextval('public.validator_public_keys_id_seq'::regclass);
 
 
 --
--- Data for Name: addresses; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: addresses; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.addresses (id, address, updated_at) FROM stdin;
@@ -720,14 +720,14 @@ COPY public.addresses (id, address, updated_at) FROM stdin;
 
 
 --
--- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: addresses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.addresses_id_seq', 1, false);
 
 
 --
--- Data for Name: balances; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: balances; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.balances (id, address_id, coin_id, value) FROM stdin;
@@ -735,14 +735,14 @@ COPY public.balances (id, address_id, coin_id, value) FROM stdin;
 
 
 --
--- Name: balances_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: balances_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.balances_id_seq', 1, false);
 
 
 --
--- Data for Name: block_validator; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: block_validator; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.block_validator (block_id, validator_id, signed) FROM stdin;
@@ -750,7 +750,7 @@ COPY public.block_validator (block_id, validator_id, signed) FROM stdin;
 
 
 --
--- Data for Name: blocks; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: blocks; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_time, created_at, updated_at, block_reward, hash) FROM stdin;
@@ -758,7 +758,7 @@ COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_t
 
 
 --
--- Data for Name: coins; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: coins; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.coins (id, creation_address_id, creation_transaction_id, deleted_at_block_id, crr, updated_at, volume, reserve_balance, name, symbol) FROM stdin;
@@ -766,14 +766,14 @@ COPY public.coins (id, creation_address_id, creation_transaction_id, deleted_at_
 
 
 --
--- Name: coins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: coins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.coins_id_seq', 1, false);
 
 
 --
--- Data for Name: invalid_transactions; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: invalid_transactions; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.invalid_transactions (id, from_address_id, block_id, created_at, type, hash, tx_data) FROM stdin;
@@ -781,14 +781,14 @@ COPY public.invalid_transactions (id, from_address_id, block_id, created_at, typ
 
 
 --
--- Name: invalid_transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: invalid_transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.invalid_transactions_id_seq', 1, false);
 
 
 --
--- Data for Name: rewards; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: rewards; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.rewards (address_id, block_id, validator_id, role, amount) FROM stdin;
@@ -796,7 +796,7 @@ COPY public.rewards (address_id, block_id, validator_id, role, amount) FROM stdi
 
 
 --
--- Data for Name: slashes; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: slashes; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.slashes (id, address_id, block_id, validator_id, coin_id, amount) FROM stdin;
@@ -804,14 +804,14 @@ COPY public.slashes (id, address_id, block_id, validator_id, coin_id, amount) FR
 
 
 --
--- Name: slashes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: slashes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.slashes_id_seq', 1, false);
 
 
 --
--- Data for Name: stakes; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: stakes; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.stakes (id, owner_address_id, validator_id, coin_id, value, bip_value) FROM stdin;
@@ -819,14 +819,14 @@ COPY public.stakes (id, owner_address_id, validator_id, coin_id, value, bip_valu
 
 
 --
--- Name: stakes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: stakes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.stakes_id_seq', 1, false);
 
 
 --
--- Data for Name: transaction_outputs; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: transaction_outputs; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.transaction_outputs (id, transaction_id, to_address_id, coin_id, value) FROM stdin;
@@ -834,14 +834,14 @@ COPY public.transaction_outputs (id, transaction_id, to_address_id, coin_id, val
 
 
 --
--- Name: transaction_outputs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: transaction_outputs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.transaction_outputs_id_seq', 1, false);
 
 
 --
--- Data for Name: transaction_validator; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: transaction_validator; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.transaction_validator (transaction_id, validator_id) FROM stdin;
@@ -849,7 +849,7 @@ COPY public.transaction_validator (transaction_id, validator_id) FROM stdin;
 
 
 --
--- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, gas_coin_id, created_at, type, hash, service_data, data, tags, payload, raw_tx) FROM stdin;
@@ -857,21 +857,21 @@ COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, 
 
 
 --
--- Name: transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.transactions_id_seq', 1, false);
 
 
 --
--- Name: validator_public_keys_id_seq; Type: SEQUENCE SET; Schema: public; Owner: foundation
+-- Name: validator_public_keys_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
 --
 
 SELECT pg_catalog.setval('public.validator_public_keys_id_seq', 1, false);
 
 
 --
--- Data for Name: validators; Type: TABLE DATA; Schema: public; Owner: foundation
+-- Data for Name: validators; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
 COPY public.validators (id, reward_address_id, owner_address_id, created_at_block_id, status, commission, total_stake, public_key, update_at) FROM stdin;
@@ -879,7 +879,7 @@ COPY public.validators (id, reward_address_id, owner_address_id, created_at_bloc
 
 
 --
--- Name: addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.addresses
@@ -887,7 +887,7 @@ ALTER TABLE ONLY public.addresses
 
 
 --
--- Name: balances_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: balances_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.balances
@@ -895,7 +895,7 @@ ALTER TABLE ONLY public.balances
 
 
 --
--- Name: block_validator_pk; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: block_validator_pk; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.block_validator
@@ -903,7 +903,7 @@ ALTER TABLE ONLY public.block_validator
 
 
 --
--- Name: blocks_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: blocks_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.blocks
@@ -911,7 +911,7 @@ ALTER TABLE ONLY public.blocks
 
 
 --
--- Name: coins_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: coins_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.coins
@@ -919,14 +919,14 @@ ALTER TABLE ONLY public.coins
 
 
 --
--- Name: invalid_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: invalid_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.invalid_transactions
     ADD CONSTRAINT invalid_transactions_pkey PRIMARY KEY (id);
 
 --
--- Name: slashes_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: slashes_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
@@ -934,7 +934,7 @@ ALTER TABLE ONLY public.slashes
 
 
 --
--- Name: stakes_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: stakes_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.stakes
@@ -942,7 +942,7 @@ ALTER TABLE ONLY public.stakes
 
 
 --
--- Name: transaction_outputs_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_outputs_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_outputs
@@ -950,7 +950,7 @@ ALTER TABLE ONLY public.transaction_outputs
 
 
 --
--- Name: transaction_validator_pk; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_validator_pk; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_validator
@@ -958,7 +958,7 @@ ALTER TABLE ONLY public.transaction_validator
 
 
 --
--- Name: transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transactions
@@ -966,7 +966,7 @@ ALTER TABLE ONLY public.transactions
 
 
 --
--- Name: validator_public_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: foundation
+-- Name: validator_public_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.validators
@@ -974,224 +974,229 @@ ALTER TABLE ONLY public.validators
 
 
 --
--- Name: addresses_address_uindex; Type: INDEX; Schema: public; Owner: foundation
+-- Name: addresses_address_uindex; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE UNIQUE INDEX addresses_address_uindex ON public.addresses USING btree (address);
 
 
 --
--- Name: balances_address_id_coind_id_uindex; Type: INDEX; Schema: public; Owner: foundation
+-- Name: balances_address_id_coind_id_uindex; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE UNIQUE INDEX balances_address_id_coind_id_uindex ON public.balances USING btree (address_id, coin_id);
 
 
 --
--- Name: balances_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: balances_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX balances_address_id_index ON public.balances USING btree (address_id);
 
 
 --
--- Name: balances_coind_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: balances_coind_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX balances_coind_id_index ON public.balances USING btree (coin_id);
 
 
 --
--- Name: block_validator_block_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: block_validator_block_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX block_validator_block_id_index ON public.block_validator USING btree (block_id);
 
 
 --
--- Name: block_validator_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: block_validator_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX block_validator_validator_id_index ON public.block_validator USING btree (validator_id);
 
 
 --
--- Name: blocks_proposer_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: blocks_proposer_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX blocks_proposer_validator_id_index ON public.blocks USING btree (proposer_validator_id);
 
 
 --
--- Name: blocks_proposer_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: blocks_proposer_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX blocks_created_at_index ON public.blocks (created_at DESC);
 
 
 --
--- Name: coins_creation_transaction_id_uindex; Type: INDEX; Schema: public; Owner: foundation
+-- Name: coins_creation_transaction_id_uindex; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE UNIQUE INDEX coins_creation_transaction_id_uindex ON public.coins USING btree (creation_transaction_id);
 
 
 --
--- Name: coins_creator_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: coins_creator_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX coins_creator_address_id_index ON public.coins USING btree (creation_address_id);
 
 
 --
--- Name: coins_symbol_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: coins_symbol_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX coins_symbol_index ON public.coins USING btree (symbol);
 
 
 --
--- Name: invalid_transactions_block_id_from_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: invalid_transactions_block_id_from_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX invalid_transactions_block_id_from_address_id_index ON public.invalid_transactions USING btree (block_id DESC, from_address_id);
 
 
 --
--- Name: invalid_transactions_from_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: invalid_transactions_from_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX invalid_transactions_from_address_id_index ON public.invalid_transactions USING btree (from_address_id);
 
 
 --
--- Name: invalid_transactions_hash_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: invalid_transactions_hash_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX invalid_transactions_hash_index ON public.invalid_transactions USING hash (hash);
 
 
 --
--- Name: rewards_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: rewards_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX rewards_address_id_index ON public.rewards USING btree (address_id);
 
 
 --
--- Name: rewards_block_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: rewards_block_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX rewards_block_id_index ON public.rewards USING btree (block_id);
 
 
 --
--- Name: rewards_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: rewards_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX rewards_validator_id_index ON public.rewards USING btree (validator_id);
 
 
 --
--- Name: slashes_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: slashes_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX slashes_address_id_index ON public.slashes USING btree (address_id);
 
 
 --
--- Name: slashes_block_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: slashes_block_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX slashes_block_id_index ON public.slashes USING btree (block_id);
 
 
 --
--- Name: slashes_coin_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: slashes_coin_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX slashes_coin_id_index ON public.slashes USING btree (coin_id);
 
 
 --
--- Name: slashes_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: slashes_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX slashes_validator_id_index ON public.slashes USING btree (validator_id);
 
 
 --
--- Name: stakes_coin_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: stakes_coin_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX stakes_coin_id_index ON public.stakes USING btree (coin_id);
 
 
 --
--- Name: stakes_owner_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: stakes_owner_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX stakes_owner_address_id_index ON public.stakes USING btree (owner_address_id);
 
 
 --
--- Name: stakes_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: stakes_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX stakes_validator_id_index ON public.stakes USING btree (validator_id);
 
 
 --
--- Name: transaction_outputs_coin_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transaction_outputs_coin_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transaction_outputs_coin_id_index ON public.transaction_outputs USING btree (coin_id);
 
 
 --
--- Name: transaction_outputs_transaction_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transaction_outputs_transaction_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transaction_outputs_transaction_id_index ON public.transaction_outputs USING btree (transaction_id);
 
+--
+-- Name: transaction_outputs_address_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX transaction_outputs_address_id_index ON public.transaction_outputs USING btree (to_address_id);
 
 --
--- Name: transaction_validator_validator_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transaction_validator_validator_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transaction_validator_validator_id_index ON public.transaction_validator USING btree (validator_id);
 
 
 --
--- Name: transactions_block_id_from_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transactions_block_id_from_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transactions_block_id_from_address_id_index ON public.transactions USING btree (block_id DESC, from_address_id);
 
 
 --
--- Name: transactions_from_address_id_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transactions_from_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transactions_from_address_id_index ON public.transactions USING btree (from_address_id);
 
 
 --
--- Name: transactions_hash_index; Type: INDEX; Schema: public; Owner: foundation
+-- Name: transactions_hash_index; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE INDEX transactions_hash_index ON public.transactions USING hash (hash);
 
 
 --
--- Name: validator_public_keys_public_key_uindex; Type: INDEX; Schema: public; Owner: foundation
+-- Name: validator_public_keys_public_key_uindex; Type: INDEX; Schema: public; Owner: minter
 --
 
 CREATE UNIQUE INDEX validator_public_keys_public_key_uindex ON public.validators USING btree (public_key);
 
 
 --
--- Name: balances_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: balances_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.balances
@@ -1199,7 +1204,7 @@ ALTER TABLE ONLY public.balances
 
 
 --
--- Name: balances_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: balances_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.balances
@@ -1207,7 +1212,7 @@ ALTER TABLE ONLY public.balances
 
 
 --
--- Name: block_validator_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: block_validator_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.block_validator
@@ -1215,7 +1220,7 @@ ALTER TABLE ONLY public.block_validator
 
 
 --
--- Name: block_validator_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: block_validator_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.block_validator
@@ -1223,7 +1228,7 @@ ALTER TABLE ONLY public.block_validator
 
 
 --
--- Name: blocks_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: blocks_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.blocks
@@ -1231,7 +1236,7 @@ ALTER TABLE ONLY public.blocks
 
 
 --
--- Name: coins_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: coins_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.coins
@@ -1239,7 +1244,7 @@ ALTER TABLE ONLY public.coins
 
 
 --
--- Name: coins_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: coins_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.coins
@@ -1247,7 +1252,7 @@ ALTER TABLE ONLY public.coins
 
 
 --
--- Name: coins_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: coins_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.coins
@@ -1255,7 +1260,7 @@ ALTER TABLE ONLY public.coins
 
 
 --
--- Name: invalid_transactions_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: invalid_transactions_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.invalid_transactions
@@ -1263,7 +1268,7 @@ ALTER TABLE ONLY public.invalid_transactions
 
 
 --
--- Name: invalid_transactions_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: invalid_transactions_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.invalid_transactions
@@ -1271,7 +1276,7 @@ ALTER TABLE ONLY public.invalid_transactions
 
 
 --
--- Name: rewards_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: rewards_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.rewards
@@ -1279,7 +1284,7 @@ ALTER TABLE ONLY public.rewards
 
 
 --
--- Name: rewards_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: rewards_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.rewards
@@ -1287,7 +1292,7 @@ ALTER TABLE ONLY public.rewards
 
 
 --
--- Name: rewards_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: rewards_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.rewards
@@ -1295,7 +1300,7 @@ ALTER TABLE ONLY public.rewards
 
 
 --
--- Name: slashes_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: slashes_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
@@ -1303,7 +1308,7 @@ ALTER TABLE ONLY public.slashes
 
 
 --
--- Name: slashes_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: slashes_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
@@ -1311,7 +1316,7 @@ ALTER TABLE ONLY public.slashes
 
 
 --
--- Name: slashes_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: slashes_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
@@ -1319,7 +1324,7 @@ ALTER TABLE ONLY public.slashes
 
 
 --
--- Name: slashes_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: slashes_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
@@ -1327,7 +1332,7 @@ ALTER TABLE ONLY public.slashes
 
 
 --
--- Name: stakes_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: stakes_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.stakes
@@ -1335,7 +1340,7 @@ ALTER TABLE ONLY public.stakes
 
 
 --
--- Name: stakes_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: stakes_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.stakes
@@ -1343,7 +1348,7 @@ ALTER TABLE ONLY public.stakes
 
 
 --
--- Name: stakes_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: stakes_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.stakes
@@ -1351,7 +1356,7 @@ ALTER TABLE ONLY public.stakes
 
 
 --
--- Name: transaction_outputs_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_outputs_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_outputs
@@ -1359,7 +1364,7 @@ ALTER TABLE ONLY public.transaction_outputs
 
 
 --
--- Name: transaction_outputs_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_outputs_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_outputs
@@ -1367,7 +1372,7 @@ ALTER TABLE ONLY public.transaction_outputs
 
 
 --
--- Name: transaction_outputs_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_outputs_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_outputs
@@ -1375,7 +1380,7 @@ ALTER TABLE ONLY public.transaction_outputs
 
 
 --
--- Name: transaction_validator_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_validator_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_validator
@@ -1383,7 +1388,7 @@ ALTER TABLE ONLY public.transaction_validator
 
 
 --
--- Name: transaction_validator_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transaction_validator_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transaction_validator
@@ -1391,7 +1396,7 @@ ALTER TABLE ONLY public.transaction_validator
 
 
 --
--- Name: transactions_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transactions_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transactions
@@ -1399,7 +1404,7 @@ ALTER TABLE ONLY public.transactions
 
 
 --
--- Name: transactions_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transactions_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transactions
@@ -1407,7 +1412,7 @@ ALTER TABLE ONLY public.transactions
 
 
 --
--- Name: transactions_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: foundation
+-- Name: transactions_coins_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.transactions
@@ -1415,10 +1420,10 @@ ALTER TABLE ONLY public.transactions
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: minter
 --
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
+REVOKE ALL ON SCHEMA public FROM minter;
+GRANT ALL ON SCHEMA public TO minter;
 GRANT ALL ON SCHEMA public TO PUBLIC;
