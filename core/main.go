@@ -16,18 +16,26 @@ import (
 	"github.com/go-pg/pg"
 	"math"
 	"strconv"
+	"sync"
 	"time"
 )
 
+var (
+	chBlocks = make(chan *responses.BlockResponse, 1)
+)
+
 type ExtenderEnvironment struct {
-	Debug       bool
-	DbName      string
-	DbUser      string
-	DbPassword  string
-	NodeApi     string
-	ApiHost     string
-	ApiPort     int
-	TxChunkSize int
+	AppName        string
+	Debug          bool
+	DbName         string
+	DbUser         string
+	DbPassword     string
+	DbMinIdleConns int
+	DbPoolSize     int
+	NodeApi        string
+	ApiHost        string
+	ApiPort        int
+	TxChunkSize    int
 }
 
 type Extender struct {
@@ -59,7 +67,7 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 		Database:        env.DbName,
 		PoolSize:        20,
 		MinIdleConns:    10,
-		ApplicationName: "Minter Extender",
+		ApplicationName: env.AppName,
 	})
 
 	if env.Debug {
@@ -97,12 +105,12 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 }
 
 func (ext *Extender) Run() {
-	go ext.balanceService.Run()
-
 	err := ext.blockRepository.DeleteLastBlockData()
 	helpers.HandleError(err)
 
 	var startHeight uint64
+	go ext.balanceService.Run()
+
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
 	if lastExplorerBlock != nil {
@@ -114,58 +122,84 @@ func (ext *Extender) Run() {
 
 	for {
 		//Pulling block data
-		resp, err := ext.nodeApi.GetBlock(startHeight)
+		blockResponse, err := ext.nodeApi.GetBlock(startHeight)
 		helpers.HandleError(err)
-		if resp.Error != nil {
+		if blockResponse.Error != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		ext.handleBlockResponse(resp)
 
-		// TODO: move to gorutine
-		//Pulling event data
-		eventsResponse, err := ext.nodeApi.GetBlockEvents(startHeight)
-		helpers.HandleError(err)
-		//Handle event data
-		ext.handleEventResponse(startHeight, eventsResponse)
+		ext.handleBlockResponse(blockResponse)
 
+		go ext.getEventsData(startHeight)
 		startHeight++
 	}
-
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Save validators if not exist
 	validators, err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
+
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	helpers.HandleError(err)
-	err = ext.linkBlockValidator(response)
-	helpers.HandleError(err)
+
+	go ext.linkBlockValidator(response)
 
 	if response.Result.TxCount != "0" {
-		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
-		helpers.HandleError(err)
-		chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
-		chunks := make([][]responses.Transaction, chunksCount)
-		for i := 0; i < chunksCount; i++ {
-			start := ext.env.TxChunkSize * i
-			end := start + ext.env.TxChunkSize
-			if end > len(response.Result.Transactions) {
-				end = len(response.Result.Transactions)
-			}
-			chunks[i] = response.Result.Transactions[start:end]
-		}
-		for _, chunk := range chunks {
-			ext.saveAddressesAndTransactions(height, response.Result.Time, chunk, validators)
-		}
+		ext.handleTransactions(response, validators)
 	}
+}
+
+func (ext Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
+	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	helpers.HandleError(err)
+
+	chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
+	chunks := make([][]responses.Transaction, chunksCount)
+	for i := 0; i < chunksCount; i++ {
+		start := ext.env.TxChunkSize * i
+		end := start + ext.env.TxChunkSize
+		if end > len(response.Result.Transactions) {
+			end = len(response.Result.Transactions)
+		}
+		chunks[i] = response.Result.Transactions[start:end]
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(chunks))
+	for _, chunk := range chunks {
+		go func() {
+			defer wg.Done()
+			ext.saveAddresses(height, chunk)
+		}()
+	}
+	wg.Wait()
+
+	go ext.updateValidatorsData(validators, height)
+
+	// have to be handled after addresses
+	wg.Add(len(chunks))
+	for _, chunk := range chunks {
+		go func() {
+			defer wg.Done()
+			ext.saveTransactions(height, response.Result.Time, chunk, validators)
+		}()
+	}
+	wg.Wait()
+}
+
+func (ext *Extender) getEventsData(blockHeight uint64) {
+	//Pulling event data
+	eventsResponse, err := ext.nodeApi.GetBlockEvents(blockHeight)
+	helpers.HandleError(err)
+	//Handle event data
+	ext.handleEventResponse(blockHeight, eventsResponse)
 }
 
 func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses.EventsResponse) {
 	if len(response.Result.Events) > 0 {
-		//TODO: split
 		//Search and save addresses from block
 		err := ext.addressService.HandleEventsResponse(blockHeight, response)
 		helpers.HandleError(err)
@@ -175,54 +209,40 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 	}
 }
 
-func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) error {
-	var links []*models.BlockValidator
+func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
+	var links = make([]*models.BlockValidator, len(response.Result.Validators))
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
-	if err != nil {
-		return err
-	}
-	for _, v := range response.Result.Validators {
-		vId, err := ext.validatorRepository.FindIdByPk(
-			helpers.RemovePrefix(v.PubKey))
-		if err != nil {
-			return err
-		}
-		links = append(links, &models.BlockValidator{
+	helpers.HandleError(err)
+	for i, v := range response.Result.Validators {
+		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PubKey))
+		helpers.HandleError(err)
+		links[i] = &models.BlockValidator{
 			ValidatorID: vId,
 			BlockID:     height,
 			Signed:      v.Signed,
-		})
+		}
 	}
 	err = ext.blockRepository.LinkWithValidators(links)
-	if err != nil {
-		return err
-	}
-	return nil
+	helpers.HandleError(err)
 }
 
-func (ext *Extender) saveAddressesAndTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction, validators []*models.Validator) {
+func (ext *Extender) saveAddresses(blockHeight uint64, transactions []responses.Transaction) {
 	// Search and save addresses from block
 	err := ext.addressService.HandleTransactionsFromBlockResponse(blockHeight, transactions)
 	helpers.HandleError(err)
-	// Save transactions
-	err = ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
-	helpers.HandleError(err)
-
-	//TODO: temporary here
-	// have to be handled after addresses
-	go ext.updateValidatorsData(validators, blockHeight)
 }
 
-func (ext Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) error {
+func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction, validators []*models.Validator) {
+	// Save transactions
+	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
+	helpers.HandleError(err)
+}
+
+func (ext Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) {
 	for _, vlr := range validators {
 		resp, err := ext.nodeApi.GetCandidate(vlr.GetPublicKey(), blockHeight)
-		if err != nil {
-			return err
-		}
+		helpers.HandleError(err)
 		err = ext.validatorService.UpdateValidatorsInfoAndStakes(resp)
-		if err != nil {
-			return err
-		}
+		helpers.HandleError(err)
 	}
-	return nil
 }
