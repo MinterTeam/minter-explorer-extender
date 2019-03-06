@@ -3,6 +3,8 @@
   "app":{
     "debug": ME_DEBUG,
     "baseCoin": "ME_BASE_COIN",
+    "txChunkSize": ME_TX_CHUNK_SIZE,
+    "eventsChunkSize": ME_EVENTS_CHUNK_SIZE
   },
   "database": {
     "host": "ME_DB_HOST",

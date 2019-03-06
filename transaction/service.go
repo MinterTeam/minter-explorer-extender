@@ -14,10 +14,12 @@ import (
 	"github.com/daniildulin/minter-node-api/responses"
 	"math"
 	"strconv"
+	"sync"
 	"time"
 )
 
 type Service struct {
+	env                 *models.ExtenderEnvironment
 	txRepository        *Repository
 	addressRepository   *address.Repository
 	validatorRepository *validator.Repository
@@ -26,9 +28,10 @@ type Service struct {
 	broadcastService    *broadcast.Service
 }
 
-func NewService(repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
+func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
 	coinRepository *coin.Repository, coinService *coin.Service, broadcastService *broadcast.Service) *Service {
 	return &Service{
+		env:                 env,
 		txRepository:        repository,
 		coinRepository:      coinRepository,
 		addressRepository:   addressRepository,
@@ -61,11 +64,10 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 		}
 	}
 
-	//TODO: refactoring
 	if len(txList) > 0 {
 		err := s.txRepository.SaveAll(txList)
 		helpers.HandleError(err)
-		err = s.SaveAllTxOutputs(txList)
+		err = s.SaveAllTxOutputs(txList, s.env.TxChunkSize)
 		helpers.HandleError(err)
 		err = s.LinkWithValidators(txList, validators)
 		helpers.HandleError(err)
@@ -85,7 +87,7 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 	return nil
 }
 
-func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
+func (s *Service) SaveAllTxOutputs(txList []*models.Transaction, chunkSize int) error {
 	var list []*models.TransactionOutput
 	for _, tx := range txList {
 		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
@@ -135,7 +137,25 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		}
 	}
 	if len(list) > 0 {
-		return s.txRepository.SaveAllTxOutputs(list)
+		chunksCount := int(math.Ceil(float64(len(list)) / float64(chunkSize)))
+		chunks := make([][]*models.TransactionOutput, chunksCount)
+		for i := 0; i < chunksCount; i++ {
+			start := chunkSize * i
+			end := start + chunkSize
+			if end > len(list) {
+				end = len(list)
+			}
+			chunks[i] = list[start:end]
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(len(chunks))
+		go func() {
+			defer wg.Done()
+			err := s.txRepository.SaveAllTxOutputs(list)
+			helpers.HandleError(err)
+		}()
+		wg.Wait()
 	}
 	return nil
 }
@@ -159,26 +179,27 @@ func (s Service) LinkWithValidators(transactions []*models.Transaction, validato
 		return nil
 	}
 
-	// Split addresses by chunks
-	chunkSize := 500 //TODO: need to be in config ???
-	chunksCount := int(math.Ceil(float64(len(links)) / float64(chunkSize)))
+	chunksCount := int(math.Ceil(float64(len(links)) / float64(s.env.TxChunkSize)))
 	chunks := make([][]*models.TransactionValidator, chunksCount)
 	for i := 0; i < chunksCount; i++ {
-		start := chunkSize * i
-		end := start + chunkSize
+		start := s.env.TxChunkSize * i
+		end := start + s.env.TxChunkSize
 		if end > len(links) {
 			end = len(links)
 		}
 		chunks[i] = links[start:end]
 	}
 
-	//TODO: refactoring
+	var wg sync.WaitGroup
+	wg.Add(len(chunks))
 	for _, links := range chunks {
-		err := s.txRepository.LinkWithValidators(links)
-		if err != nil {
-			return err
-		}
+		go func() {
+			defer wg.Done()
+			err := s.txRepository.LinkWithValidators(links)
+			helpers.HandleError(err)
+		}()
 	}
+	wg.Wait()
 	return nil
 }
 
