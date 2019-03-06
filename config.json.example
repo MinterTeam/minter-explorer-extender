@@ -1,7 +1,9 @@
 {
   "name": "Minter Extender",
-  "debug": ME_DEBUG,
-  "baseCoin": "ME_BASE_COIN",
+  "app":{
+    "debug": ME_DEBUG,
+    "baseCoin": "ME_BASE_COIN",
+  },
   "database": {
     "host": "ME_DB_HOST",
     "name": "ME_DB_NAME",

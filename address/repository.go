@@ -27,13 +27,35 @@ func (r *Repository) FindId(address string) (uint64, error) {
 	if ok {
 		return id.(uint64), nil
 	}
-	a := new(models.Address)
-	err := r.db.Model(a).Where("address = ?", address).Select(a)
+	adr := new(models.Address)
+	err := r.db.Model(adr).Where("address = ?", address).Select(adr)
 	if err != nil {
 		return 0, err
 	}
-	r.cache.Store(address, a.ID)
-	return a.ID, nil
+	r.cache.Store(address, adr.ID)
+	return adr.ID, nil
+}
+
+//Find address id or create if not exist
+func (r *Repository) FindIdOrCreate(address string) (uint64, error) {
+	//First look in the cache
+	id, ok := r.cache.Load(address)
+	if ok {
+		return id.(uint64), nil
+	}
+
+	adr := &models.Address{Address: address}
+	_, err := r.db.Model(adr).
+		Where("address = ?address").
+		OnConflict("DO NOTHING").
+		SelectOrInsert()
+
+	if err != nil {
+		return 0, err
+	}
+
+	r.cache.Store(address, adr.ID)
+	return adr.ID, err
 }
 
 func (r *Repository) FindById(id uint64) (string, error) {

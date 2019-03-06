@@ -67,12 +67,12 @@ func (s *Service) HandleCandidateResponse(response *responses.CandidateResponse)
 		return nil, nil, err
 	}
 	validator.CreatedAtBlockID = &createdAtBlockID
-	ownerAddressID, err := s.addressRepository.FindId(helpers.RemovePrefix(response.Result.OwnerAddress))
+	ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.Result.OwnerAddress))
 	if err != nil {
 		return nil, nil, err
 	}
 	validator.OwnerAddressID = &ownerAddressID
-	rewardAddressID, err := s.addressRepository.FindId(helpers.RemovePrefix(response.Result.RewardAddress))
+	rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.Result.RewardAddress))
 	if err != nil {
 		return nil, nil, err
 	}

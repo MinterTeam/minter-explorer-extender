@@ -20,10 +20,13 @@ func main() {
 }
 
 func initEnvironment() *models.ExtenderEnvironment {
+	appName := flag.String("app_name", "Minter Extender", "App name")
 	debug := flag.Bool("debug", false, "Debug mode")
 	dbName := flag.String("db_name", "", "DB name")
 	dbUser := flag.String("db_user", "", "DB user")
 	dbPassword := flag.String("db_password", "", "DB password")
+	dbMinIdleConns := flag.Int("db_min_idle_conns", 10, "DB min idle connections")
+	dbPoolSize := flag.Int("db_pool_size", 20, "DB pool size")
 	nodeApi := flag.String("node_api", "", "DB password")
 	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
 	configFile := flag.String("config", "", "Env file")
@@ -73,17 +76,23 @@ func initEnvironment() *models.ExtenderEnvironment {
 		envData.DbName = config.GetString("database.name")
 		envData.DbUser = config.GetString("database.user")
 		envData.DbPassword = config.GetString("database.password")
+		envData.DbMinIdleConns = config.GetInt("database.minIdleConns")
+		envData.DbPoolSize = config.GetInt("database.poolSize")
 		envData.NodeApi = nodeApi
-		envData.TxChunkSize = *txChunkSize
+		envData.TxChunkSize = config.GetInt("app.txChunkSize")
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.WsLink = wsLink
 		envData.WsKey = config.GetString(`wsServer.key`)
+		envData.AppName = config.GetString("name")
 	} else {
+		envData.AppName = *appName
 		envData.Debug = *debug
 		envData.DbName = *dbName
 		envData.DbUser = *dbUser
 		envData.DbPassword = *dbPassword
+		envData.DbMinIdleConns = *dbMinIdleConns
+		envData.DbPoolSize = *dbPoolSize
 		envData.NodeApi = *nodeApi
 		envData.TxChunkSize = *txChunkSize
 		envData.ApiHost = *apiHost
