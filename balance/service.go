@@ -61,23 +61,22 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 
 	//TODO: refactoring
 	for _, chunkAddresses := range chunks {
-		//go func(addresses []string) {
-		addressesWithPrefix := make([]string, len(chunkAddresses))
-		for i, adr := range chunkAddresses {
-			addressesWithPrefix[i] = `"Mx` + adr + `"`
-		}
-		response, err := s.nodeApi.GetAddresses(addressesWithPrefix, blockAddresses.Height)
-		helpers.HandleError(err)
-
-		balances, err := s.HandleBalanceResponse(response)
-		helpers.HandleError(err)
-
-		if balances != nil {
-			err := s.updateBalances(chunkAddresses, balances)
+		go func() {
+			addressesWithPrefix := make([]string, len(chunkAddresses))
+			for i, adr := range chunkAddresses {
+				addressesWithPrefix[i] = `"Mx` + adr + `"`
+			}
+			response, err := s.nodeApi.GetAddresses(addressesWithPrefix, blockAddresses.Height)
 			helpers.HandleError(err)
-			go s.broadcastService.PublishBalances(balances)
-		}
-		//}(chunkAddresses)
+
+			balances, err := s.HandleBalanceResponse(response)
+			helpers.HandleError(err)
+
+			if balances != nil {
+				err := s.updateBalances(chunkAddresses, balances)
+				helpers.HandleError(err)
+			}
+		}()
 	}
 }
 
