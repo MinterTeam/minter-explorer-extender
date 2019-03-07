@@ -42,7 +42,7 @@ func New() *models.ExtenderEnvironment {
 	}
 
 	if *configFile != "" {
-		config := env.NewViperConfig(*configFile)
+		config := NewViperConfig(*configFile)
 		nodeApi := "http://"
 		if config.GetBool("minterApi.isSecure") {
 			nodeApi = "https://"
