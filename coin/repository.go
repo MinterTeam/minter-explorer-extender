@@ -7,14 +7,16 @@ import (
 )
 
 type Repository struct {
-	db    *pg.DB
-	cache *sync.Map
+	db       *pg.DB
+	cache    *sync.Map
+	invCache *sync.Map
 }
 
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
-		db:    db,
-		cache: new(sync.Map), //TODO: добавить реализацию очистки
+		db:       db,
+		cache:    new(sync.Map), //TODO: добавить реализацию очистки
+		invCache: new(sync.Map), //TODO: добавить реализацию очистки
 	}
 }
 
@@ -36,6 +38,23 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	}
 	r.cache.Store(symbol, coin.ID)
 	return coin.ID, nil
+}
+
+func (r *Repository) FindSymbolById(id uint64) (string, error) {
+	//First look in the cache
+	symbol, ok := r.invCache.Load(id)
+	if ok {
+		return symbol.(string), nil
+	}
+	coin := &models.Coin{ID: id}
+	err := r.db.Model(coin).Select()
+
+	if err != nil {
+		return "", err
+	}
+	r.cache.Store(coin.Symbol, id)
+	r.invCache.Store(id, coin.Symbol)
+	return coin.Symbol, nil
 }
 
 func (r Repository) Save(c *models.Coin) error {

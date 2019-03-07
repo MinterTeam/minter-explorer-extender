@@ -7,14 +7,16 @@ import (
 )
 
 type Repository struct {
-	db    *pg.DB
-	cache *sync.Map
+	db       *pg.DB
+	cache    *sync.Map
+	invCache *sync.Map
 }
 
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
-		db:    db,
-		cache: new(sync.Map), //TODO: добавить реализацию очистки
+		db:       db,
+		cache:    new(sync.Map), //TODO: добавить реализацию очистки
+		invCache: new(sync.Map), //TODO: добавить реализацию очистки
 	}
 }
 
@@ -32,6 +34,22 @@ func (r *Repository) FindId(address string) (uint64, error) {
 	}
 	r.cache.Store(address, a.ID)
 	return a.ID, nil
+}
+
+func (r *Repository) FindById(id uint64) (string, error) {
+	//First look in the cache
+	address, ok := r.invCache.Load(id)
+	if ok {
+		return address.(string), nil
+	}
+	a := &models.Address{ID: id}
+	err := r.db.Select(a)
+	if err != nil {
+		return "", err
+	}
+	r.cache.Store(a.Address, id)
+	r.invCache.Store(id, a.Address)
+	return a.Address, nil
 }
 
 func (r *Repository) FindAll(addresses []string) ([]*models.Address, error) {
@@ -77,6 +95,7 @@ func (r *Repository) addToCache(addresses []*models.Address) {
 		_, exist := r.cache.Load(a)
 		if !exist {
 			r.cache.Store(a.Address, a.ID)
+			r.invCache.Store(a.ID, a.Address)
 		}
 	}
 }

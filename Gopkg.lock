@@ -18,6 +18,14 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  digest = "1:b33ffd395503c2dbd0f31ba15b48bab3969c049d52ed57efe158f62ceda57555"
+  name = "github.com/centrifugal/gocent"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c1f4a2164b950c77d8881ede2c929124ce6c428c"
+  version = "v2.0.2"
+
+[[projects]]
   digest = "1:67aea557f77ae15ff7dd20eca7eb6affe4389b42cd657c7fa35e25df87c033cc"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
@@ -262,6 +270,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/MinterTeam/explorer-gate/helpers",
+    "github.com/centrifugal/gocent",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",

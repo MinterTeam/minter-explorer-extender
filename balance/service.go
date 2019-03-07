@@ -2,6 +2,7 @@ package balance
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
+	"github.com/MinterTeam/minter-explorer-extender/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
@@ -17,16 +18,18 @@ type Service struct {
 	repository        *Repository
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
+	broadcastService  *broadcast.Service
 }
 
 func NewService(repository *Repository, nodeApi *minter_node_api.MinterNodeApi, addressRepository *address.Repository,
-	coinRepository *coin.Repository) *Service {
+	coinRepository *coin.Repository, broadcastService *broadcast.Service) *Service {
 	return &Service{
 		chAddresses:       make(chan models.BlockAddresses),
 		repository:        repository,
 		nodeApi:           nodeApi,
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
+		broadcastService:  broadcastService,
 	}
 }
 
@@ -72,6 +75,7 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 		if balances != nil {
 			err := s.updateBalances(chunkAddresses, balances)
 			helpers.HandleError(err)
+			go s.broadcastService.PublishBalances(balances)
 		}
 		//}(chunkAddresses)
 	}

@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/MinterTeam/minter-explorer-extender/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
@@ -12,13 +13,15 @@ import (
 type Service struct {
 	blockRepository     *Repository
 	validatorRepository *validator.Repository
+	broadcastService    *broadcast.Service
 	blockCache          *models.Block //Contain previous block model
 }
 
-func NewBlockService(blockRepository *Repository, validatorRepository *validator.Repository) *Service {
+func NewBlockService(blockRepository *Repository, validatorRepository *validator.Repository, broadcastService *broadcast.Service) *Service {
 	return &Service{
 		blockRepository:     blockRepository,
 		validatorRepository: validatorRepository,
+		broadcastService:    broadcastService,
 	}
 }
 
@@ -54,6 +57,9 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		Hash:                response.Result.Hash,
 	}
 	s.SetBlockCache(block)
+
+	go s.broadcastService.PublishBlock(block)
+
 	return s.blockRepository.Save(block)
 }
 

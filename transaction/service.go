@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
+	"github.com/MinterTeam/minter-explorer-extender/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
 	"github.com/MinterTeam/minter-explorer-extender/models"
@@ -22,16 +23,18 @@ type Service struct {
 	validatorRepository *validator.Repository
 	coinRepository      *coin.Repository
 	coinService         *coin.Service
+	broadcastService    *broadcast.Service
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
-	coinRepository *coin.Repository, coinService *coin.Service) *Service {
+	coinRepository *coin.Repository, coinService *coin.Service, broadcastService *broadcast.Service) *Service {
 	return &Service{
 		txRepository:        repository,
 		coinRepository:      coinRepository,
 		addressRepository:   addressRepository,
 		coinService:         coinService,
 		validatorRepository: validatorRepository,
+		broadcastService:    broadcastService,
 	}
 }
 
@@ -66,6 +69,13 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 		helpers.HandleError(err)
 		err = s.LinkWithValidators(txList, validators)
 		helpers.HandleError(err)
+
+		//no need to publish a big number of transaction
+		if len(txList) > 10 {
+			go s.broadcastService.PublishTransactions(txList[:10])
+		} else {
+			go s.broadcastService.PublishTransactions(txList)
+		}
 	}
 	if len(invalidTxList) > 0 {
 		err := s.txRepository.SaveAllInvalid(invalidTxList)

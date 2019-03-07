@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/api"
 	"github.com/MinterTeam/minter-explorer-extender/core"
 	"github.com/MinterTeam/minter-explorer-extender/env"
+	"github.com/MinterTeam/minter-explorer-extender/models"
 	"os"
 )
 
@@ -18,7 +19,7 @@ func main() {
 	ext.Run()
 }
 
-func initEnvironment() *core.ExtenderEnvironment {
+func initEnvironment() *models.ExtenderEnvironment {
 	debug := flag.Bool("debug", false, "Debug mode")
 	dbName := flag.String("db_name", "", "DB name")
 	dbUser := flag.String("db_user", "", "DB user")
@@ -28,9 +29,10 @@ func initEnvironment() *core.ExtenderEnvironment {
 	configFile := flag.String("config", "", "Env file")
 	apiHost := flag.String("extenderApi.host", "", "API host")
 	apiPort := flag.Int("extenderApi.port", 8000, "API port")
+	wsLink := flag.String("ws_link", "", "WebSocket server link")
 	flag.Parse()
 
-	envData := new(core.ExtenderEnvironment)
+	envData := new(models.ExtenderEnvironment)
 
 	if envData.DbUser == "" {
 		dbUser := os.Getenv("EXPLORER_DB_USER")
@@ -51,6 +53,16 @@ func initEnvironment() *core.ExtenderEnvironment {
 
 	if *configFile != "" {
 		config := env.NewViperConfig(*configFile)
+
+		wsLink := `http://`
+		if config.GetBool(`wsServer.isSecure`) {
+			wsLink = `https://`
+		}
+		wsLink += config.GetString(`wsServer.link`)
+		if config.GetString(`wsServer.port`) != `` {
+			wsLink += `:` + config.GetString(`wsServer.port`)
+		}
+
 		nodeApi := "http://"
 		if config.GetBool("minterApi.isSecure") {
 			nodeApi = "https://"
@@ -64,6 +76,7 @@ func initEnvironment() *core.ExtenderEnvironment {
 		envData.TxChunkSize = *txChunkSize
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
+		envData.WsLink = wsLink
 	} else {
 		envData.Debug = *debug
 		envData.DbName = *dbName
@@ -73,6 +86,7 @@ func initEnvironment() *core.ExtenderEnvironment {
 		envData.TxChunkSize = *txChunkSize
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
+		envData.WsLink = *wsLink
 	}
 
 	return envData

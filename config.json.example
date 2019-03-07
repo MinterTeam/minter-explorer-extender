@@ -16,5 +16,11 @@
   "extenderApi": {
     "host": "ME_API_HOST",
     "port": "ME_API_PORT"
-  }
+  },
+ "wsServer":{
+   "isSecure" : false,
+   "link" : "ME_WS_LINK",
+   "port" : "ME_WS_PORT",
+   "key"  : "ME_WS_KEY"
+ }
 }

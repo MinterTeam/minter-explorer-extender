@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/block"
+	"github.com/MinterTeam/minter-explorer-extender/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/events"
 	"github.com/MinterTeam/minter-explorer-extender/helpers"
@@ -19,19 +20,8 @@ import (
 	"time"
 )
 
-type ExtenderEnvironment struct {
-	Debug       bool
-	DbName      string
-	DbUser      string
-	DbPassword  string
-	NodeApi     string
-	ApiHost     string
-	ApiPort     int
-	TxChunkSize int
-}
-
 type Extender struct {
-	env                 *ExtenderEnvironment
+	env                 *models.ExtenderEnvironment
 	nodeApi             *minter_node_api.MinterNodeApi
 	blockService        *block.Service
 	addressService      *address.Service
@@ -51,7 +41,7 @@ func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
 	fmt.Println(q.FormattedQuery())
 }
 
-func NewExtender(env *ExtenderEnvironment) *Extender {
+func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
 	db := pg.Connect(&pg.Options{
 		User:            env.DbUser,
@@ -79,17 +69,18 @@ func NewExtender(env *ExtenderEnvironment) *Extender {
 	balanceRepository := balance.NewRepository(db)
 
 	// Services
+	broadcastService := broadcast.NewService(env, addressRepository)
 	coinService := coin.NewService(coinRepository, addressRepository)
-	balanceService := balance.NewService(balanceRepository, nodeApi, addressRepository, coinRepository)
+	balanceService := balance.NewService(balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService)
 
 	return &Extender{
 		env:                 env,
 		nodeApi:             nodeApi,
-		blockService:        block.NewBlockService(blockRepository, validatorRepository),
+		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
 		eventService:        events.NewService(eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
-		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService),
+		transactionService:  transaction.NewService(transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService),
 		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
