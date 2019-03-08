@@ -21,6 +21,7 @@ type Block struct {
 	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions"`                      //relation has many to InvalidTransactions
 	Rewards             []*Reward             `json:"rewards"`                                   //relation has many to Rewards
 	Slashes             []*Slash              `json:"slashes"`                                   //relation has many to Slashes
+	BlockValidators     []BlockValidator      `json:"block_validators"`
 }
 
 //Return block hash with prefix
