@@ -60,6 +60,8 @@ func New() *models.ExtenderEnvironment {
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.AppName = config.GetString("name")
+		envData.WrkSaveRewardsCount = config.GetInt("workers.saveRewards")
+		envData.WrkSaveSlashesCount = config.GetInt("workers.saveSlashes")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug

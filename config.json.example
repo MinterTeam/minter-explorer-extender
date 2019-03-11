@@ -6,6 +6,10 @@
     "txChunkSize": ME_TX_CHUNK_SIZE,
     "eventsChunkSize": ME_EVENTS_CHUNK_SIZE
   },
+  "workers": {
+    "saveRewards": ME_WRK_SAVE_REWARDS,
+    "saveSlashes": ME_WRK_SAVE_SLASHES,
+  },
   "database": {
     "host": "ME_DB_HOST",
     "name": "ME_DB_NAME",
