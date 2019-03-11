@@ -18,4 +18,5 @@ type ExtenderEnvironment struct {
 	WrkSaveTxsCount       int
 	WrkSaveTxsOutputCount int
 	WrkSaveInvTxsCount    int
+	WrkSaveAddressesCount int
 }

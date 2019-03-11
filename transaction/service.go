@@ -29,8 +29,8 @@ type Service struct {
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
-	coinRepository *coin.Repository, coinService *coin.Service) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
+	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service) *Service {
 	return &Service{
 		env:                 env,
 		txRepository:        repository,
@@ -69,8 +69,6 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 
 	if len(txList) > 0 {
 		s.GetSaveTxJobChannel() <- txList
-		//err = s.LinkWithValidators(txList, validators)
-		//helpers.HandleError(err)
 	}
 
 	if len(invalidTxList) > 0 {
