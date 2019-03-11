@@ -100,6 +100,15 @@ func (ext *Extender) Run() {
 
 	go ext.balanceService.Run()
 
+	for w := 1; w <= ext.env.WrkSaveTxsCount; w++ {
+		go ext.transactionService.SaveTransactionsWorker(ext.transactionService.GetSaveTxJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveTxsOutputCount; w++ {
+		go ext.transactionService.SaveTransactionsOutputWorker(ext.transactionService.GetSaveTxsOutputJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
+		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
+	}
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
 		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
 	}
@@ -178,14 +187,9 @@ func (ext Extender) handleTransactions(response *responses.BlockResponse, valida
 	go ext.updateValidatorsData(validators, height)
 
 	// have to be handled after addresses
-	wg.Add(len(chunks))
 	for _, chunk := range chunks {
-		go func() {
-			defer wg.Done()
-			ext.saveTransactions(height, response.Result.Time, chunk, validators)
-		}()
+		ext.saveTransactions(height, response.Result.Time, chunk, validators)
 	}
-	wg.Wait()
 }
 
 func (ext *Extender) getEventsData(blockHeight uint64) {

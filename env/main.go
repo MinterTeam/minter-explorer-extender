@@ -20,6 +20,12 @@ func New() *models.ExtenderEnvironment {
 	configFile := flag.String("config", "", "Env file")
 	apiHost := flag.String("api_host", "", "API host")
 	apiPort := flag.Int("api_port", 8000, "API port")
+	wrkSaveTxsCount := flag.Int("wrk_save_txs_count", 3, "Count of workers that save transactions")
+	wrkSaveTxsOutputCount := flag.Int("wrk_save_txs_output_count", 3, "Count of workers that save transactions output")
+	wrkSaveInvalidTxsCount := flag.Int("wrk_save_invtxs_count", 3, "Count of workers that save invalid transactions")
+	wrkSaveRewardsCount := flag.Int("wrk_save_rewards_count", 3, "Count of workers that save rewards")
+	wrkSaveSlashesCount := flag.Int("wrk_save_slashes_count", 3, "Count of workers that save slashes")
+
 	flag.Parse()
 
 	envData := new(models.ExtenderEnvironment)
@@ -60,6 +66,9 @@ func New() *models.ExtenderEnvironment {
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.AppName = config.GetString("name")
+		envData.WrkSaveTxsCount = config.GetInt("workers.saveTxs")
+		envData.WrkSaveTxsOutputCount = config.GetInt("workers.saveTxsOutput")
+		envData.WrkSaveInvTxsCount = config.GetInt("workers.saveInvalidTxs")
 		envData.WrkSaveRewardsCount = config.GetInt("workers.saveRewards")
 		envData.WrkSaveSlashesCount = config.GetInt("workers.saveSlashes")
 	} else {
@@ -75,6 +84,11 @@ func New() *models.ExtenderEnvironment {
 		envData.EventsChunkSize = *eventsChunkSize
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
+		envData.WrkSaveTxsCount = *wrkSaveTxsCount
+		envData.WrkSaveTxsOutputCount = *wrkSaveTxsOutputCount
+		envData.WrkSaveInvTxsCount = *wrkSaveInvalidTxsCount
+		envData.WrkSaveRewardsCount = *wrkSaveRewardsCount
+		envData.WrkSaveSlashesCount = *wrkSaveSlashesCount
 	}
 
 	return envData

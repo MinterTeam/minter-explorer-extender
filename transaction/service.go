@@ -26,6 +26,9 @@ type Service struct {
 	coinRepository      *coin.Repository
 	coinService         *coin.Service
 	broadcastService    *broadcast.Service
+	jobSaveTxs          chan []*models.Transaction
+	jobSaveTxsOutput    chan []*models.Transaction
+	jobSaveInvalidTxs   chan []*models.InvalidTransaction
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
@@ -38,6 +41,9 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, address
 		coinService:         coinService,
 		validatorRepository: validatorRepository,
 		broadcastService:    broadcastService,
+		jobSaveTxs:          make(chan []*models.Transaction, env.WrkSaveTxsCount),
+		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
+		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
 	}
 }
 
@@ -65,11 +71,34 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 	}
 
 	if len(txList) > 0 {
-		err := s.txRepository.SaveAll(txList)
+		s.GetSaveTxJobChannel() <- txList
+		//err = s.LinkWithValidators(txList, validators)
+		//helpers.HandleError(err)
+	}
+
+	if len(invalidTxList) > 0 {
+		s.GetSaveInvalidTxsJobChannel() <- invalidTxList
+	}
+
+	return nil
+}
+
+func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
+	for transactions := range jobs {
+		err := s.txRepository.SaveAll(transactions)
 		helpers.HandleError(err)
-		err = s.SaveAllTxOutputs(txList, s.env.TxChunkSize)
+		s.GetSaveTxsOutputJobChannel() <- transactions
+	}
+}
+func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {
+	for transactions := range jobs {
+		err := s.SaveAllTxOutputs(transactions)
 		helpers.HandleError(err)
-		err = s.LinkWithValidators(txList, validators)
+	}
+}
+func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTransaction) {
+	for transactions := range jobs {
+		err := s.txRepository.SaveAllInvalid(transactions)
 		helpers.HandleError(err)
 
 		//no need to publish a big number of transaction
@@ -79,15 +108,19 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			go s.broadcastService.PublishTransactions(txList)
 		}
 	}
-	if len(invalidTxList) > 0 {
-		err := s.txRepository.SaveAllInvalid(invalidTxList)
-		helpers.HandleError(err)
-	}
-
-	return nil
 }
 
-func (s *Service) SaveAllTxOutputs(txList []*models.Transaction, chunkSize int) error {
+func (s Service) GetSaveTxJobChannel() chan []*models.Transaction {
+	return s.jobSaveTxs
+}
+func (s Service) GetSaveTxsOutputJobChannel() chan []*models.Transaction {
+	return s.jobSaveTxsOutput
+}
+func (s Service) GetSaveInvalidTxsJobChannel() chan []*models.InvalidTransaction {
+	return s.jobSaveInvalidTxs
+}
+
+func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	var list []*models.TransactionOutput
 	for _, tx := range txList {
 		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
@@ -136,26 +169,10 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction, chunkSize int) 
 			}
 		}
 	}
+	// TODO: should to be chunked?
 	if len(list) > 0 {
-		chunksCount := int(math.Ceil(float64(len(list)) / float64(chunkSize)))
-		chunks := make([][]*models.TransactionOutput, chunksCount)
-		for i := 0; i < chunksCount; i++ {
-			start := chunkSize * i
-			end := start + chunkSize
-			if end > len(list) {
-				end = len(list)
-			}
-			chunks[i] = list[start:end]
-		}
-
-		var wg sync.WaitGroup
-		wg.Add(len(chunks))
-		go func() {
-			defer wg.Done()
-			err := s.txRepository.SaveAllTxOutputs(list)
-			helpers.HandleError(err)
-		}()
-		wg.Wait()
+		err := s.txRepository.SaveAllTxOutputs(list)
+		helpers.HandleError(err)
 	}
 	return nil
 }
