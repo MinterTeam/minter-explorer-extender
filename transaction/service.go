@@ -31,8 +31,8 @@ type Service struct {
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository, validatorRepository *validator.Repository,
-	coinRepository *coin.Repository, coinService *coin.Service, broadcastService *broadcast.Service) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
+	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service, broadcastService *broadcast.Service) *Service {
 	return &Service{
 		env:                 env,
 		txRepository:        repository,
@@ -72,8 +72,6 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 
 	if len(txList) > 0 {
 		s.GetSaveTxJobChannel() <- txList
-		//err = s.LinkWithValidators(txList, validators)
-		//helpers.HandleError(err)
 	}
 
 	if len(invalidTxList) > 0 {
@@ -88,6 +86,13 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		err := s.txRepository.SaveAll(transactions)
 		helpers.HandleError(err)
 		s.GetSaveTxsOutputJobChannel() <- transactions
+
+		//no need to publish a big number of transaction
+		if len(transactions) > 10 {
+			go s.broadcastService.PublishTransactions(transactions[:10])
+		} else {
+			go s.broadcastService.PublishTransactions(transactions)
+		}
 	}
 }
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {
@@ -100,13 +105,6 @@ func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTra
 	for transactions := range jobs {
 		err := s.txRepository.SaveAllInvalid(transactions)
 		helpers.HandleError(err)
-
-		//no need to publish a big number of transaction
-		if len(txList) > 10 {
-			go s.broadcastService.PublishTransactions(txList[:10])
-		} else {
-			go s.broadcastService.PublishTransactions(txList)
-		}
 	}
 }
 

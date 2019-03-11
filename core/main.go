@@ -17,7 +17,6 @@ import (
 	"github.com/go-pg/pg"
 	"math"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -82,7 +81,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService),
-		addressService:      address.NewService(addressRepository, balanceService.GetAddressesChannel()),
+		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
 	}
@@ -97,26 +96,7 @@ func (ext *Extender) Run() {
 	var startHeight uint64
 
 	// ----- Workers -----
-
-	go ext.balanceService.Run()
-
-	for w := 1; w <= ext.env.WrkSaveTxsCount; w++ {
-		go ext.transactionService.SaveTransactionsWorker(ext.transactionService.GetSaveTxJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkSaveTxsOutputCount; w++ {
-		go ext.transactionService.SaveTransactionsOutputWorker(ext.transactionService.GetSaveTxsOutputJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
-		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
-		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkSaveSlashesCount; w++ {
-		go ext.eventService.SaveSlashesWorker(ext.eventService.GetSaveSlashesJobChannel())
-	}
-
-	// --- End workers ---
+	ext.runWorkers()
 
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
@@ -140,6 +120,31 @@ func (ext *Extender) Run() {
 
 		go ext.getEventsData(startHeight)
 		startHeight++
+	}
+}
+
+func (ext Extender) runWorkers() {
+
+	// Update balance
+	go ext.balanceService.Run()
+
+	for w := 1; w <= ext.env.WrkSaveAddressesCount; w++ {
+		go ext.addressService.SaveAddressesWorker(ext.addressService.GetSaveAddressesJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveTxsCount; w++ {
+		go ext.transactionService.SaveTransactionsWorker(ext.transactionService.GetSaveTxJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveTxsOutputCount; w++ {
+		go ext.transactionService.SaveTransactionsOutputWorker(ext.transactionService.GetSaveTxsOutputJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
+		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
+		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveSlashesCount; w++ {
+		go ext.eventService.SaveSlashesWorker(ext.eventService.GetSaveSlashesJobChannel())
 	}
 }
 
@@ -174,15 +179,9 @@ func (ext Extender) handleTransactions(response *responses.BlockResponse, valida
 		chunks[i] = response.Result.Transactions[start:end]
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(chunks))
 	for _, chunk := range chunks {
-		go func() {
-			defer wg.Done()
-			ext.saveAddresses(height, chunk)
-		}()
+		ext.saveAddresses(height, chunk)
 	}
-	wg.Wait()
 
 	go ext.updateValidatorsData(validators, height)
 

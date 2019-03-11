@@ -9,14 +9,29 @@ import (
 )
 
 type Service struct {
+	env                *models.ExtenderEnvironment
 	repository         *Repository
 	chBalanceAddresses chan<- models.BlockAddresses
+	jobSaveAddresses   chan []string
 }
 
-func NewService(repository *Repository, chBalanceAddresses chan<- models.BlockAddresses) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses) *Service {
 	return &Service{
+		env:                env,
 		repository:         repository,
 		chBalanceAddresses: chBalanceAddresses,
+		jobSaveAddresses:   make(chan []string, env.WrkSaveAddressesCount),
+	}
+}
+
+func (s Service) GetSaveAddressesJobChannel() chan []string {
+	return s.jobSaveAddresses
+}
+
+func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
+	for addresses := range jobs {
+		err := s.repository.SaveAllIfNotExist(addresses)
+		helpers.HandleError(err)
 	}
 }
 
@@ -56,9 +71,9 @@ func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transaction
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
-	err := s.repository.SaveAllIfNotExist(addresses)
+	s.GetSaveAddressesJobChannel() <- addresses
 	s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
-	return err
+	return nil
 }
 
 func (s *Service) HandleEventsResponse(blockHeight uint64, response *responses.EventsResponse) error {
