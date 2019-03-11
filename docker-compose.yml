@@ -12,3 +12,10 @@ services:
       POSTGRES_PASSWORD: password
     volumes:
       - ./tmp/postgresql:/var/lib/postgresql/data
+  centrifugo:
+    image: centrifugo/centrifugo
+    volumes:
+      - ./tmp/centrifugo:/centrifugo
+      - ./tmp/var/logs/centrifugo:/var/log/centrifugo
+    ports:
+      - 8800:8000

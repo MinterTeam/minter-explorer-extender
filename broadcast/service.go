@@ -59,7 +59,7 @@ func (s *Service) PublishTransactions(txs []*models.Transaction) {
 		adr = "Mx" + adr
 		msg, err := json.Marshal(Tx{
 			From: adr,
-			Hash: tx.Hash,
+			Hash: "Mt" + tx.Hash,
 			Data: tx.Data,
 		})
 		if err != nil {

@@ -69,7 +69,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 	balanceRepository := balance.NewRepository(db)
 
 	// Services
-	broadcastService := broadcast.NewService(env, addressRepository)
+	broadcastService := broadcast.NewService(env, addressRepository, coinRepository)
 	coinService := coin.NewService(coinRepository, addressRepository)
 	balanceService := balance.NewService(balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService)
 

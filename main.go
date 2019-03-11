@@ -30,6 +30,7 @@ func initEnvironment() *models.ExtenderEnvironment {
 	apiHost := flag.String("extenderApi.host", "", "API host")
 	apiPort := flag.Int("extenderApi.port", 8000, "API port")
 	wsLink := flag.String("ws_link", "", "WebSocket server link")
+	wsKey := flag.String("ws_key", "", "WebSocket API key")
 	flag.Parse()
 
 	envData := new(models.ExtenderEnvironment)
@@ -68,7 +69,7 @@ func initEnvironment() *models.ExtenderEnvironment {
 			nodeApi = "https://"
 		}
 		nodeApi += config.GetString("minterApi.link") + ":" + config.GetString("minterApi.port")
-		envData.Debug = config.GetBool("debug")
+		envData.Debug = config.GetBool("app.debug")
 		envData.DbName = config.GetString("database.name")
 		envData.DbUser = config.GetString("database.user")
 		envData.DbPassword = config.GetString("database.password")
@@ -77,6 +78,7 @@ func initEnvironment() *models.ExtenderEnvironment {
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.WsLink = wsLink
+		envData.WsKey = config.GetString(`wsServer.key`)
 	} else {
 		envData.Debug = *debug
 		envData.DbName = *dbName
@@ -87,6 +89,7 @@ func initEnvironment() *models.ExtenderEnvironment {
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
 		envData.WsLink = *wsLink
+		envData.WsKey = *wsKey
 	}
 
 	return envData

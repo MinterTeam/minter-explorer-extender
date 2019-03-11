@@ -47,7 +47,10 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 		return symbol.(string), nil
 	}
 	coin := &models.Coin{ID: id}
-	err := r.db.Model(coin).Select()
+	err := r.db.Model(coin).
+		Where("id = ?", id).
+		Limit(1).
+		Select()
 
 	if err != nil {
 		return "", err
