@@ -16,6 +16,8 @@ type Service struct {
 	validatorRepository *validator.Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
+	jobSaveRewards      chan []*models.Reward
+	jobSaveSlashes      chan []*models.Slash
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
@@ -25,6 +27,8 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, validat
 		validatorRepository: validatorRepository,
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
+		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
+		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 	}
 }
 
@@ -48,7 +52,6 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 
 		switch event.Type {
 		case models.RewardEvent:
-
 			rewards = append(rewards, &models.Reward{
 				BlockID:     blockHeight,
 				Role:        event.Value.Role,
@@ -84,42 +87,48 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 	return nil
 }
 
-func (s Service) saveRewards(rewards []*models.Reward) {
+func (s *Service) GetSaveRewardsJobChannel() chan []*models.Reward {
+	return s.jobSaveRewards
+}
+
+func (s *Service) GetSaveSlashesJobChannel() chan []*models.Slash {
+	return s.jobSaveSlashes
+}
+
+func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
+	for rewards := range jobs {
+		err := s.repository.SaveRewards(rewards)
+		helpers.HandleError(err)
+	}
+}
+
+func (s *Service) SaveSlashesWorker(jobs <-chan []*models.Slash) {
+	for slashes := range jobs {
+		err := s.repository.SaveSlashes(slashes)
+		helpers.HandleError(err)
+	}
+}
+
+func (s *Service) saveRewards(rewards []*models.Reward) {
 	chunksCount := int(math.Ceil(float64(len(rewards)) / float64(s.env.EventsChunkSize)))
-	chunks := make([][]*models.Reward, chunksCount)
 	for i := 0; i < chunksCount; i++ {
 		start := s.env.EventsChunkSize * i
 		end := start + s.env.EventsChunkSize
 		if end > len(rewards) {
 			end = len(rewards)
 		}
-		chunks[i] = rewards[start:end]
-	}
-
-	for _, chunk := range chunks {
-		go func() {
-			err := s.repository.SaveRewards(chunk)
-			helpers.HandleError(err)
-		}()
+		s.GetSaveRewardsJobChannel() <- rewards[start:end]
 	}
 }
 
-func (s Service) saveSlashes(slashes []*models.Slash) {
+func (s *Service) saveSlashes(slashes []*models.Slash) {
 	chunksCount := int(math.Ceil(float64(len(slashes)) / float64(s.env.EventsChunkSize)))
-	chunks := make([][]*models.Slash, chunksCount)
 	for i := 0; i < chunksCount; i++ {
 		start := s.env.EventsChunkSize * i
 		end := start + s.env.EventsChunkSize
 		if end > len(slashes) {
 			end = len(slashes)
 		}
-		chunks[i] = slashes[start:end]
-	}
-
-	for _, chunk := range chunks {
-		go func() {
-			err := s.repository.SaveSlashes(chunk)
-			helpers.HandleError(err)
-		}()
+		s.GetSaveSlashesJobChannel() <- slashes[start:end]
 	}
 }

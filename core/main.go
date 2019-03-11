@@ -91,7 +91,19 @@ func (ext *Extender) Run() {
 	helpers.HandleError(err)
 
 	var startHeight uint64
+
+	// ----- Workers -----
+
 	go ext.balanceService.Run()
+
+	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
+		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkSaveSlashesCount; w++ {
+		go ext.eventService.SaveSlashesWorker(ext.eventService.GetSaveSlashesJobChannel())
+	}
+
+	// --- End workers ---
 
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
