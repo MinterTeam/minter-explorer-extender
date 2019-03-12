@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/MinterTeam/minter-explorer-extender/models"
+	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/go-pg/pg"
 )
 

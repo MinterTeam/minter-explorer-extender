@@ -3,9 +3,13 @@ package broadcast
 import (
 	"context"
 	"encoding/json"
+	"github.com/MinterTeam/minter-explorer-api/balance"
+	"github.com/MinterTeam/minter-explorer-api/blocks"
+	"github.com/MinterTeam/minter-explorer-api/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-extender/models"
+	"github.com/MinterTeam/minter-explorer-tools/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/centrifugal/gocent"
 	"log"
 )
@@ -15,18 +19,6 @@ type Service struct {
 	ctx               context.Context
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
-}
-
-type Balance struct {
-	Address string
-	Coin    string
-	Value   string
-}
-
-type Tx struct {
-	From string
-	Hash string
-	Data json.RawMessage
 }
 
 func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
@@ -45,23 +37,20 @@ func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repo
 
 func (s *Service) PublishBlock(b *models.Block) {
 	ch := `blocks`
-	msg, err := json.Marshal(b)
+	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
 	if err != nil {
 		log.Printf(`Error parse json: %s`, err)
 	}
 	s.publish(ch, []byte(msg))
 }
 
-func (s *Service) PublishTransactions(txs []*models.Transaction) {
+func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 	ch := `transactions`
-	for _, tx := range txs {
+	for _, tx := range transactions {
+		mTransaction := *tx
 		adr, err := s.addressRepository.FindById(tx.FromAddressID)
-		adr = "Mx" + adr
-		msg, err := json.Marshal(Tx{
-			From: adr,
-			Hash: "Mt" + tx.Hash,
-			Data: tx.Data,
-		})
+		mTransaction.FromAddress = &models.Address{Address: adr}
+		msg, err := json.Marshal(new(transaction.Resource).Transform(mTransaction))
 		if err != nil {
 			log.Printf(`Error parse json: %s`, err)
 		}
@@ -70,22 +59,30 @@ func (s *Service) PublishTransactions(txs []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-	for _, balance := range balances {
-		adr, err := s.addressRepository.FindById(balance.AddressID)
-		ch := "Mx" + adr
-		symbol, err := s.coinRepository.FindSymbolById(balance.CoinID)
-		if err != nil {
-			log.Printf(err.Error())
-		}
-		msg, err := json.Marshal(Balance{
-			Address: ch,
-			Coin:    symbol,
-			Value:   balance.Value,
-		})
+
+	var mapBalances = make(map[uint64][]interface{})
+
+	for _, item := range balances {
+		symbol, err := s.coinRepository.FindSymbolById(item.CoinID)
+		helpers.HandleError(err)
+		adr, err := s.addressRepository.FindById(item.AddressID)
+		helpers.HandleError(err)
+		mBalance := *item
+		mBalance.Address = &models.Address{Address: adr}
+		mBalance.Coin = &models.Coin{Symbol: symbol}
+		res := new(balance.Resource).Transform(mBalance)
+		mapBalances[item.AddressID] = append(mapBalances[item.AddressID], res)
+	}
+
+	for addressId, items := range mapBalances {
+		adr, err := s.addressRepository.FindById(addressId)
+		helpers.HandleError(err)
+		channel := "Mx" + adr
+		msg, err := json.Marshal(items)
 		if err != nil {
 			log.Printf(`Error parse json: %s`, err)
 		}
-		s.publish(ch, []byte(msg))
+		s.publish(channel, []byte(msg))
 	}
 }
 

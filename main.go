@@ -5,7 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/api"
 	"github.com/MinterTeam/minter-explorer-extender/core"
 	"github.com/MinterTeam/minter-explorer-extender/env"
-	"github.com/MinterTeam/minter-explorer-extender/models"
+	"github.com/MinterTeam/minter-explorer-tools/models"
 	"os"
 )
 

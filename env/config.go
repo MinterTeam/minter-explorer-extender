@@ -1,7 +1,7 @@
 package env
 
 import (
-	"github.com/MinterTeam/explorer-gate/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -45,7 +45,7 @@ func (v *viperConfig) Init(configPath string) {
 	viper.SetConfigFile(configFile)
 
 	err := viper.ReadInConfig()
-	helpers.CheckErr(err)
+	helpers.HandleError(err)
 }
 
 func (v *viperConfig) GetString(key string) string {

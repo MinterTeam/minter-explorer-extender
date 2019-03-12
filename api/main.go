@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/MinterTeam/minter-explorer-extender/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"strconv"

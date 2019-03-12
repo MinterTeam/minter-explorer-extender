@@ -2,12 +2,31 @@
 
 
 [[projects]]
-  digest = "1:82d4070f0ff5911f45e02c48d1785e3da0cd60b23244460f1d3e1b75e52b8bbd"
-  name = "github.com/MinterTeam/explorer-gate"
-  packages = ["helpers"]
+  digest = "1:ba7006009150e0f130c4fb781346633d6d6430a6731511a93375930a5f0dfcb9"
+  name = "github.com/MinterTeam/minter-explorer-api"
+  packages = [
+    "balance",
+    "blocks",
+    "helpers",
+    "resource",
+    "tools",
+    "transaction",
+    "transaction/data_resources",
+  ]
   pruneopts = "UT"
-  revision = "40905409aa4615189ad04487bfb1d00bf843a01f"
-  version = "1.2.8"
+  revision = "f7a9018cac17f37e8d18e93672beba18d64ab3ba"
+  version = "1.0.0"
+
+[[projects]]
+  digest = "1:805d71151aaa8b6e0f50d266aec4658e7938a855be76d758e3d30941164397f4"
+  name = "github.com/MinterTeam/minter-explorer-tools"
+  packages = [
+    "helpers",
+    "models",
+  ]
+  pruneopts = "UT"
+  revision = "968d04cde02c44da2cab68adcaceaa324b648212"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -26,15 +45,15 @@
   version = "v2.0.2"
 
 [[projects]]
-  digest = "1:67aea557f77ae15ff7dd20eca7eb6affe4389b42cd657c7fa35e25df87c033cc"
+  digest = "1:db95f74a11f29faa97a6012a60daa78c4d64b926da2d30bf650133e65e5a613e"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "7103f9d343cc414feef7e8869088cfd67547a2b6"
-  version = "v1.4.6"
+  revision = "b68b520c446d1901c7008736cb78b4614a99eead"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -45,7 +64,8 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:139709b3b4eab483f24d2ef792e296502dd2a129fef6c5055aef7f9b07f87797"
+  branch = "master"
+  digest = "1:a1a8fd3825f3e2ea47b5b625d43af9428d2e7d223ceda4a00e94f15bf13f18b4"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -57,10 +77,10 @@
     "internal/tag",
     "orm",
     "types",
+    "urlvalues",
   ]
   pruneopts = "UT"
-  revision = "750698e034bbc0f35e33e69df35cd8cc4c6b7d3d"
-  version = "v7.1.7"
+  revision = "c481d1a8bde6aeda0a8d2c52adbf9386138f6bda"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
@@ -96,6 +116,26 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "04140366298a54a039076d798123ffa108fff46c"
+
+[[projects]]
+  digest = "1:aaa8e0e7e35d92e21daed3f241832cee73d15ca1cd3302ba3843159a959a7eac"
+  name = "github.com/klauspost/compress"
+  packages = [
+    "flate",
+    "gzip",
+    "zlib",
+  ]
+  pruneopts = "UT"
+  revision = "30be6041bed523c18e269a700ebd9c2ea9328574"
+  version = "v1.4.1"
+
+[[projects]]
+  digest = "1:2d643962fac133904694fffa959bc3c5dcfdcee38c6f5ffdd99a3c93eb9c835c"
+  name = "github.com/klauspost/cpuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e7e905edc00ea8827e58662220139109efea09db"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
@@ -163,7 +203,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bfc66a1fd78dc8f14d419fd52a5a42db1d572e887ebcc80b98c1a515a8f2d837"
+  digest = "1:01cd0cd47758f04c5604daa3be4637e2afa1e0c15af7e08289e95360369e4f48"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
@@ -173,7 +213,7 @@
     "xfs",
   ]
   pruneopts = "UT"
-  revision = "bbced9601137e764853b2fad7ec3e2dc4c504e02"
+  revision = "d0f344d83b0c80a1bc03b547a2374a9ec6711144"
 
 [[projects]]
   digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
@@ -195,12 +235,12 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:68ea4e23713989dc20b1bded5d9da2c5f9be14ff9885beef481848edd18c26cb"
+  digest = "1:1b753ec16506f5864d26a28b43703c58831255059644351bbcb019b843950900"
   name = "github.com/spf13/jwalterweatherman"
   packages = ["."]
   pruneopts = "UT"
-  revision = "4a4406e478ca629068e7768fc33f3f044173c0a6"
-  version = "v1.0.0"
+  revision = "94f6ae3ed3bceceafa716478c5fbf8d29ca601a1"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
@@ -219,20 +259,40 @@
   version = "v1.3.1"
 
 [[projects]]
+  digest = "1:c468422f334a6b46a19448ad59aaffdfc0a36b08fdcc1c749a0b29b6453d7e59"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:15ad8a80098fcc7a194b9db6b26d74072a852e4faa957848c8118193d3c69230"
+  name = "github.com/valyala/fasthttp"
+  packages = [
+    ".",
+    "fasthttputil",
+    "stackless",
+  ]
+  pruneopts = "UT"
+  revision = "e5f51c11919d4f66400334047b897ef0a94c6f3c"
+  version = "v20180529"
+
+[[projects]]
   branch = "master"
   digest = "1:f92f6956e4059f6a3efc14924d2dd58ba90da25cc57fe07ae3779ef2f5e0c5f2"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "7f87c0fbb88b590338857bcb720678c2583d4dea"
+  revision = "c2843e01d9a2bc60bb26ad24e09734fdc2d9ec58"
 
 [[projects]]
   branch = "master"
-  digest = "1:d0e9a312c4610a508569ab25e54d34600b1a96d19b1866ece104ffdf1c1b9d2c"
+  digest = "1:f36c7b9a36158e62ffe5d8b02d1b5955500c13106cdaeebf5323d88863cae96f"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "92a0ff1e1e2f61773648454ec71ec0c0f1c700a2"
+  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
@@ -269,7 +329,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/MinterTeam/explorer-gate/helpers",
+    "github.com/MinterTeam/minter-explorer-api/balance",
+    "github.com/MinterTeam/minter-explorer-api/blocks",
+    "github.com/MinterTeam/minter-explorer-api/transaction",
+    "github.com/MinterTeam/minter-explorer-tools/helpers",
+    "github.com/MinterTeam/minter-explorer-tools/models",
     "github.com/centrifugal/gocent",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",

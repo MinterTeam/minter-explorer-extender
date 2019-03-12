@@ -3,9 +3,9 @@ package events
 import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-extender/helpers"
-	"github.com/MinterTeam/minter-explorer-extender/models"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
+	"github.com/MinterTeam/minter-explorer-tools/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api/responses"
 )
 
