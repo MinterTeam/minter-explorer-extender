@@ -6,6 +6,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api/responses"
+	"math"
+	"sync"
 )
 
 type Service struct {
@@ -13,6 +15,7 @@ type Service struct {
 	repository         *Repository
 	chBalanceAddresses chan<- models.BlockAddresses
 	jobSaveAddresses   chan []string
+	wgAddresses        sync.WaitGroup
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses) *Service {
@@ -32,6 +35,7 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	for addresses := range jobs {
 		err := s.repository.SaveAllIfNotExist(addresses)
 		helpers.HandleError(err)
+		s.wgAddresses.Done()
 	}
 }
 
@@ -71,8 +75,18 @@ func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transaction
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
-	s.GetSaveAddressesJobChannel() <- addresses
-	s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
+	chunksCount := int(math.Ceil(float64(len(addresses)) / float64(s.env.TxChunkSize)))
+	for i := 0; i < chunksCount; i++ {
+		start := s.env.TxChunkSize * i
+		end := start + s.env.TxChunkSize
+		if end > len(addresses) {
+			end = len(addresses)
+		}
+		s.wgAddresses.Add(1)
+		s.GetSaveAddressesJobChannel() <- addresses[start:end]
+		s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses[start:end]}
+	}
+	s.wgAddresses.Wait()
 	return nil
 }
 

@@ -26,6 +26,7 @@ func New() *models.ExtenderEnvironment {
 	wrkSaveRewardsCount := flag.Int("wrk_save_rewards_count", 3, "Count of workers that save rewards")
 	wrkSaveSlashesCount := flag.Int("wrk_save_slashes_count", 3, "Count of workers that save slashes")
 	wrkSaveAddressesCount := flag.Int("wrk_save_addresses_count", 3, "Count of workers that save addresses")
+	wrkSaveValidatorTxsCount := flag.Int("wrk_save_val_tx_count", 3, "Count of workers that save transaction-validator link")
 
 	flag.Parse()
 
@@ -73,6 +74,7 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveRewardsCount = config.GetInt("workers.saveRewards")
 		envData.WrkSaveSlashesCount = config.GetInt("workers.saveSlashes")
 		envData.WrkSaveAddressesCount = config.GetInt("workers.saveAddresses")
+		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug
@@ -92,6 +94,7 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveRewardsCount = *wrkSaveRewardsCount
 		envData.WrkSaveSlashesCount = *wrkSaveSlashesCount
 		envData.WrkSaveAddressesCount = *wrkSaveAddressesCount
+		envData.WrkSaveValidatorTxsCount = *wrkSaveValidatorTxsCount
 	}
 
 	return envData

@@ -14,7 +14,6 @@ import (
 	"github.com/daniildulin/minter-node-api/responses"
 	"math"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -28,6 +27,7 @@ type Service struct {
 	broadcastService    *broadcast.Service
 	jobSaveTxs          chan []*models.Transaction
 	jobSaveTxsOutput    chan []*models.Transaction
+	jobSaveValidatorTxs chan []*models.TransactionValidator
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
 }
 
@@ -43,8 +43,22 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, address
 		broadcastService:    broadcastService,
 		jobSaveTxs:          make(chan []*models.Transaction, env.WrkSaveTxsCount),
 		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
+		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
 		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
 	}
+}
+
+func (s Service) GetSaveTxJobChannel() chan []*models.Transaction {
+	return s.jobSaveTxs
+}
+func (s Service) GetSaveTxsOutputJobChannel() chan []*models.Transaction {
+	return s.jobSaveTxsOutput
+}
+func (s Service) GetSaveInvalidTxsJobChannel() chan []*models.InvalidTransaction {
+	return s.jobSaveInvalidTxs
+}
+func (s Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValidator {
+	return s.jobSaveValidatorTxs
 }
 
 //Handle response and save block to DB
@@ -85,6 +99,21 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 	for transactions := range jobs {
 		err := s.txRepository.SaveAll(transactions)
 		helpers.HandleError(err)
+
+		links, err := s.getLinksTxValidator(transactions)
+		helpers.HandleError(err)
+		if len(links) > 0 {
+			chunksCount := int(math.Ceil(float64(len(links)) / float64(s.env.TxChunkSize)))
+			for i := 0; i < chunksCount; i++ {
+				start := s.env.TxChunkSize * i
+				end := start + s.env.TxChunkSize
+				if end > len(links) {
+					end = len(links)
+				}
+				s.GetSaveTxValidatorJobChannel() <- links[start:end]
+			}
+		}
+
 		s.GetSaveTxsOutputJobChannel() <- transactions
 
 		//no need to publish a big number of transaction
@@ -108,14 +137,11 @@ func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTra
 	}
 }
 
-func (s Service) GetSaveTxJobChannel() chan []*models.Transaction {
-	return s.jobSaveTxs
-}
-func (s Service) GetSaveTxsOutputJobChannel() chan []*models.Transaction {
-	return s.jobSaveTxsOutput
-}
-func (s Service) GetSaveInvalidTxsJobChannel() chan []*models.InvalidTransaction {
-	return s.jobSaveInvalidTxs
+func (s Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidator) {
+	for links := range jobs {
+		err := s.txRepository.LinkWithValidators(links)
+		helpers.HandleError(err)
+	}
 }
 
 func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
@@ -172,49 +198,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		err := s.txRepository.SaveAllTxOutputs(list)
 		helpers.HandleError(err)
 	}
-	return nil
-}
-
-func (s Service) LinkWithValidators(transactions []*models.Transaction, validators []*models.Validator) error {
-	var links []*models.TransactionValidator
-	for _, tx := range transactions {
-		for _, vld := range validators {
-			// if validator has been saved not in current block ID = 0
-			validatorId, err := s.validatorRepository.FindIdByPk(vld.PublicKey)
-			if err != nil {
-				return err
-			}
-			links = append(links, &models.TransactionValidator{
-				TransactionID: tx.ID,
-				ValidatorID:   validatorId,
-			})
-		}
-	}
-	if len(links) <= 0 {
-		return nil
-	}
-
-	chunksCount := int(math.Ceil(float64(len(links)) / float64(s.env.TxChunkSize)))
-	chunks := make([][]*models.TransactionValidator, chunksCount)
-	for i := 0; i < chunksCount; i++ {
-		start := s.env.TxChunkSize * i
-		end := start + s.env.TxChunkSize
-		if end > len(links) {
-			end = len(links)
-		}
-		chunks[i] = links[start:end]
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(chunks))
-	for _, links := range chunks {
-		go func() {
-			defer wg.Done()
-			err := s.txRepository.LinkWithValidators(links)
-			helpers.HandleError(err)
-		}()
-	}
-	wg.Wait()
 	return nil
 }
 
@@ -294,4 +277,60 @@ func (s *Service) handleInvalidTransaction(tx responses.Transaction, blockHeight
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(invalidTxData),
 	}, nil
+}
+
+func (s Service) getLinksTxValidator(transactions []*models.Transaction) ([]*models.TransactionValidator, error) {
+	var links []*models.TransactionValidator
+
+	for _, tx := range transactions {
+		if tx.ID == 0 {
+			return nil, errors.New("no transaction id")
+		}
+		var (
+			err         error
+			validatorPk string
+		)
+		switch tx.Type {
+		case models.TxTypeDeclareCandidacy:
+			var txData models.DeclareCandidacyTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		case models.TxTypeDelegate:
+			var txData models.DelegateTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		case models.TxTypeUnbound:
+			var txData models.UnbondTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		case models.TxTypeSetCandidateOnline:
+			var txData models.SetCandidateTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		case models.TxTypeSetCandidateOffline:
+			var txData models.SetCandidateTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		case models.TxTypeEditCandidate:
+			var txData models.EditCandidateTxData
+			err = json.Unmarshal(tx.Data, &txData)
+			validatorPk = txData.PubKey
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if validatorPk != "" {
+			validatorId, err := s.validatorRepository.FindIdByPkOrCreate(helpers.RemovePrefix(validatorPk))
+			if err != nil {
+				return nil, err
+			}
+			links = append(links, &models.TransactionValidator{
+				TransactionID: tx.ID,
+				ValidatorID:   validatorId,
+			})
+		}
+	}
+
+	return links, nil
 }

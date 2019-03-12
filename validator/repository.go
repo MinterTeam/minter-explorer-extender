@@ -35,6 +35,22 @@ func (r *Repository) FindIdByPk(pk string) (uint64, error) {
 	return validator.ID, nil
 }
 
+//Find validator with public key or create if not exist.
+//Return Validator ID
+func (r *Repository) FindIdByPkOrCreate(pk string) (uint64, error) {
+	id, _ := r.FindIdByPk(pk)
+	if id == 0 {
+		validator := &models.Validator{PublicKey: pk}
+		err := r.db.Insert(validator)
+		if err != nil {
+			return 0, err
+		}
+		r.cache.Store(validator.PublicKey, validator.ID)
+		return validator.ID, nil
+	}
+	return id, nil
+}
+
 // Save list of validators if not exist
 func (r *Repository) SaveAllIfNotExist(validators []*models.Validator) error {
 	if r.isAllAddressesInCache(validators) {
