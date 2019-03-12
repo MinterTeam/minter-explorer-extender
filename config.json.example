@@ -12,7 +12,8 @@
     "saveInvalidTxs": ME_WRK_SAVE_INVALID_TXS,
     "saveRewards": ME_WRK_SAVE_REWARDS,
     "saveSlashes": ME_WRK_SAVE_SLASHES,
-    "saveAddresses": ME_WRK_SAVE_ADDR
+    "saveAddresses": ME_WRK_SAVE_ADDR,
+    "saveTxValidator": ME_WRK_SAVE_TX_VAL
   },
   "database": {
     "host": "ME_DB_HOST",

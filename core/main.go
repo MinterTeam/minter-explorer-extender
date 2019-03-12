@@ -136,6 +136,9 @@ func (ext Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
 		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
 	}
+	for w := 1; w <= ext.env.WrkSaveValidatorTxsCount; w++ {
+		go ext.transactionService.SaveTxValidatorWorker(ext.transactionService.GetSaveTxValidatorJobChannel())
+	}
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
 		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
 	}
