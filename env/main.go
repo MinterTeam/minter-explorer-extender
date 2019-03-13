@@ -27,6 +27,9 @@ func New() *models.ExtenderEnvironment {
 	wrkSaveSlashesCount := flag.Int("wrk_save_slashes_count", 3, "Count of workers that save slashes")
 	wrkSaveAddressesCount := flag.Int("wrk_save_addresses_count", 3, "Count of workers that save addresses")
 	wrkSaveValidatorTxsCount := flag.Int("wrk_save_val_tx_count", 3, "Count of workers that save transaction-validator link")
+	addrChunkSize := flag.Int("addr_chunk_size", 10, "Count of workers that save transaction-validator link")
+	wrkUpdateBalanceCount := flag.Int("wrk_upd_balances_count", 1, "Count of workers that update balance")
+	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node ")
 
 	flag.Parse()
 
@@ -64,6 +67,7 @@ func New() *models.ExtenderEnvironment {
 		envData.DbPoolSize = config.GetInt("database.poolSize")
 		envData.NodeApi = nodeApi
 		envData.TxChunkSize = config.GetInt("app.txChunkSize")
+		envData.AddrChunkSize = config.GetInt("app.addrChunkSize")
 		envData.EventsChunkSize = config.GetInt("app.eventsChunkSize")
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
@@ -75,6 +79,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveSlashesCount = config.GetInt("workers.saveSlashes")
 		envData.WrkSaveAddressesCount = config.GetInt("workers.saveAddresses")
 		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
+		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
+		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug
@@ -95,6 +101,9 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveSlashesCount = *wrkSaveSlashesCount
 		envData.WrkSaveAddressesCount = *wrkSaveAddressesCount
 		envData.WrkSaveValidatorTxsCount = *wrkSaveValidatorTxsCount
+		envData.AddrChunkSize = *addrChunkSize
+		envData.WrkUpdateBalanceCount = *wrkUpdateBalanceCount
+		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
 	}
 
 	return envData

@@ -26,7 +26,7 @@
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-tools"
-  version = "1.0.4"
+  version = "1.0.5"
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-api"

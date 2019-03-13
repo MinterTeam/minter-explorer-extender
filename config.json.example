@@ -4,6 +4,7 @@
     "debug": ME_DEBUG,
     "baseCoin": "ME_BASE_COIN",
     "txChunkSize": ME_TX_CHUNK_SIZE,
+    "addrChunkSize": ME_ADDR_CHUNK_SIZE,
     "eventsChunkSize": ME_EVENTS_CHUNK_SIZE
   },
   "workers": {
@@ -13,7 +14,9 @@
     "saveRewards": ME_WRK_SAVE_REWARDS,
     "saveSlashes": ME_WRK_SAVE_SLASHES,
     "saveAddresses": ME_WRK_SAVE_ADDR,
-    "saveTxValidator": ME_WRK_SAVE_TX_VAL
+    "saveTxValidator": ME_WRK_SAVE_TX_VAL,
+    "updateBalance": ME_WRK_UPD_BALANCE,
+    "balancesFromNode": ME_WRK_BALANCE_NODE
   },
   "database": {
     "host": "ME_DB_HOST",
