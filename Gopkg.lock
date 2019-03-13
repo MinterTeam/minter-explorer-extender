@@ -10,6 +10,17 @@
   version = "1.2.8"
 
 [[projects]]
+  digest = "1:9dd60c28f7f3adb0ea1b3b638c4dd67745669555e29c760f9eefcdacd44269e3"
+  name = "github.com/MinterTeam/minter-explorer-tools"
+  packages = [
+    "helpers",
+    "models",
+  ]
+  pruneopts = "UT"
+  revision = "7a447555784b53918c57f02c4ecb5f0f62537ea2"
+  version = "v1.0.4"
+
+[[projects]]
   branch = "master"
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
@@ -37,7 +48,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:139709b3b4eab483f24d2ef792e296502dd2a129fef6c5055aef7f9b07f87797"
+  digest = "1:4a2afeeef6b563c6fe8b66893c434a4b2cb57fe443c13e7d85d68f4de535cf45"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -51,8 +62,8 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "750698e034bbc0f35e33e69df35cd8cc4c6b7d3d"
-  version = "v7.1.7"
+  revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
+  version = "v8.0.2"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
@@ -302,6 +313,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/MinterTeam/explorer-gate/helpers",
+    "github.com/MinterTeam/minter-explorer-tools/helpers",
+    "github.com/MinterTeam/minter-explorer-tools/models",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",

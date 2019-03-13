@@ -24,6 +24,9 @@
 #   go-tests = true
 #   unused-packages = true
 
+[[constraint]]
+  name = "github.com/MinterTeam/minter-explorer-tools"
+  version = "1.0.4"
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-api"
