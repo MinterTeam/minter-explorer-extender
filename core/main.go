@@ -69,7 +69,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
 	// Services
 	coinService := coin.NewService(coinRepository, addressRepository)
-	balanceService := balance.NewService(balanceRepository, nodeApi, addressRepository, coinRepository)
+	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository)
 
 	return &Extender{
 		env:                 env,
@@ -124,9 +124,12 @@ func (ext Extender) runWorkers() {
 	// Update balance
 	go ext.balanceService.Run()
 
+	// Addresses
 	for w := 1; w <= ext.env.WrkSaveAddressesCount; w++ {
 		go ext.addressService.SaveAddressesWorker(ext.addressService.GetSaveAddressesJobChannel())
 	}
+
+	// Transactions
 	for w := 1; w <= ext.env.WrkSaveTxsCount; w++ {
 		go ext.transactionService.SaveTransactionsWorker(ext.transactionService.GetSaveTxJobChannel())
 	}
@@ -136,14 +139,26 @@ func (ext Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
 		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
 	}
+
+	// Validators
 	for w := 1; w <= ext.env.WrkSaveValidatorTxsCount; w++ {
 		go ext.transactionService.SaveTxValidatorWorker(ext.transactionService.GetSaveTxValidatorJobChannel())
 	}
+
+	// Events
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
 		go ext.eventService.SaveRewardsWorker(ext.eventService.GetSaveRewardsJobChannel())
 	}
 	for w := 1; w <= ext.env.WrkSaveSlashesCount; w++ {
 		go ext.eventService.SaveSlashesWorker(ext.eventService.GetSaveSlashesJobChannel())
+	}
+
+	// Balances
+	for w := 1; w <= ext.env.WrkGetBalancesFromNodeCount; w++ {
+		go ext.balanceService.GetBalancesFromNodeWorker(ext.balanceService.GetBalancesFromNodeChannel(), ext.balanceService.GetUpdateBalancesJobChannel())
+	}
+	for w := 1; w <= ext.env.WrkUpdateBalanceCount; w++ {
+		go ext.balanceService.UpdateBalancesWorker(ext.balanceService.GetUpdateBalancesJobChannel())
 	}
 }
 

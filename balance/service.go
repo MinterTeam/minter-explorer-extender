@@ -12,21 +12,32 @@ import (
 )
 
 type Service struct {
-	chAddresses       chan models.BlockAddresses
-	nodeApi           *minter_node_api.MinterNodeApi
-	repository        *Repository
-	addressRepository *address.Repository
-	coinRepository    *coin.Repository
+	env                    *models.ExtenderEnvironment
+	nodeApi                *minter_node_api.MinterNodeApi
+	repository             *Repository
+	addressRepository      *address.Repository
+	coinRepository         *coin.Repository
+	jobGetBalancesFromNode chan models.BlockAddresses
+	jobUpdateBalance       chan AddressesBalancesContainer
+	chAddresses            chan models.BlockAddresses
 }
 
-func NewService(repository *Repository, nodeApi *minter_node_api.MinterNodeApi, addressRepository *address.Repository,
-	coinRepository *coin.Repository) *Service {
+type AddressesBalancesContainer struct {
+	Addresses []string
+	Balances  []*models.Balance
+}
+
+func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi *minter_node_api.MinterNodeApi,
+	addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
 	return &Service{
-		chAddresses:       make(chan models.BlockAddresses),
-		repository:        repository,
-		nodeApi:           nodeApi,
-		addressRepository: addressRepository,
-		coinRepository:    coinRepository,
+		env:                    env,
+		repository:             repository,
+		nodeApi:                nodeApi,
+		addressRepository:      addressRepository,
+		coinRepository:         coinRepository,
+		chAddresses:            make(chan models.BlockAddresses),
+		jobUpdateBalance:       make(chan AddressesBalancesContainer, env.WrkUpdateBalanceCount),
+		jobGetBalancesFromNode: make(chan models.BlockAddresses, env.WrkGetBalancesFromNodeCount),
 	}
 }
 
@@ -41,39 +52,49 @@ func (s *Service) GetAddressesChannel() chan<- models.BlockAddresses {
 	return s.chAddresses
 }
 
-func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
-	chunkSize := 20
+func (s Service) GetBalancesFromNodeChannel() chan models.BlockAddresses {
+	return s.jobGetBalancesFromNode
+}
 
-	// Split addresses by chunks
-	chunksCount := int(math.Ceil(float64(len(blockAddresses.Addresses)) / float64(chunkSize)))
-	chunks := make([][]string, chunksCount)
-	for i := 0; i < chunksCount; i++ {
-		start := chunkSize * i
-		end := start + chunkSize
-		if end > len(blockAddresses.Addresses) {
-			end = len(blockAddresses.Addresses)
-		}
-		chunks[i] = blockAddresses.Addresses[start:end]
-	}
+func (s Service) GetUpdateBalancesJobChannel() chan AddressesBalancesContainer {
+	return s.jobUpdateBalance
+}
 
-	//TODO: refactoring
-	for _, chunkAddresses := range chunks {
-		//go func() {
-		addressesWithPrefix := make([]string, len(chunkAddresses))
-		for i, adr := range chunkAddresses {
-			addressesWithPrefix[i] = `"Mx` + adr + `"`
+func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, result chan<- AddressesBalancesContainer) {
+	for blockAddresses := range jobs {
+		addresses := make([]string, len(blockAddresses.Addresses))
+		for i, adr := range blockAddresses.Addresses {
+			addresses[i] = `"Mx` + adr + `"`
 		}
-		response, err := s.nodeApi.GetAddresses(addressesWithPrefix, blockAddresses.Height)
+		response, err := s.nodeApi.GetAddresses(addresses, blockAddresses.Height)
 		helpers.HandleError(err)
 
 		balances, err := s.HandleBalanceResponse(response)
 		helpers.HandleError(err)
 
-		if balances != nil {
-			err := s.updateBalances(chunkAddresses, balances)
-			helpers.HandleError(err)
+		if len(balances) > 0 {
+			result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
 		}
-		//}()
+	}
+}
+
+func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
+	for container := range jobs {
+		err := s.updateBalances(container.Addresses, container.Balances)
+		helpers.HandleError(err)
+	}
+}
+
+func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
+	// Split addresses by chunks
+	chunksCount := int(math.Ceil(float64(len(blockAddresses.Addresses)) / float64(s.env.AddrChunkSize)))
+	for i := 0; i < chunksCount; i++ {
+		start := s.env.AddrChunkSize * i
+		end := start + s.env.AddrChunkSize
+		if end > len(blockAddresses.Addresses) {
+			end = len(blockAddresses.Addresses)
+		}
+		s.GetBalancesFromNodeChannel() <- models.BlockAddresses{Height: blockAddresses.Height, Addresses: blockAddresses.Addresses[start:end]}
 	}
 }
 
