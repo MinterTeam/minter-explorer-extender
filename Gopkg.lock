@@ -14,19 +14,19 @@
     "transaction/data_resources",
   ]
   pruneopts = "UT"
-  revision = "f7a9018cac17f37e8d18e93672beba18d64ab3ba"
-  version = "1.0.0"
+  revision = "f668c9517c6282c9eb86deca89451fc734f03f64"
+  version = "v1.0.2"
 
 [[projects]]
-  digest = "1:805d71151aaa8b6e0f50d266aec4658e7938a855be76d758e3d30941164397f4"
+  digest = "1:423f9f0acd2c31f22f51a2f5ef11ed92885a201591f5dded1e0f927277667b84"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "968d04cde02c44da2cab68adcaceaa324b648212"
-  version = "v1.0.2"
+  revision = "ce739d111cb8e77e14082e3ef5726ad2b96dcd0e"
+  version = "v1.0.5"
 
 [[projects]]
   branch = "master"
@@ -64,8 +64,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  branch = "master"
-  digest = "1:a1a8fd3825f3e2ea47b5b625d43af9428d2e7d223ceda4a00e94f15bf13f18b4"
+  digest = "1:92c2d57d6acd613d34e7998eac1f820fd72b8cf00365ed3939f5852568020622"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -80,7 +79,8 @@
     "urlvalues",
   ]
   pruneopts = "UT"
-  revision = "c481d1a8bde6aeda0a8d2c52adbf9386138f6bda"
+  revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
+  version = "v8.0.2"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
