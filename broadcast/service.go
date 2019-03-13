@@ -36,16 +36,16 @@ func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repo
 }
 
 func (s *Service) PublishBlock(b *models.Block) {
-	ch := `blocks`
+	channel := `blocks`
 	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
 	if err != nil {
 		log.Printf(`Error parse json: %s`, err)
 	}
-	s.publish(ch, []byte(msg))
+	s.publish(channel, []byte(msg))
 }
 
 func (s *Service) PublishTransactions(transactions []*models.Transaction) {
-	ch := `transactions`
+	channel := `transactions`
 	for _, tx := range transactions {
 		mTransaction := *tx
 		adr, err := s.addressRepository.FindById(tx.FromAddressID)
@@ -54,7 +54,7 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 		if err != nil {
 			log.Printf(`Error parse json: %s`, err)
 		}
-		s.publish(ch, []byte(msg))
+		s.publish(channel, []byte(msg))
 	}
 }
 
