@@ -60,7 +60,7 @@ func (s Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValida
 
 //Handle response and save block to DB
 func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
-	transactions []responses.Transaction, validators []*models.Validator) error {
+	transactions []responses.Transaction) error {
 
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction

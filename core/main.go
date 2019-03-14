@@ -14,6 +14,7 @@ import (
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/go-pg/pg"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -104,6 +105,7 @@ func (ext *Extender) Run() {
 	}
 
 	for {
+		start := time.Now()
 		//Pulling block data
 		blockResponse, err := ext.nodeApi.GetBlock(startHeight)
 		helpers.HandleError(err)
@@ -111,10 +113,19 @@ func (ext *Extender) Run() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		//Pulling events
+		eventsResponse, err := ext.nodeApi.GetBlockEvents(startHeight)
+		helpers.HandleError(err)
+		elapsed := time.Since(start)
+		if ext.env.Debug {
+			log.Printf("Pulling data time %s", elapsed)
+		}
+
+		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 
 		ext.handleBlockResponse(blockResponse)
+		ext.handleEventResponse(startHeight, eventsResponse)
 
-		go ext.getEventsData(startHeight)
 		startHeight++
 	}
 }
@@ -162,10 +173,20 @@ func (ext Extender) runWorkers() {
 	}
 }
 
+func (ext Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {
+	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
+	helpers.HandleError(err)
+}
+
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Save validators if not exist
 	validators, err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
+
+	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	helpers.HandleError(err)
+
+	go ext.updateValidatorsData(validators, height)
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
@@ -181,27 +202,14 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 func (ext Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
-
 	chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
-	chunks := make([][]responses.Transaction, chunksCount)
 	for i := 0; i < chunksCount; i++ {
 		start := ext.env.TxChunkSize * i
 		end := start + ext.env.TxChunkSize
 		if end > len(response.Result.Transactions) {
 			end = len(response.Result.Transactions)
 		}
-		chunks[i] = response.Result.Transactions[start:end]
-	}
-
-	for _, chunk := range chunks {
-		ext.saveAddresses(height, chunk)
-	}
-
-	go ext.updateValidatorsData(validators, height)
-
-	// have to be handled after addresses
-	for _, chunk := range chunks {
-		ext.saveTransactions(height, response.Result.Time, chunk, validators)
+		ext.saveTransactions(height, response.Result.Time, response.Result.Transactions[start:end])
 	}
 }
 
@@ -215,11 +223,8 @@ func (ext *Extender) getEventsData(blockHeight uint64) {
 
 func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses.EventsResponse) {
 	if len(response.Result.Events) > 0 {
-		//Search and save addresses from block
-		err := ext.addressService.HandleEventsResponse(blockHeight, response)
-		helpers.HandleError(err)
 		//Save events
-		err = ext.eventService.HandleEventResponse(blockHeight, response)
+		err := ext.eventService.HandleEventResponse(blockHeight, response)
 		helpers.HandleError(err)
 	}
 }
@@ -241,15 +246,9 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
 	helpers.HandleError(err)
 }
 
-func (ext *Extender) saveAddresses(blockHeight uint64, transactions []responses.Transaction) {
-	// Search and save addresses from block
-	err := ext.addressService.HandleTransactionsFromBlockResponse(blockHeight, transactions)
-	helpers.HandleError(err)
-}
-
-func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction, validators []*models.Validator) {
+func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
 	// Save transactions
-	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions, validators)
+	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	helpers.HandleError(err)
 }
 

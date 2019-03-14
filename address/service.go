@@ -7,6 +7,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api/responses"
 	"math"
+	"strconv"
 	"sync"
 )
 
@@ -39,23 +40,22 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	}
 }
 
-// Find all addresses in block response and save it
-func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transactions []responses.Transaction) error {
+func (s Service) ExtractAddressesFromTransactions(transactions []responses.Transaction) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		if tx.Data == nil {
-			return errors.New("empty transaction data")
+			return nil, errors.New("empty transaction data"), nil
 		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 		if tx.Type == models.TxTypeSend {
 			var txData models.SendTxData
 			jsonData, err := json.Marshal(*tx.Data)
 			if err != nil {
-				return err
+				return nil, err, nil
 			}
 			err = json.Unmarshal(jsonData, &txData)
 			if err != nil {
-				return err
+				return nil, err, nil
 			}
 			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		}
@@ -63,11 +63,11 @@ func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transaction
 			var txData models.MultiSendTxData
 			jsonData, err := json.Marshal(*tx.Data)
 			if err != nil {
-				return err
+				return nil, err, nil
 			}
 			err = json.Unmarshal(jsonData, &txData)
 			if err != nil {
-				return err
+				return nil, err, nil
 			}
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
@@ -75,30 +75,67 @@ func (s *Service) HandleTransactionsFromBlockResponse(height uint64, transaction
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
-	chunksCount := int(math.Ceil(float64(len(addresses)) / float64(s.env.TxChunkSize)))
-	for i := 0; i < chunksCount; i++ {
-		start := s.env.TxChunkSize * i
-		end := start + s.env.TxChunkSize
-		if end > len(addresses) {
-			end = len(addresses)
-		}
-		s.wgAddresses.Add(1)
-		s.GetSaveAddressesJobChannel() <- addresses[start:end]
-		s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses[start:end]}
-	}
-	s.wgAddresses.Wait()
-	return nil
+	return addresses, nil, mapAddresses
 }
 
-func (s *Service) HandleEventsResponse(blockHeight uint64, response *responses.EventsResponse) error {
+func (s Service) ExtractAddressesEventsResponse(response *responses.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Result.Events {
 		mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
-	err := s.repository.SaveAllIfNotExist(addresses)
-	s.chBalanceAddresses <- models.BlockAddresses{Height: blockHeight, Addresses: addresses}
-	return err
+
+	return addresses, mapAddresses
+}
+
+// Find all addresses in block response and save it
+func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) error {
+	var (
+		blockAddressesMap  = make(map[string]struct{})
+		eventsAddressesMap = make(map[string]struct{})
+		height             uint64
+		err                error
+	)
+
+	if blockResponse != nil && blockResponse.Result.TxCount != "0" {
+		height, err = strconv.ParseUint(blockResponse.Result.Height, 10, 64)
+		if err != nil {
+			return err
+		}
+		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Result.Transactions)
+		if err != nil {
+			return err
+		}
+	}
+	if eventsResponse != nil && len(eventsResponse.Result.Events) > 0 {
+		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(eventsResponse)
+	}
+	// Merge maps
+	for k, v := range eventsAddressesMap {
+		blockAddressesMap[k] = v
+	}
+
+	addresses := addressesMapToSlice(blockAddressesMap)
+
+	if len(addresses) > 0 {
+		chunksCount := int(math.Ceil(float64(len(addresses)) / float64(s.env.TxChunkSize)))
+		for i := 0; i < chunksCount; i++ {
+			start := s.env.TxChunkSize * i
+			end := start + s.env.TxChunkSize
+			if end > len(addresses) {
+				end = len(addresses)
+			}
+			s.wgAddresses.Add(1)
+			s.GetSaveAddressesJobChannel() <- addresses[start:end]
+		}
+		s.wgAddresses.Wait()
+
+		if height != 0 {
+			s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
+		}
+	}
+
+	return nil
 }
 
 func addressesMapToSlice(mapAddresses map[string]struct{}) []string {
