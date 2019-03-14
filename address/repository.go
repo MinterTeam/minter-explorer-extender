@@ -28,7 +28,7 @@ func (r *Repository) FindId(address string) (uint64, error) {
 		return id.(uint64), nil
 	}
 	adr := new(models.Address)
-	err := r.db.Model(adr).Where("address = ?", address).Select(adr)
+	err := r.db.Model(adr).Column("id").Where("address = ?", address).Select(adr)
 	if err != nil {
 		return 0, err
 	}
