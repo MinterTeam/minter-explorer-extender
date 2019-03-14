@@ -136,9 +136,6 @@ func (ext *Extender) Run() {
 
 func (ext Extender) runWorkers() {
 
-	// Update balance
-	go ext.balanceService.Run()
-
 	// Addresses
 	for w := 1; w <= ext.env.WrkSaveAddressesCount; w++ {
 		go ext.addressService.SaveAddressesWorker(ext.addressService.GetSaveAddressesJobChannel())
@@ -169,6 +166,7 @@ func (ext Extender) runWorkers() {
 	}
 
 	// Balances
+	go ext.balanceService.Run()
 	for w := 1; w <= ext.env.WrkGetBalancesFromNodeCount; w++ {
 		go ext.balanceService.GetBalancesFromNodeWorker(ext.balanceService.GetBalancesFromNodeChannel(), ext.balanceService.GetUpdateBalancesJobChannel())
 	}

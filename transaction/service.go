@@ -48,16 +48,16 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, address
 	}
 }
 
-func (s Service) GetSaveTxJobChannel() chan []*models.Transaction {
+func (s *Service) GetSaveTxJobChannel() chan []*models.Transaction {
 	return s.jobSaveTxs
 }
-func (s Service) GetSaveTxsOutputJobChannel() chan []*models.Transaction {
+func (s *Service) GetSaveTxsOutputJobChannel() chan []*models.Transaction {
 	return s.jobSaveTxsOutput
 }
-func (s Service) GetSaveInvalidTxsJobChannel() chan []*models.InvalidTransaction {
+func (s *Service) GetSaveInvalidTxsJobChannel() chan []*models.InvalidTransaction {
 	return s.jobSaveInvalidTxs
 }
-func (s Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValidator {
+func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValidator {
 	return s.jobSaveValidatorTxs
 }
 
@@ -137,7 +137,7 @@ func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTra
 	}
 }
 
-func (s Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidator) {
+func (s *Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidator) {
 	for links := range jobs {
 		err := s.txRepository.LinkWithValidators(links)
 		helpers.HandleError(err)
@@ -279,7 +279,7 @@ func (s *Service) handleInvalidTransaction(tx responses.Transaction, blockHeight
 	}, nil
 }
 
-func (s Service) getLinksTxValidator(transactions []*models.Transaction) ([]*models.TransactionValidator, error) {
+func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*models.TransactionValidator, error) {
 	var links []*models.TransactionValidator
 
 	for _, tx := range transactions {
