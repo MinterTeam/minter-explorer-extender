@@ -38,7 +38,7 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) ([]*mod
 	return validators, err
 }
 
-func (s Service) UpdateValidatorsInfoAndStakes(response *responses.CandidateResponse) error {
+func (s *Service) UpdateValidatorsInfoAndStakes(response *responses.CandidateResponse) error {
 	validator, stakes, err := s.HandleCandidateResponse(response)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (s *Service) HandleCandidateResponse(response *responses.CandidateResponse)
 	return validator, stakes, nil
 }
 
-func (s Service) GetStakesFromCandidateResponse(response *responses.CandidateResponse) ([]*models.Stake, error) {
+func (s *Service) GetStakesFromCandidateResponse(response *responses.CandidateResponse) ([]*models.Stake, error) {
 	var stakes []*models.Stake
 	validatorID, err := s.repository.FindIdByPk(helpers.RemovePrefix(response.Result.PubKey))
 	if err != nil {

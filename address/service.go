@@ -28,7 +28,7 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalan
 	}
 }
 
-func (s Service) GetSaveAddressesJobChannel() chan []string {
+func (s *Service) GetSaveAddressesJobChannel() chan []string {
 	return s.jobSaveAddresses
 }
 
@@ -40,7 +40,7 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	}
 }
 
-func (s Service) ExtractAddressesFromTransactions(transactions []responses.Transaction) ([]string, error, map[string]struct{}) {
+func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Transaction) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		if tx.Data == nil {
@@ -78,7 +78,7 @@ func (s Service) ExtractAddressesFromTransactions(transactions []responses.Trans
 	return addresses, nil, mapAddresses
 }
 
-func (s Service) ExtractAddressesEventsResponse(response *responses.EventsResponse) ([]string, map[string]struct{}) {
+func (s *Service) ExtractAddressesEventsResponse(response *responses.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Result.Events {
 		mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
@@ -91,10 +91,10 @@ func (s Service) ExtractAddressesEventsResponse(response *responses.EventsRespon
 // Find all addresses in block response and save it
 func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) error {
 	var (
+		err                error
+		height             uint64
 		blockAddressesMap  = make(map[string]struct{})
 		eventsAddressesMap = make(map[string]struct{})
-		height             uint64
-		err                error
 	)
 
 	if blockResponse != nil && blockResponse.Result.TxCount != "0" {

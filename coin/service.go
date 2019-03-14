@@ -30,7 +30,7 @@ type CreateCoinData struct {
 	Crr            string `json:"crr"`
 }
 
-func (s Service) CreateFromTx(tx responses.Transaction) error {
+func (s *Service) CreateFromTx(tx responses.Transaction) error {
 	if tx.Data == nil {
 		return errors.New("no data for creating a coin")
 	}

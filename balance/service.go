@@ -9,6 +9,7 @@ import (
 	"github.com/daniildulin/minter-node-api/responses"
 	"log"
 	"math"
+	"sync"
 )
 
 type Service struct {
@@ -20,6 +21,7 @@ type Service struct {
 	jobGetBalancesFromNode chan models.BlockAddresses
 	jobUpdateBalance       chan AddressesBalancesContainer
 	chAddresses            chan models.BlockAddresses
+	wgBalances             sync.WaitGroup
 }
 
 type AddressesBalancesContainer struct {
@@ -41,6 +43,18 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi
 	}
 }
 
+func (s *Service) GetAddressesChannel() chan<- models.BlockAddresses {
+	return s.chAddresses
+}
+
+func (s *Service) GetBalancesFromNodeChannel() chan models.BlockAddresses {
+	return s.jobGetBalancesFromNode
+}
+
+func (s *Service) GetUpdateBalancesJobChannel() chan AddressesBalancesContainer {
+	return s.jobUpdateBalance
+}
+
 func (s *Service) Run() {
 	for {
 		addresses := <-s.chAddresses
@@ -48,16 +62,19 @@ func (s *Service) Run() {
 	}
 }
 
-func (s *Service) GetAddressesChannel() chan<- models.BlockAddresses {
-	return s.chAddresses
-}
-
-func (s Service) GetBalancesFromNodeChannel() chan models.BlockAddresses {
-	return s.jobGetBalancesFromNode
-}
-
-func (s Service) GetUpdateBalancesJobChannel() chan AddressesBalancesContainer {
-	return s.jobUpdateBalance
+func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
+	// Split addresses by chunks
+	chunksCount := int(math.Ceil(float64(len(blockAddresses.Addresses)) / float64(s.env.AddrChunkSize)))
+	s.wgBalances.Add(chunksCount)
+	for i := 0; i < chunksCount; i++ {
+		start := s.env.AddrChunkSize * i
+		end := start + s.env.AddrChunkSize
+		if end > len(blockAddresses.Addresses) {
+			end = len(blockAddresses.Addresses)
+		}
+		s.GetBalancesFromNodeChannel() <- models.BlockAddresses{Height: blockAddresses.Height, Addresses: blockAddresses.Addresses[start:end]}
+	}
+	s.wgBalances.Wait()
 }
 
 func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, result chan<- AddressesBalancesContainer) {
@@ -68,13 +85,9 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		}
 		response, err := s.nodeApi.GetAddresses(addresses, blockAddresses.Height)
 		helpers.HandleError(err)
-
 		balances, err := s.HandleBalanceResponse(response)
 		helpers.HandleError(err)
-
-		if len(balances) > 0 {
-			result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
-		}
+		result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
 	}
 }
 
@@ -85,20 +98,7 @@ func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 	}
 }
 
-func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
-	// Split addresses by chunks
-	chunksCount := int(math.Ceil(float64(len(blockAddresses.Addresses)) / float64(s.env.AddrChunkSize)))
-	for i := 0; i < chunksCount; i++ {
-		start := s.env.AddrChunkSize * i
-		end := start + s.env.AddrChunkSize
-		if end > len(blockAddresses.Addresses) {
-			end = len(blockAddresses.Addresses)
-		}
-		s.GetBalancesFromNodeChannel() <- models.BlockAddresses{Height: blockAddresses.Height, Addresses: blockAddresses.Addresses[start:end]}
-	}
-}
-
-func (s Service) HandleBalanceResponse(response *responses.BalancesResponse) ([]*models.Balance, error) {
+func (s *Service) HandleBalanceResponse(response *responses.BalancesResponse) ([]*models.Balance, error) {
 	var balances []*models.Balance
 
 	if len(response.Result) == 0 {
@@ -123,11 +123,12 @@ func (s Service) HandleBalanceResponse(response *responses.BalancesResponse) ([]
 			})
 		}
 	}
-
 	return balances, nil
 }
 
-func (s Service) updateBalances(addresses []string, nodeBalances []*models.Balance) error {
+func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Balance) error {
+	defer s.wgBalances.Done()
+
 	dbBalances, err := s.repository.FindAllByAddress(addresses)
 	if err != nil {
 		return err
@@ -176,7 +177,6 @@ func (s Service) updateBalances(addresses []string, nodeBalances []*models.Balan
 			return err
 		}
 	}
-
 	return nil
 }
 
