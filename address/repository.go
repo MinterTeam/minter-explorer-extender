@@ -66,7 +66,7 @@ func (r *Repository) FindAll(addresses []string) ([]*models.Address, error) {
 	return aList, err
 }
 
-func (r Repository) SaveAllIfNotExist(addresses []string) error {
+func (r *Repository) SaveAllIfNotExist(addresses []string) error {
 	// if all addresses exists in cache do nothing
 	loadFromDb := r.checkNotInCache(addresses)
 	if len(loadFromDb) == 0 {

@@ -15,7 +15,7 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-func (r Repository) SaveRewards(rewards []*models.Reward) error {
+func (r *Repository) SaveRewards(rewards []*models.Reward) error {
 	var args []interface{}
 	for _, reward := range rewards {
 		args = append(args, reward)
@@ -23,7 +23,7 @@ func (r Repository) SaveRewards(rewards []*models.Reward) error {
 	return r.db.Insert(args...)
 }
 
-func (r Repository) SaveSlashes(slashes []*models.Slash) error {
+func (r *Repository) SaveSlashes(slashes []*models.Slash) error {
 	var args []interface{}
 	for _, slash := range slashes {
 		args = append(args, slash)
