@@ -27,7 +27,7 @@ func (r *Repository) FindIdByPk(pk string) (uint64, error) {
 		return id.(uint64), nil
 	}
 	validator := new(models.Validator)
-	err := r.db.Model(validator).Where("public_key = ?", pk).Select()
+	err := r.db.Model(validator).Column("id").Where("public_key = ?", pk).Select()
 	if err != nil {
 		return 0, err
 	}

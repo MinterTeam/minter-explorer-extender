@@ -27,6 +27,7 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	}
 	coin := new(models.Coin)
 	err := r.db.Model(coin).
+		Column("id").
 		Where("symbol = ?", symbol).
 		Where("deleted_at_block_id isnull").
 		Select()
