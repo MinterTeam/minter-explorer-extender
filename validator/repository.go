@@ -95,11 +95,11 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 	return vList, err
 }
 
-func (r Repository) Update(validator *models.Validator) error {
+func (r *Repository) Update(validator *models.Validator) error {
 	return r.db.Update(validator)
 }
 
-func (r Repository) UpdateStakesByValidatorId(validatorId uint64, stakes []*models.Stake) error {
+func (r *Repository) UpdateStakesByValidatorId(validatorId uint64, stakes []*models.Stake) error {
 	// Delete all validators stakes before
 	_, err := r.db.Model(new(models.Stake)).Where("validator_id = ?", validatorId).Delete()
 	if err != nil {

@@ -15,7 +15,7 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-func (r Repository) FindAllByAddress(addresses []string) ([]*models.Balance, error) {
+func (r *Repository) FindAllByAddress(addresses []string) ([]*models.Balance, error) {
 	var balances []*models.Balance
 	err := r.db.Model(&balances).
 		Column("balance.*", "Address", "Coin").
@@ -24,7 +24,7 @@ func (r Repository) FindAllByAddress(addresses []string) ([]*models.Balance, err
 	return balances, err
 }
 
-func (r Repository) SaveAll(balances []*models.Balance) error {
+func (r *Repository) SaveAll(balances []*models.Balance) error {
 	var args []interface{}
 	for _, balance := range balances {
 		args = append(args, balance)
@@ -36,12 +36,12 @@ func (r Repository) SaveAll(balances []*models.Balance) error {
 	return r.db.Insert(args...)
 }
 
-func (r Repository) UpdateAll(balances []*models.Balance) error {
+func (r *Repository) UpdateAll(balances []*models.Balance) error {
 	_, err := r.db.Model(&balances).Update()
 	return err
 }
 
-func (r Repository) DeleteAll(balances []*models.Balance) error {
+func (r *Repository) DeleteAll(balances []*models.Balance) error {
 	_, err := r.db.Model(&balances).Delete()
 	return err
 }

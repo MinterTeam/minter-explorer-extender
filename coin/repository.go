@@ -61,7 +61,7 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 	return coin.Symbol, nil
 }
 
-func (r Repository) Save(c *models.Coin) error {
+func (r *Repository) Save(c *models.Coin) error {
 	err := r.db.Insert(c)
 	if err != nil {
 		return err

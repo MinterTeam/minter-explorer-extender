@@ -41,7 +41,7 @@ func (r *Repository) LinkWithValidators(links []*models.BlockValidator) error {
 	return err
 }
 
-func (r Repository) DeleteLastBlockData() error {
+func (r *Repository) DeleteLastBlockData() error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
