@@ -120,16 +120,15 @@ func (ext *Extender) Run() {
 		//Pulling events
 		eventsResponse, err := ext.nodeApi.GetBlockEvents(startHeight)
 		helpers.HandleError(err)
+
 		elapsed := time.Since(start)
 		if ext.env.Debug {
 			log.Printf("Pulling data time %s", elapsed)
 		}
 
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
-
 		ext.handleBlockResponse(blockResponse)
-		ext.handleEventResponse(startHeight, eventsResponse)
-
+		go ext.handleEventResponse(startHeight, eventsResponse)
 		startHeight++
 	}
 }
