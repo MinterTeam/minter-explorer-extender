@@ -9,7 +9,7 @@
   },
   "workers": {
     "saveTxs": ME_WRK_SAVE_TXS,
-    "saveTxsOutput": ME_WRK_SAVE_TXS_OUTPUT,
+    "saveTxsOutput": ME_WRK_SAVE_OUTPUT_TXS,
     "saveInvalidTxs": ME_WRK_SAVE_INVALID_TXS,
     "saveRewards": ME_WRK_SAVE_REWARDS,
     "saveSlashes": ME_WRK_SAVE_SLASHES,
