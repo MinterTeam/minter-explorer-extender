@@ -145,13 +145,18 @@ func (s *Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidat
 }
 
 func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
-	var list []*models.TransactionOutput
+	var (
+		list    []*models.TransactionOutput
+		idsList []uint64
+	)
+
 	for _, tx := range txList {
-		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
-			continue
-		}
 		if tx.ID == 0 {
 			return errors.New("no transaction id")
+		}
+		idsList = append(idsList, tx.ID)
+		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
+			continue
 		}
 		if tx.Type == models.TxTypeSend {
 			var txData models.SendTxData
@@ -193,11 +198,15 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			}
 		}
 	}
-	// TODO: should to be chunked?
 	if len(list) > 0 {
 		err := s.txRepository.SaveAllTxOutputs(list)
 		helpers.HandleError(err)
 	}
+	if len(idsList) > 0 {
+		err := s.txRepository.IndexTxAddress(idsList)
+		helpers.HandleError(err)
+	}
+
 	return nil
 }
 
