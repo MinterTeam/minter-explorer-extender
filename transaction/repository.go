@@ -54,3 +54,20 @@ func (r *Repository) LinkWithValidators(links []*models.TransactionValidator) er
 	}
 	return r.db.Insert(args...)
 }
+
+func (r Repository) IndexTxAddress(txsId []uint64) error {
+	_, err := r.db.Query(nil, `
+insert into index_transaction_by_address (block_id, address_id, transaction_id)
+  (select block_id, from_address_id, id
+   from transactions
+   where id in (?)
+   union
+   select t.block_id, to_address_id, transaction_id
+   from transaction_outputs
+          inner join transactions t on transaction_outputs.transaction_id = t.id
+   where t.id in (?))
+ON CONFLICT DO NOTHING;
+	`, pg.In(txsId), pg.In(txsId))
+
+	return err
+}

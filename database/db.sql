@@ -551,14 +551,6 @@ COMMENT ON COLUMN public.transactions.created_at IS 'Timestamp of tx = timestamp
 
 COMMENT ON COLUMN public.transactions.type IS 'Integer index of tx type';
 
-
---
--- Name: COLUMN transactions.fee; Type: COMMENT; Schema: public; Owner: minter
---
-
-COMMENT ON COLUMN public.transactions.fee IS 'Calculated fee in base coin (???)';
-
-
 --
 -- Name: COLUMN transactions.hash; Type: COMMENT; Schema: public; Owner: minter
 --
