@@ -649,6 +649,16 @@ ALTER SEQUENCE public.validator_public_keys_id_seq OWNED BY public.validators.id
 
 
 --
+-- Name: index_transaction_by_address; Type: TABLE; Schema: public; Owner: minter
+--
+
+CREATE TABLE public.index_transaction_by_address (
+    block_id bigint NOT NULL,
+    address_id bigint NOT NULL,
+    transaction_id bigint NOT NULL
+);
+
+--
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
@@ -974,6 +984,14 @@ ALTER TABLE ONLY public.validators
 
 
 --
+-- Name: index_transaction_by_address index_transaction_by_address_pk; Type: CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.index_transaction_by_address
+    ADD CONSTRAINT index_transaction_by_address_pk PRIMARY KEY (block_id, address_id, transaction_id);
+
+
+--
 -- Name: addresses_address_uindex; Type: INDEX; Schema: public; Owner: minter
 --
 
@@ -1193,6 +1211,27 @@ CREATE INDEX transactions_hash_index ON public.transactions USING hash (hash);
 --
 
 CREATE UNIQUE INDEX validator_public_keys_public_key_uindex ON public.validators USING btree (public_key);
+
+
+--
+-- Name: index_transaction_by_address_address_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX index_transaction_by_address_address_id_index ON public.index_transaction_by_address USING btree (address_id);
+
+
+--
+-- Name: index_transaction_by_address_block_id_address_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX index_transaction_by_address_block_id_address_id_index ON public.index_transaction_by_address USING btree (block_id, address_id);
+
+
+--
+-- Name: index_transaction_by_address_transaction_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX index_transaction_by_address_transaction_id_index ON public.index_transaction_by_address USING btree (transaction_id);
 
 
 --
@@ -1418,6 +1457,30 @@ ALTER TABLE ONLY public.transactions
 ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT transactions_coins_id_fk FOREIGN KEY (gas_coin_id) REFERENCES public.coins(id);
 
+
+--
+-- Name: index_transaction_by_address index_transaction_by_address_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.index_transaction_by_address
+    ADD CONSTRAINT index_transaction_by_address_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses(id);
+
+
+--
+-- Name: index_transaction_by_address index_transaction_by_address_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.index_transaction_by_address
+    ADD CONSTRAINT index_transaction_by_address_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+
+
+--
+-- Name: index_transaction_by_address index_transaction_by_address_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.index_transaction_by_address
+    ADD CONSTRAINT index_transaction_by_address_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+    
 
 --
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: minter
