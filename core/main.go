@@ -133,7 +133,7 @@ func (ext *Extender) Run() {
 	}
 }
 
-func (ext Extender) runWorkers() {
+func (ext *Extender) runWorkers() {
 
 	// Addresses
 	for w := 1; w <= ext.env.WrkSaveAddressesCount; w++ {
@@ -174,7 +174,7 @@ func (ext Extender) runWorkers() {
 	}
 }
 
-func (ext Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {
+func (ext *Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {
 	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
 	helpers.HandleError(err)
 }
@@ -200,7 +200,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	}
 }
 
-func (ext Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
+func (ext *Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
 	chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
@@ -212,14 +212,6 @@ func (ext Extender) handleTransactions(response *responses.BlockResponse, valida
 		}
 		ext.saveTransactions(height, response.Result.Time, response.Result.Transactions[start:end])
 	}
-}
-
-func (ext *Extender) getEventsData(blockHeight uint64) {
-	//Pulling event data
-	eventsResponse, err := ext.nodeApi.GetBlockEvents(blockHeight)
-	helpers.HandleError(err)
-	//Handle event data
-	ext.handleEventResponse(blockHeight, eventsResponse)
 }
 
 func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses.EventsResponse) {
@@ -253,7 +245,7 @@ func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Ti
 	helpers.HandleError(err)
 }
 
-func (ext Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) {
+func (ext *Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) {
 	for _, vlr := range validators {
 		resp, err := ext.nodeApi.GetCandidate(vlr.GetPublicKey(), blockHeight)
 		helpers.HandleError(err)
