@@ -20,6 +20,8 @@ func New() *models.ExtenderEnvironment {
 	configFile := flag.String("config", "", "Env file")
 	apiHost := flag.String("api_host", "", "API host")
 	apiPort := flag.Int("api_port", 8000, "API port")
+	wsLink := flag.String("ws_link", "", "WebSocket server link")
+	wsKey := flag.String("ws_key", "", "WebSocket API key")
 	wrkSaveTxsCount := flag.Int("wrk_save_txs_count", 3, "Count of workers that save transactions")
 	wrkSaveTxsOutputCount := flag.Int("wrk_save_txs_output_count", 3, "Count of workers that save transactions output")
 	wrkSaveInvalidTxsCount := flag.Int("wrk_save_invtxs_count", 3, "Count of workers that save invalid transactions")
@@ -54,6 +56,14 @@ func New() *models.ExtenderEnvironment {
 
 	if *configFile != "" {
 		config := NewViperConfig(*configFile)
+		wsLink := `http://`
+		if config.GetBool(`wsServer.isSecure`) {
+			wsLink = `https://`
+		}
+		wsLink += config.GetString(`wsServer.link`)
+		if config.GetString(`wsServer.port`) != `` {
+			wsLink += `:` + config.GetString(`wsServer.port`)
+		}
 		nodeApi := "http://"
 		if config.GetBool("minterApi.isSecure") {
 			nodeApi = "https://"
@@ -71,6 +81,8 @@ func New() *models.ExtenderEnvironment {
 		envData.EventsChunkSize = config.GetInt("app.eventsChunkSize")
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
+		envData.WsLink = wsLink
+		envData.WsKey = config.GetString(`wsServer.key`)
 		envData.AppName = config.GetString("name")
 		envData.WrkSaveTxsCount = config.GetInt("workers.saveTxs")
 		envData.WrkSaveTxsOutputCount = config.GetInt("workers.saveTxsOutput")
@@ -94,6 +106,8 @@ func New() *models.ExtenderEnvironment {
 		envData.EventsChunkSize = *eventsChunkSize
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
+		envData.WsLink = *wsLink
+		envData.WsKey = *wsKey
 		envData.WrkSaveTxsCount = *wrkSaveTxsCount
 		envData.WrkSaveTxsOutputCount = *wrkSaveTxsOutputCount
 		envData.WrkSaveInvTxsCount = *wrkSaveInvalidTxsCount

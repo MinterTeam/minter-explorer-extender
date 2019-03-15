@@ -89,8 +89,6 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 }
 
 func (ext *Extender) Run() {
-	go ext.balanceService.Run()
-
 	err := ext.blockRepository.DeleteLastBlockData()
 	helpers.HandleError(err)
 

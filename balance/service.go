@@ -19,7 +19,7 @@ type Service struct {
 	repository             *Repository
 	addressRepository      *address.Repository
 	coinRepository         *coin.Repository
-	broadcastService  *broadcast.Service
+	broadcastService       *broadcast.Service
 	jobGetBalancesFromNode chan models.BlockAddresses
 	jobUpdateBalance       chan AddressesBalancesContainer
 	chAddresses            chan models.BlockAddresses
@@ -27,13 +27,13 @@ type Service struct {
 }
 
 type AddressesBalancesContainer struct {
-	Addresses []string
-	Balances  []*models.Balance
-	chAddresses       chan models.BlockAddresses
+	Addresses         []string
+	Balances          []*models.Balance
 	nodeApi           *minter_node_api.MinterNodeApi
 	repository        *Repository
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
+	chAddresses       chan models.BlockAddresses
 	broadcastService  *broadcast.Service
 }
 

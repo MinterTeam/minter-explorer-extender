@@ -2,12 +2,20 @@
 
 
 [[projects]]
-  digest = "1:82d4070f0ff5911f45e02c48d1785e3da0cd60b23244460f1d3e1b75e52b8bbd"
-  name = "github.com/MinterTeam/explorer-gate"
-  packages = ["helpers"]
+  digest = "1:ba7006009150e0f130c4fb781346633d6d6430a6731511a93375930a5f0dfcb9"
+  name = "github.com/MinterTeam/minter-explorer-api"
+  packages = [
+    "balance",
+    "blocks",
+    "helpers",
+    "resource",
+    "tools",
+    "transaction",
+    "transaction/data_resources",
+  ]
   pruneopts = "UT"
-  revision = "40905409aa4615189ad04487bfb1d00bf843a01f"
-  version = "1.2.8"
+  revision = "f668c9517c6282c9eb86deca89451fc734f03f64"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:423f9f0acd2c31f22f51a2f5ef11ed92885a201591f5dded1e0f927277667b84"
@@ -29,6 +37,14 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  digest = "1:b33ffd395503c2dbd0f31ba15b48bab3969c049d52ed57efe158f62ceda57555"
+  name = "github.com/centrifugal/gocent"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c1f4a2164b950c77d8881ede2c929124ce6c428c"
+  version = "v2.0.2"
+
+[[projects]]
   digest = "1:db95f74a11f29faa97a6012a60daa78c4d64b926da2d30bf650133e65e5a613e"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
@@ -48,7 +64,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:4a2afeeef6b563c6fe8b66893c434a4b2cb57fe443c13e7d85d68f4de535cf45"
+  digest = "1:92c2d57d6acd613d34e7998eac1f820fd72b8cf00365ed3939f5852568020622"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -60,6 +76,7 @@
     "internal/tag",
     "orm",
     "types",
+    "urlvalues",
   ]
   pruneopts = "UT"
   revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
@@ -70,8 +87,8 @@
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   pruneopts = "UT"
-  revision = "c823c79ea1570fb5ff454033735a8e68575d1d0f"
-  version = "v1.3.0"
+  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -186,7 +203,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bfc66a1fd78dc8f14d419fd52a5a42db1d572e887ebcc80b98c1a515a8f2d837"
+  digest = "1:01cd0cd47758f04c5604daa3be4637e2afa1e0c15af7e08289e95360369e4f48"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
@@ -196,7 +213,7 @@
     "xfs",
   ]
   pruneopts = "UT"
-  revision = "bbced9601137e764853b2fad7ec3e2dc4c504e02"
+  revision = "d0f344d83b0c80a1bc03b547a2374a9ec6711144"
 
 [[projects]]
   digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
@@ -234,12 +251,12 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:de37e343c64582d7026bf8ab6ac5b22a72eac54f3a57020db31524affed9f423"
+  digest = "1:1b773526998f3dbde3a51a4a5881680c4d237d3600f570d900f97ac93c7ba0a8"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "6d33b5a963d922d182c91e8a1c88d81fd150cfd4"
-  version = "v1.3.1"
+  revision = "9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:c468422f334a6b46a19448ad59aaffdfc0a36b08fdcc1c749a0b29b6453d7e59"
@@ -267,15 +284,15 @@
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
+  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
 
 [[projects]]
   branch = "master"
-  digest = "1:f96e48fc7b2d4992742749bf96f6247fb1d2346672aec5300dc29c06ab7da061"
+  digest = "1:f36c7b9a36158e62ffe5d8b02d1b5955500c13106cdaeebf5323d88863cae96f"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "a98ae47d97a5abb3a3e9045da36315f9f8312970"
+  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
@@ -312,9 +329,12 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/MinterTeam/explorer-gate/helpers",
+    "github.com/MinterTeam/minter-explorer-api/balance",
+    "github.com/MinterTeam/minter-explorer-api/blocks",
+    "github.com/MinterTeam/minter-explorer-api/transaction",
     "github.com/MinterTeam/minter-explorer-tools/helpers",
     "github.com/MinterTeam/minter-explorer-tools/models",
+    "github.com/centrifugal/gocent",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",
