@@ -221,17 +221,18 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 }
 
 func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
-	var links = make([]*models.BlockValidator, len(response.Result.Validators))
+	var links []*models.BlockValidator
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
-	for i, v := range response.Result.Validators {
+	for _, v := range response.Result.Validators {
 		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PubKey))
 		helpers.HandleError(err)
-		links[i] = &models.BlockValidator{
+		link := models.BlockValidator{
 			ValidatorID: vId,
 			BlockID:     height,
 			Signed:      v.Signed,
 		}
+		links = append(links, &link)
 	}
 	err = ext.blockRepository.LinkWithValidators(links)
 	helpers.HandleError(err)
