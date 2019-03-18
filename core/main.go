@@ -32,6 +32,7 @@ type Extender struct {
 	transactionService  *transaction.Service
 	eventService        *events.Service
 	balanceService      *balance.Service
+	chasingMode         bool
 }
 
 type dbLogger struct{}
@@ -80,11 +81,12 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
 		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository),
 		blockRepository:     blockRepository,
-		validatorService:    validator.NewService(validatorRepository, addressRepository, coinRepository),
+		validatorService:    validator.NewService(nodeApi, validatorRepository, addressRepository, coinRepository),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService),
 		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
+		chasingMode:         false,
 	}
 }
 
@@ -92,7 +94,13 @@ func (ext *Extender) Run() {
 	err := ext.blockRepository.DeleteLastBlockData()
 	helpers.HandleError(err)
 
-	var startHeight uint64
+	var height uint64
+
+	statusResponse, err := ext.nodeApi.GetStatus()
+	helpers.HandleError(err)
+	startFromHeight, err := strconv.ParseUint(statusResponse.Result.LatestBlockHeight, 10, 64)
+	helpers.HandleError(err)
+	ext.chasingMode = startFromHeight-height > 2
 
 	// ----- Workers -----
 	ext.runWorkers()
@@ -100,34 +108,38 @@ func (ext *Extender) Run() {
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
 	if lastExplorerBlock != nil {
-		startHeight = lastExplorerBlock.ID + 1
+		height = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
-		startHeight = 1
+		height = 1
 	}
 
 	for {
 		start := time.Now()
 		//Pulling block data
-		blockResponse, err := ext.nodeApi.GetBlock(startHeight)
+		blockResponse, err := ext.nodeApi.GetBlock(height)
 		helpers.HandleError(err)
 		if blockResponse.Error != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		//Pulling events
-		eventsResponse, err := ext.nodeApi.GetBlockEvents(startHeight)
-		helpers.HandleError(err)
 
-		elapsed := time.Since(start)
-		if ext.env.Debug {
-			log.Printf("Pulling data time %s", elapsed)
-		}
+		//Pulling events
+		eventsResponse, err := ext.nodeApi.GetBlockEvents(height)
+		helpers.HandleError(err)
 
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
-		go ext.handleEventResponse(startHeight, eventsResponse)
-		startHeight++
+
+		go ext.handleEventResponse(height, eventsResponse)
+
+		ext.chasingMode = startFromHeight > height
+		height++
+
+		elapsed := time.Since(start)
+		if !ext.env.Debug {
+			log.Printf("Pulling data time %s", elapsed)
+		}
 	}
 }
 
@@ -153,6 +165,7 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkSaveValidatorTxsCount; w++ {
 		go ext.transactionService.SaveTxValidatorWorker(ext.transactionService.GetSaveTxValidatorJobChannel())
 	}
+	go ext.validatorService.UpdateValidatorsAndStakesWorker(ext.validatorService.GetUpdateValidatorsAndStakesJobChannel())
 
 	// Events
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
@@ -182,11 +195,6 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	validators, err := ext.validatorService.HandleBlockResponse(response)
 	helpers.HandleError(err)
 
-	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
-	helpers.HandleError(err)
-
-	go ext.updateValidatorsData(validators, height)
-
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	helpers.HandleError(err)
@@ -196,6 +204,13 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	if response.Result.TxCount != "0" {
 		ext.handleTransactions(response, validators)
 	}
+
+	if !ext.chasingMode {
+		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+		helpers.HandleError(err)
+		ext.validatorService.GetUpdateValidatorsAndStakesJobChannel() <- models.BlockValidators{Height: height, Validators: validators}
+	}
+
 }
 
 func (ext *Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
@@ -242,13 +257,4 @@ func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Ti
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	helpers.HandleError(err)
-}
-
-func (ext *Extender) updateValidatorsData(validators []*models.Validator, blockHeight uint64) {
-	for _, vlr := range validators {
-		resp, err := ext.nodeApi.GetCandidate(vlr.GetPublicKey(), blockHeight)
-		helpers.HandleError(err)
-		err = ext.validatorService.UpdateValidatorsInfoAndStakes(resp)
-		helpers.HandleError(err)
-	}
 }
