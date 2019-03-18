@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+const ChasingModDiff = 2
+
 type Extender struct {
 	env                 *models.ExtenderEnvironment
 	nodeApi             *minter_node_api.MinterNodeApi
@@ -33,6 +35,7 @@ type Extender struct {
 	eventService        *events.Service
 	balanceService      *balance.Service
 	chasingMode         bool
+	currentNodeHeight   uint64
 }
 
 type dbLogger struct{}
@@ -86,7 +89,8 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
-		chasingMode:         false,
+		chasingMode:         true,
+		currentNodeHeight:   0,
 	}
 }
 
@@ -95,12 +99,6 @@ func (ext *Extender) Run() {
 	helpers.HandleError(err)
 
 	var height uint64
-
-	statusResponse, err := ext.nodeApi.GetStatus()
-	helpers.HandleError(err)
-	startFromHeight, err := strconv.ParseUint(statusResponse.Result.LatestBlockHeight, 10, 64)
-	helpers.HandleError(err)
-	ext.chasingMode = startFromHeight-height > 2
 
 	// ----- Workers -----
 	ext.runWorkers()
@@ -114,8 +112,12 @@ func (ext *Extender) Run() {
 		height = 1
 	}
 
+	networkLastBlock, err := ext.getNodeLastBlockId()
+	helpers.HandleError(err)
+
 	for {
 		start := time.Now()
+		ext.findOutChasingMode(height)
 		//Pulling block data
 		blockResponse, err := ext.nodeApi.GetBlock(height)
 		helpers.HandleError(err)
@@ -133,7 +135,7 @@ func (ext *Extender) Run() {
 
 		go ext.handleEventResponse(height, eventsResponse)
 
-		ext.chasingMode = startFromHeight > height
+		ext.chasingMode = networkLastBlock > height
 		height++
 
 		elapsed := time.Since(start)
@@ -257,4 +259,26 @@ func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Ti
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	helpers.HandleError(err)
+}
+
+func (ext *Extender) getNodeLastBlockId() (uint64, error) {
+	statusResponse, err := ext.nodeApi.GetStatus()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseUint(statusResponse.Result.LatestBlockHeight, 10, 64)
+}
+
+func (ext *Extender) findOutChasingMode(height uint64) {
+	var err error
+	if ext.currentNodeHeight == 0 {
+		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
+		helpers.HandleError(err)
+	}
+	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
+	if ext.chasingMode && !isChasingMode {
+		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
+		helpers.HandleError(err)
+		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
+	}
 }
