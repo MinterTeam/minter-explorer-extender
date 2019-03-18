@@ -1,4 +1,3 @@
-
 --
 -- PostgreSQL database dump
 --
@@ -34,12 +33,11 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 --
 
 CREATE TYPE public.rewards_role AS ENUM (
-    'Validator',
-    'Delegator',
-    'DAO',
-    'Developers'
-    );
-
+  'Validator',
+  'Delegator',
+  'DAO',
+  'Developers'
+  );
 
 
 
@@ -51,13 +49,13 @@ SET default_with_oids = false;
 -- Name: addresses; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.addresses (
-                                  id bigint NOT NULL,
-                                  address character varying(40) NOT NULL,
-                                  updated_at timestamp with time zone,
-                                  updated_at_block_id bigint
+CREATE TABLE public.addresses
+(
+  id                  bigint                NOT NULL,
+  address             character varying(40) NOT NULL,
+  updated_at          timestamp with time zone,
+  updated_at_block_id bigint
 );
-
 
 
 
@@ -86,12 +84,11 @@ COMMENT ON COLUMN public.addresses.updated_at_block_id IS 'Block id, that have t
 --
 
 CREATE SEQUENCE public.addresses_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -106,13 +103,13 @@ ALTER SEQUENCE public.addresses_id_seq OWNED BY public.addresses.id;
 -- Name: balances; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.balances (
-                                 id bigint NOT NULL,
-                                 address_id bigint NOT NULL,
-                                 coin_id integer NOT NULL,
-                                 value numeric(70,0) NOT NULL
+CREATE TABLE public.balances
+(
+  id         bigint         NOT NULL,
+  address_id bigint         NOT NULL,
+  coin_id    integer        NOT NULL,
+  value      numeric(70, 0) NOT NULL
 );
-
 
 
 
@@ -121,12 +118,11 @@ CREATE TABLE public.balances (
 --
 
 CREATE SEQUENCE public.balances_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -141,12 +137,12 @@ ALTER SEQUENCE public.balances_id_seq OWNED BY public.balances.id;
 -- Name: block_validator; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.block_validator (
-                                        block_id bigint NOT NULL,
-                                        validator_id integer NOT NULL,
-                                        signed boolean DEFAULT false NOT NULL
+CREATE TABLE public.block_validator
+(
+  block_id     bigint                NOT NULL,
+  validator_id integer               NOT NULL,
+  signed       boolean DEFAULT false NOT NULL
 );
-
 
 
 
@@ -154,19 +150,19 @@ CREATE TABLE public.block_validator (
 -- Name: blocks; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.blocks (
-                               id integer NOT NULL,
-                               total_txs bigint NOT NULL DEFAULT 0,
-                               size bigint NOT NULL,
-                               proposer_validator_id integer NOT NULL,
-                               num_txs integer NOT NULL DEFAULT 0,
-                               block_time bigint NOT NULL,
-                               created_at timestamp with time zone NOT NULL,
-                               updated_at timestamp with time zone DEFAULT now() NOT NULL,
-                               block_reward numeric(70,0) NOT NULL,
-                               hash character varying(64) NOT NULL
+CREATE TABLE public.blocks
+(
+  id                    integer                  NOT NULL,
+  total_txs             bigint                   NOT NULL DEFAULT 0,
+  size                  bigint                   NOT NULL,
+  proposer_validator_id integer                  NOT NULL,
+  num_txs               integer                  NOT NULL DEFAULT 0,
+  block_time            bigint                   NOT NULL,
+  created_at            timestamp with time zone NOT NULL,
+  updated_at            timestamp with time zone          DEFAULT now() NOT NULL,
+  block_reward          numeric(70, 0)           NOT NULL,
+  hash                  character varying(64)    NOT NULL
 );
-
 
 
 
@@ -237,19 +233,19 @@ COMMENT ON COLUMN public.blocks.hash IS 'Hex string';
 -- Name: coins; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.coins (
-                              id integer NOT NULL,
-                              creation_address_id bigint,
-                              creation_transaction_id bigint,
-                              deleted_at_block_id integer,
-                              crr integer,
-                              updated_at timestamp with time zone DEFAULT now() NOT NULL,
-                              volume numeric(70,0),
-                              reserve_balance numeric(70,0),
-                              name character varying(255),
-                              symbol character varying(20) NOT NULL
+CREATE TABLE public.coins
+(
+  id                      integer                                NOT NULL,
+  creation_address_id     bigint,
+  creation_transaction_id bigint,
+  deleted_at_block_id     integer,
+  crr                     integer,
+  updated_at              timestamp with time zone DEFAULT now() NOT NULL,
+  volume                  numeric(70, 0),
+  reserve_balance         numeric(70, 0),
+  name                    character varying(255),
+  symbol                  character varying(20)                  NOT NULL
 );
-
 
 
 
@@ -294,12 +290,11 @@ COMMENT ON COLUMN public.coins.symbol IS 'Short symbol of coin';
 --
 
 CREATE SEQUENCE public.coins_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -314,16 +309,16 @@ ALTER SEQUENCE public.coins_id_seq OWNED BY public.coins.id;
 -- Name: invalid_transactions; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.invalid_transactions (
-                                             id bigint NOT NULL,
-                                             from_address_id bigint NOT NULL,
-                                             block_id integer NOT NULL,
-                                             created_at timestamp with time zone NOT NULL,
-                                             type smallint NOT NULL,
-                                             hash character varying(64) NOT NULL,
-                                             tx_data jsonb NOT NULL
+CREATE TABLE public.invalid_transactions
+(
+  id              bigint                   NOT NULL,
+  from_address_id bigint                   NOT NULL,
+  block_id        integer                  NOT NULL,
+  created_at      timestamp with time zone NOT NULL,
+  type            smallint                 NOT NULL,
+  hash            character varying(64)    NOT NULL,
+  tx_data         jsonb                    NOT NULL
 );
-
 
 
 
@@ -339,12 +334,11 @@ COMMENT ON COLUMN public.invalid_transactions.created_at IS 'Duplicate of block 
 --
 
 CREATE SEQUENCE public.invalid_transactions_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -359,14 +353,14 @@ ALTER SEQUENCE public.invalid_transactions_id_seq OWNED BY public.invalid_transa
 -- Name: rewards; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.rewards (
-                                address_id bigint NOT NULL,
-                                block_id integer NOT NULL,
-                                validator_id integer NOT NULL,
-                                role public.rewards_role NOT NULL,
-                                amount numeric(70,0) NOT NULL
+CREATE TABLE public.rewards
+(
+  address_id   bigint              NOT NULL,
+  block_id     integer             NOT NULL,
+  validator_id integer             NOT NULL,
+  role         public.rewards_role NOT NULL,
+  amount       numeric(70, 0)      NOT NULL
 );
-
 
 
 
@@ -374,15 +368,15 @@ CREATE TABLE public.rewards (
 -- Name: slashes; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.slashes (
-                                id bigint NOT NULL,
-                                address_id bigint NOT NULL,
-                                block_id integer NOT NULL,
-                                validator_id integer NOT NULL,
-                                coin_id integer NOT NULL,
-                                amount numeric(70,0) NOT NULL
+CREATE TABLE public.slashes
+(
+  id           bigint         NOT NULL,
+  address_id   bigint         NOT NULL,
+  block_id     integer        NOT NULL,
+  validator_id integer        NOT NULL,
+  coin_id      integer        NOT NULL,
+  amount       numeric(70, 0) NOT NULL
 );
-
 
 
 
@@ -391,12 +385,11 @@ CREATE TABLE public.slashes (
 --
 
 CREATE SEQUENCE public.slashes_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -411,15 +404,15 @@ ALTER SEQUENCE public.slashes_id_seq OWNED BY public.slashes.id;
 -- Name: stakes; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.stakes (
-                               id integer NOT NULL,
-                               owner_address_id bigint NOT NULL,
-                               validator_id integer NOT NULL,
-                               coin_id integer NOT NULL,
-                               value numeric(70,0) NOT NULL,
-                               bip_value numeric(70,0) NOT NULL
+CREATE TABLE public.stakes
+(
+  id               integer        NOT NULL,
+  owner_address_id bigint         NOT NULL,
+  validator_id     integer        NOT NULL,
+  coin_id          integer        NOT NULL,
+  value            numeric(70, 0) NOT NULL,
+  bip_value        numeric(70, 0) NOT NULL
 );
-
 
 
 
@@ -428,12 +421,11 @@ CREATE TABLE public.stakes (
 --
 
 CREATE SEQUENCE public.stakes_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -448,14 +440,14 @@ ALTER SEQUENCE public.stakes_id_seq OWNED BY public.stakes.id;
 -- Name: transaction_outputs; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.transaction_outputs (
-                                            id bigint NOT NULL,
-                                            transaction_id bigint NOT NULL,
-                                            to_address_id bigint NOT NULL,
-                                            coin_id integer NOT NULL,
-                                            value numeric(70,0) NOT NULL
+CREATE TABLE public.transaction_outputs
+(
+  id             bigint         NOT NULL,
+  transaction_id bigint         NOT NULL,
+  to_address_id  bigint         NOT NULL,
+  coin_id        integer        NOT NULL,
+  value          numeric(70, 0) NOT NULL
 );
-
 
 
 
@@ -471,12 +463,11 @@ COMMENT ON COLUMN public.transaction_outputs.value IS 'Value of tx output';
 --
 
 CREATE SEQUENCE public.transaction_outputs_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -491,11 +482,11 @@ ALTER SEQUENCE public.transaction_outputs_id_seq OWNED BY public.transaction_out
 -- Name: transaction_validator; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.transaction_validator (
-                                              transaction_id bigint NOT NULL,
-                                              validator_id integer NOT NULL
+CREATE TABLE public.transaction_validator
+(
+  transaction_id bigint  NOT NULL,
+  validator_id   integer NOT NULL
 );
-
 
 
 
@@ -503,24 +494,24 @@ CREATE TABLE public.transaction_validator (
 -- Name: transactions; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.transactions (
-                                     id bigint NOT NULL,
-                                     from_address_id bigint NOT NULL,
-                                     nonce bigint NOT NULL,
-                                     gas_price bigint NOT NULL,
-                                     gas bigint NOT NULL,
-                                     block_id integer NOT NULL,
-                                     gas_coin_id integer NOT NULL,
-                                     created_at timestamp with time zone NOT NULL,
-                                     type smallint NOT NULL,
-                                     hash character varying(64) NOT NULL,
-                                     service_data text,
-                                     data jsonb NOT NULL,
-                                     tags jsonb NOT NULL,
-                                     payload bytea,
-                                     raw_tx bytea NOT NULL
+CREATE TABLE public.transactions
+(
+  id              bigint                   NOT NULL,
+  from_address_id bigint                   NOT NULL,
+  nonce           bigint                   NOT NULL,
+  gas_price       bigint                   NOT NULL,
+  gas             bigint                   NOT NULL,
+  block_id        integer                  NOT NULL,
+  gas_coin_id     integer                  NOT NULL,
+  created_at      timestamp with time zone NOT NULL,
+  type            smallint                 NOT NULL,
+  hash            character varying(64)    NOT NULL,
+  service_data    text,
+  data            jsonb                    NOT NULL,
+  tags            jsonb                    NOT NULL,
+  payload         bytea,
+  raw_tx          bytea                    NOT NULL
 );
-
 
 
 
@@ -577,12 +568,11 @@ COMMENT ON COLUMN public.transactions.raw_tx IS 'Raw tx data in bytes';
 --
 
 CREATE SEQUENCE public.transactions_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -597,18 +587,18 @@ ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
 -- Name: validators; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.validators (
-                                   id integer NOT NULL,
-                                   reward_address_id bigint,
-                                   owner_address_id bigint,
-                                   created_at_block_id integer,
-                                   status integer,
-                                   commission integer,
-                                   total_stake numeric(70,0),
-                                   public_key character varying(64) NOT NULL,
-                                   update_at timestamp with time zone DEFAULT now() NOT NULL
+CREATE TABLE public.validators
+(
+  id                  integer                                NOT NULL,
+  reward_address_id   bigint,
+  owner_address_id    bigint,
+  created_at_block_id integer,
+  status              integer,
+  commission          integer,
+  total_stake         numeric(70, 0),
+  public_key          character varying(64)                  NOT NULL,
+  update_at           timestamp with time zone DEFAULT now() NOT NULL
 );
-
 
 
 
@@ -624,12 +614,11 @@ COMMENT ON TABLE public.validators IS 'ATTENTION - only public _ey is not null f
 --
 
 CREATE SEQUENCE public.validator_public_keys_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
 
 
 
@@ -644,73 +633,83 @@ ALTER SEQUENCE public.validator_public_keys_id_seq OWNED BY public.validators.id
 -- Name: index_transaction_by_address; Type: TABLE; Schema: public; Owner: minter
 --
 
-CREATE TABLE public.index_transaction_by_address (
-                                                     block_id bigint NOT NULL,
-                                                     address_id bigint NOT NULL,
-                                                     transaction_id bigint NOT NULL
+CREATE TABLE public.index_transaction_by_address
+(
+  block_id       bigint NOT NULL,
+  address_id     bigint NOT NULL,
+  transaction_id bigint NOT NULL
 );
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.addresses ALTER COLUMN id SET DEFAULT nextval('public.addresses_id_seq'::regclass);
+ALTER TABLE ONLY public.addresses
+  ALTER COLUMN id SET DEFAULT nextval('public.addresses_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.balances ALTER COLUMN id SET DEFAULT nextval('public.balances_id_seq'::regclass);
+ALTER TABLE ONLY public.balances
+  ALTER COLUMN id SET DEFAULT nextval('public.balances_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.coins ALTER COLUMN id SET DEFAULT nextval('public.coins_id_seq'::regclass);
+ALTER TABLE ONLY public.coins
+  ALTER COLUMN id SET DEFAULT nextval('public.coins_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.invalid_transactions ALTER COLUMN id SET DEFAULT nextval('public.invalid_transactions_id_seq'::regclass);
+ALTER TABLE ONLY public.invalid_transactions
+  ALTER COLUMN id SET DEFAULT nextval('public.invalid_transactions_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.slashes ALTER COLUMN id SET DEFAULT nextval('public.slashes_id_seq'::regclass);
+ALTER TABLE ONLY public.slashes
+  ALTER COLUMN id SET DEFAULT nextval('public.slashes_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.stakes ALTER COLUMN id SET DEFAULT nextval('public.stakes_id_seq'::regclass);
+ALTER TABLE ONLY public.stakes
+  ALTER COLUMN id SET DEFAULT nextval('public.stakes_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.transaction_outputs ALTER COLUMN id SET DEFAULT nextval('public.transaction_outputs_id_seq'::regclass);
+ALTER TABLE ONLY public.transaction_outputs
+  ALTER COLUMN id SET DEFAULT nextval('public.transaction_outputs_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.transactions ALTER COLUMN id SET DEFAULT nextval('public.transactions_id_seq'::regclass);
+ALTER TABLE ONLY public.transactions
+  ALTER COLUMN id SET DEFAULT nextval('public.transactions_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
 
-ALTER TABLE ONLY public.validators ALTER COLUMN id SET DEFAULT nextval('public.validator_public_keys_id_seq'::regclass);
+ALTER TABLE ONLY public.validators
+  ALTER COLUMN id SET DEFAULT nextval('public.validator_public_keys_id_seq'::regclass);
 
 
 --
@@ -755,7 +754,8 @@ COPY public.block_validator (block_id, validator_id, signed) FROM stdin;
 -- Data for Name: blocks; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_time, created_at, updated_at, block_reward, hash) FROM stdin;
+COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_time, created_at, updated_at,
+                    block_reward, hash) FROM stdin;
 \.
 
 
@@ -763,7 +763,8 @@ COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_t
 -- Data for Name: coins; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.coins (id, creation_address_id, creation_transaction_id, deleted_at_block_id, crr, updated_at, volume, reserve_balance, name, symbol) FROM stdin;
+COPY public.coins (id, creation_address_id, creation_transaction_id, deleted_at_block_id, crr, updated_at, volume,
+                   reserve_balance, name, symbol) FROM stdin;
 \.
 
 
@@ -854,7 +855,8 @@ COPY public.transaction_validator (transaction_id, validator_id) FROM stdin;
 -- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, gas_coin_id, created_at, type, hash, service_data, data, tags, payload, raw_tx) FROM stdin;
+COPY public.transactions (id, from_address_id, nonce, gas_price, gas, block_id, gas_coin_id, created_at, type, hash,
+                          service_data, data, tags, payload, raw_tx) FROM stdin;
 \.
 
 
@@ -876,7 +878,8 @@ SELECT pg_catalog.setval('public.validator_public_keys_id_seq', 1, false);
 -- Data for Name: validators; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.validators (id, reward_address_id, owner_address_id, created_at_block_id, status, commission, total_stake, public_key, update_at) FROM stdin;
+COPY public.validators (id, reward_address_id, owner_address_id, created_at_block_id, status, commission, total_stake,
+                        public_key, update_at) FROM stdin;
 \.
 
 
@@ -885,7 +888,7 @@ COPY public.validators (id, reward_address_id, owner_address_id, created_at_bloc
 --
 
 ALTER TABLE ONLY public.addresses
-    ADD CONSTRAINT addresses_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT addresses_pkey PRIMARY KEY (id);
 
 
 --
@@ -893,7 +896,7 @@ ALTER TABLE ONLY public.addresses
 --
 
 ALTER TABLE ONLY public.balances
-    ADD CONSTRAINT balances_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT balances_pkey PRIMARY KEY (id);
 
 
 --
@@ -901,7 +904,7 @@ ALTER TABLE ONLY public.balances
 --
 
 ALTER TABLE ONLY public.block_validator
-    ADD CONSTRAINT block_validator_pk PRIMARY KEY (block_id, validator_id);
+  ADD CONSTRAINT block_validator_pk PRIMARY KEY (block_id, validator_id);
 
 
 --
@@ -909,7 +912,7 @@ ALTER TABLE ONLY public.block_validator
 --
 
 ALTER TABLE ONLY public.blocks
-    ADD CONSTRAINT blocks_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT blocks_pkey PRIMARY KEY (id);
 
 
 --
@@ -917,7 +920,7 @@ ALTER TABLE ONLY public.blocks
 --
 
 ALTER TABLE ONLY public.coins
-    ADD CONSTRAINT coins_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT coins_pkey PRIMARY KEY (id);
 
 
 --
@@ -925,14 +928,14 @@ ALTER TABLE ONLY public.coins
 --
 
 ALTER TABLE ONLY public.invalid_transactions
-    ADD CONSTRAINT invalid_transactions_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT invalid_transactions_pkey PRIMARY KEY (id);
 
 --
 -- Name: slashes_pkey; Type: CONSTRAINT; Schema: public; Owner: minter
 --
 
 ALTER TABLE ONLY public.slashes
-    ADD CONSTRAINT slashes_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT slashes_pkey PRIMARY KEY (id);
 
 
 --
@@ -940,7 +943,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.stakes
-    ADD CONSTRAINT stakes_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT stakes_pkey PRIMARY KEY (id);
 
 
 --
@@ -948,7 +951,7 @@ ALTER TABLE ONLY public.stakes
 --
 
 ALTER TABLE ONLY public.transaction_outputs
-    ADD CONSTRAINT transaction_outputs_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT transaction_outputs_pkey PRIMARY KEY (id);
 
 
 --
@@ -956,7 +959,7 @@ ALTER TABLE ONLY public.transaction_outputs
 --
 
 ALTER TABLE ONLY public.transaction_validator
-    ADD CONSTRAINT transaction_validator_pk PRIMARY KEY (transaction_id, validator_id);
+  ADD CONSTRAINT transaction_validator_pk PRIMARY KEY (transaction_id, validator_id);
 
 
 --
@@ -964,7 +967,7 @@ ALTER TABLE ONLY public.transaction_validator
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 
 
 --
@@ -972,7 +975,7 @@ ALTER TABLE ONLY public.transactions
 --
 
 ALTER TABLE ONLY public.validators
-    ADD CONSTRAINT validator_public_keys_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT validator_public_keys_pkey PRIMARY KEY (id);
 
 
 --
@@ -980,7 +983,7 @@ ALTER TABLE ONLY public.validators
 --
 
 ALTER TABLE ONLY public.index_transaction_by_address
-    ADD CONSTRAINT index_transaction_by_address_pk PRIMARY KEY (block_id, address_id, transaction_id);
+  ADD CONSTRAINT index_transaction_by_address_pk PRIMARY KEY (block_id, address_id, transaction_id);
 
 
 --
@@ -1051,13 +1054,6 @@ CREATE UNIQUE INDEX coins_creation_transaction_id_uindex ON public.coins USING b
 --
 
 CREATE INDEX coins_creator_address_id_index ON public.coins USING btree (creation_address_id);
-
-
---
--- Name: coins_symbol_index; Type: INDEX; Schema: public; Owner: minter
---
-
-CREATE INDEX coins_symbol_index ON public.coins USING btree (symbol);
 
 --
 -- Name: coins_symbol_uindex; Type: UNIQUE INDEX; Schema: public; Owner: minter
@@ -1237,7 +1233,7 @@ CREATE INDEX index_transaction_by_address_transaction_id_index ON public.index_t
 --
 
 ALTER TABLE ONLY public.balances
-    ADD CONSTRAINT balances_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT balances_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1245,7 +1241,7 @@ ALTER TABLE ONLY public.balances
 --
 
 ALTER TABLE ONLY public.balances
-    ADD CONSTRAINT balances_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins(id);
+  ADD CONSTRAINT balances_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins (id);
 
 
 --
@@ -1253,7 +1249,7 @@ ALTER TABLE ONLY public.balances
 --
 
 ALTER TABLE ONLY public.block_validator
-    ADD CONSTRAINT block_validator_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT block_validator_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1261,7 +1257,7 @@ ALTER TABLE ONLY public.block_validator
 --
 
 ALTER TABLE ONLY public.block_validator
-    ADD CONSTRAINT block_validator_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT block_validator_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1269,7 +1265,7 @@ ALTER TABLE ONLY public.block_validator
 --
 
 ALTER TABLE ONLY public.blocks
-    ADD CONSTRAINT blocks_validators_id_fk FOREIGN KEY (proposer_validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT blocks_validators_id_fk FOREIGN KEY (proposer_validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1277,7 +1273,7 @@ ALTER TABLE ONLY public.blocks
 --
 
 ALTER TABLE ONLY public.coins
-    ADD CONSTRAINT coins_addresses_id_fk FOREIGN KEY (creation_address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT coins_addresses_id_fk FOREIGN KEY (creation_address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1285,7 +1281,7 @@ ALTER TABLE ONLY public.coins
 --
 
 ALTER TABLE ONLY public.coins
-    ADD CONSTRAINT coins_blocks_id_fk FOREIGN KEY (deleted_at_block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT coins_blocks_id_fk FOREIGN KEY (deleted_at_block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1293,7 +1289,7 @@ ALTER TABLE ONLY public.coins
 --
 
 ALTER TABLE ONLY public.coins
-    ADD CONSTRAINT coins_transactions_id_fk FOREIGN KEY (creation_transaction_id) REFERENCES public.transactions(id);
+  ADD CONSTRAINT coins_transactions_id_fk FOREIGN KEY (creation_transaction_id) REFERENCES public.transactions (id);
 
 
 --
@@ -1301,7 +1297,7 @@ ALTER TABLE ONLY public.coins
 --
 
 ALTER TABLE ONLY public.invalid_transactions
-    ADD CONSTRAINT invalid_transactions_addresses_id_fk FOREIGN KEY (from_address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT invalid_transactions_addresses_id_fk FOREIGN KEY (from_address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1309,7 +1305,7 @@ ALTER TABLE ONLY public.invalid_transactions
 --
 
 ALTER TABLE ONLY public.invalid_transactions
-    ADD CONSTRAINT invalid_transactions_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT invalid_transactions_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1317,7 +1313,7 @@ ALTER TABLE ONLY public.invalid_transactions
 --
 
 ALTER TABLE ONLY public.rewards
-    ADD CONSTRAINT rewards_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT rewards_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1325,7 +1321,7 @@ ALTER TABLE ONLY public.rewards
 --
 
 ALTER TABLE ONLY public.rewards
-    ADD CONSTRAINT rewards_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT rewards_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1333,7 +1329,7 @@ ALTER TABLE ONLY public.rewards
 --
 
 ALTER TABLE ONLY public.rewards
-    ADD CONSTRAINT rewards_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT rewards_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1341,7 +1337,7 @@ ALTER TABLE ONLY public.rewards
 --
 
 ALTER TABLE ONLY public.slashes
-    ADD CONSTRAINT slashes_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT slashes_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1349,7 +1345,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.slashes
-    ADD CONSTRAINT slashes_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT slashes_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1357,7 +1353,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.slashes
-    ADD CONSTRAINT slashes_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins(id);
+  ADD CONSTRAINT slashes_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins (id);
 
 
 --
@@ -1365,7 +1361,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.slashes
-    ADD CONSTRAINT slashes_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT slashes_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1373,7 +1369,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.stakes
-    ADD CONSTRAINT stakes_addresses_id_fk FOREIGN KEY (owner_address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT stakes_addresses_id_fk FOREIGN KEY (owner_address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1381,7 +1377,7 @@ ALTER TABLE ONLY public.stakes
 --
 
 ALTER TABLE ONLY public.stakes
-    ADD CONSTRAINT stakes_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins(id);
+  ADD CONSTRAINT stakes_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins (id);
 
 
 --
@@ -1389,7 +1385,7 @@ ALTER TABLE ONLY public.stakes
 --
 
 ALTER TABLE ONLY public.stakes
-    ADD CONSTRAINT stakes_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT stakes_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1397,7 +1393,7 @@ ALTER TABLE ONLY public.stakes
 --
 
 ALTER TABLE ONLY public.transaction_outputs
-    ADD CONSTRAINT transaction_outputs_addresses_id_fk FOREIGN KEY (to_address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT transaction_outputs_addresses_id_fk FOREIGN KEY (to_address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1405,7 +1401,7 @@ ALTER TABLE ONLY public.transaction_outputs
 --
 
 ALTER TABLE ONLY public.transaction_outputs
-    ADD CONSTRAINT transaction_outputs_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins(id);
+  ADD CONSTRAINT transaction_outputs_coins_id_fk FOREIGN KEY (coin_id) REFERENCES public.coins (id);
 
 
 --
@@ -1413,7 +1409,7 @@ ALTER TABLE ONLY public.transaction_outputs
 --
 
 ALTER TABLE ONLY public.transaction_outputs
-    ADD CONSTRAINT transaction_outputs_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+  ADD CONSTRAINT transaction_outputs_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions (id);
 
 
 --
@@ -1421,7 +1417,7 @@ ALTER TABLE ONLY public.transaction_outputs
 --
 
 ALTER TABLE ONLY public.transaction_validator
-    ADD CONSTRAINT transaction_validator_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+  ADD CONSTRAINT transaction_validator_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions (id);
 
 
 --
@@ -1429,7 +1425,7 @@ ALTER TABLE ONLY public.transaction_validator
 --
 
 ALTER TABLE ONLY public.transaction_validator
-    ADD CONSTRAINT transaction_validator_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators(id);
+  ADD CONSTRAINT transaction_validator_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --
@@ -1437,7 +1433,7 @@ ALTER TABLE ONLY public.transaction_validator
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_addresses_id_fk FOREIGN KEY (from_address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT transactions_addresses_id_fk FOREIGN KEY (from_address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1445,7 +1441,7 @@ ALTER TABLE ONLY public.transactions
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT transactions_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1453,7 +1449,7 @@ ALTER TABLE ONLY public.transactions
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_coins_id_fk FOREIGN KEY (gas_coin_id) REFERENCES public.coins(id);
+  ADD CONSTRAINT transactions_coins_id_fk FOREIGN KEY (gas_coin_id) REFERENCES public.coins (id);
 
 
 --
@@ -1461,7 +1457,7 @@ ALTER TABLE ONLY public.transactions
 --
 
 ALTER TABLE ONLY public.index_transaction_by_address
-    ADD CONSTRAINT index_transaction_by_address_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses(id);
+  ADD CONSTRAINT index_transaction_by_address_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses (id);
 
 
 --
@@ -1469,7 +1465,7 @@ ALTER TABLE ONLY public.index_transaction_by_address
 --
 
 ALTER TABLE ONLY public.index_transaction_by_address
-    ADD CONSTRAINT index_transaction_by_address_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks(id);
+  ADD CONSTRAINT index_transaction_by_address_blocks_id_fk FOREIGN KEY (block_id) REFERENCES public.blocks (id);
 
 
 --
@@ -1477,7 +1473,7 @@ ALTER TABLE ONLY public.index_transaction_by_address
 --
 
 ALTER TABLE ONLY public.index_transaction_by_address
-    ADD CONSTRAINT index_transaction_by_address_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+  ADD CONSTRAINT index_transaction_by_address_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions (id);
 
 
 --
