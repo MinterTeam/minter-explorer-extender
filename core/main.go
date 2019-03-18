@@ -137,8 +137,8 @@ func (ext *Extender) Run() {
 		height++
 
 		elapsed := time.Since(start)
-		if !ext.env.Debug {
-			log.Printf("Pulling data time %s", elapsed)
+		if ext.env.Debug {
+			log.Printf("Processing time %s", elapsed)
 		}
 	}
 }
