@@ -112,7 +112,6 @@ func (ext *Extender) Run() {
 		height = 1
 	}
 
-	networkLastBlock, err := ext.getNodeLastBlockId()
 	helpers.HandleError(err)
 
 	for {
@@ -135,7 +134,6 @@ func (ext *Extender) Run() {
 
 		go ext.handleEventResponse(height, eventsResponse)
 
-		ext.chasingMode = networkLastBlock > height
 		height++
 
 		elapsed := time.Since(start)
@@ -212,7 +210,6 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 		helpers.HandleError(err)
 		ext.validatorService.GetUpdateValidatorsAndStakesJobChannel() <- models.BlockValidators{Height: height, Validators: validators}
 	}
-
 }
 
 func (ext *Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
