@@ -203,9 +203,10 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 		ext.handleTransactions(response, validators)
 	}
 
-	if !ext.chasingMode {
-		height, err := strconv.ParseUint(response.Result.Height, 10, 64)
-		helpers.HandleError(err)
+	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	helpers.HandleError(err)
+
+	if !ext.chasingMode && height%2 == 0 {
 		ext.validatorService.GetUpdateValidatorsAndStakesJobChannel() <- models.BlockValidators{Height: height, Validators: validators}
 	}
 }
