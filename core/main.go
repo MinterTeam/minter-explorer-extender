@@ -185,13 +185,13 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
 
-	ext.linkBlockValidator(response)
-
 	go ext.updateValidatorsData(validators, height)
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	helpers.HandleError(err)
+
+	ext.linkBlockValidator(response)
 
 	if response.Result.TxCount != "0" {
 		ext.handleTransactions(response, validators)
