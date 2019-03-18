@@ -126,7 +126,7 @@ func (ext *Extender) Run() {
 
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
-		go ext.handleEventResponse(startHeight, eventsResponse)
+		ext.handleEventResponse(startHeight, eventsResponse)
 		startHeight++
 	}
 }
