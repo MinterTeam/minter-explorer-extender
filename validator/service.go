@@ -6,22 +6,43 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
+	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
 	"strconv"
 	"time"
 )
 
 type Service struct {
-	repository        *Repository
-	addressRepository *address.Repository
-	coinRepository    *coin.Repository
+	nodeApi                      *minter_node_api.MinterNodeApi
+	repository                   *Repository
+	addressRepository            *address.Repository
+	coinRepository               *coin.Repository
+	jobUpdateValidatorsAndStakes chan models.BlockValidators
 }
 
-func NewService(r *Repository, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
+func NewService(nodeApi *minter_node_api.MinterNodeApi, repository *Repository, addressRepository *address.Repository,
+	coinRepository *coin.Repository) *Service {
 	return &Service{
-		repository:        r,
-		addressRepository: addressRepository,
-		coinRepository:    coinRepository,
+		nodeApi:                      nodeApi,
+		repository:                   repository,
+		addressRepository:            addressRepository,
+		coinRepository:               coinRepository,
+		jobUpdateValidatorsAndStakes: make(chan models.BlockValidators, 1),
+	}
+}
+
+func (s *Service) GetUpdateValidatorsAndStakesJobChannel() chan models.BlockValidators {
+	return s.jobUpdateValidatorsAndStakes
+}
+
+func (s *Service) UpdateValidatorsAndStakesWorker(jobs <-chan models.BlockValidators) {
+	for blockValidators := range jobs {
+		for _, vlr := range blockValidators.Validators {
+			resp, err := s.nodeApi.GetCandidate(vlr.GetPublicKey(), blockValidators.Height)
+			helpers.HandleError(err)
+			err = s.UpdateValidatorsInfoAndStakes(resp)
+			helpers.HandleError(err)
+		}
 	}
 }
 
