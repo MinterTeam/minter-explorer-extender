@@ -38,7 +38,7 @@ CREATE TYPE public.rewards_role AS ENUM (
     'Delegator',
     'DAO',
     'Developers'
-);
+    );
 
 
 
@@ -52,10 +52,10 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE public.addresses (
-    id bigint NOT NULL,
-    address character varying(40) NOT NULL,
-    updated_at timestamp with time zone,
-    updated_at_block_id bigint
+                                  id bigint NOT NULL,
+                                  address character varying(40) NOT NULL,
+                                  updated_at timestamp with time zone,
+                                  updated_at_block_id bigint
 );
 
 
@@ -107,10 +107,10 @@ ALTER SEQUENCE public.addresses_id_seq OWNED BY public.addresses.id;
 --
 
 CREATE TABLE public.balances (
-    id bigint NOT NULL,
-    address_id bigint NOT NULL,
-    coin_id integer NOT NULL,
-    value numeric(70,0) NOT NULL
+                                 id bigint NOT NULL,
+                                 address_id bigint NOT NULL,
+                                 coin_id integer NOT NULL,
+                                 value numeric(70,0) NOT NULL
 );
 
 
@@ -142,9 +142,9 @@ ALTER SEQUENCE public.balances_id_seq OWNED BY public.balances.id;
 --
 
 CREATE TABLE public.block_validator (
-    block_id bigint NOT NULL,
-    validator_id integer NOT NULL,
-    signed boolean DEFAULT false NOT NULL
+                                        block_id bigint NOT NULL,
+                                        validator_id integer NOT NULL,
+                                        signed boolean DEFAULT false NOT NULL
 );
 
 
@@ -155,16 +155,16 @@ CREATE TABLE public.block_validator (
 --
 
 CREATE TABLE public.blocks (
-    id integer NOT NULL,
-    total_txs bigint NOT NULL DEFAULT 0,
-    size bigint NOT NULL,
-    proposer_validator_id integer NOT NULL,
-    num_txs integer NOT NULL DEFAULT 0,
-    block_time bigint NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    block_reward numeric(70,0) NOT NULL,
-    hash character varying(64) NOT NULL
+                               id integer NOT NULL,
+                               total_txs bigint NOT NULL DEFAULT 0,
+                               size bigint NOT NULL,
+                               proposer_validator_id integer NOT NULL,
+                               num_txs integer NOT NULL DEFAULT 0,
+                               block_time bigint NOT NULL,
+                               created_at timestamp with time zone NOT NULL,
+                               updated_at timestamp with time zone DEFAULT now() NOT NULL,
+                               block_reward numeric(70,0) NOT NULL,
+                               hash character varying(64) NOT NULL
 );
 
 
@@ -238,16 +238,16 @@ COMMENT ON COLUMN public.blocks.hash IS 'Hex string';
 --
 
 CREATE TABLE public.coins (
-    id integer NOT NULL,
-    creation_address_id bigint,
-    creation_transaction_id bigint,
-    deleted_at_block_id integer,
-    crr integer,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    volume numeric(70,0),
-    reserve_balance numeric(70,0),
-    name character varying(255),
-    symbol character varying(20) NOT NULL
+                              id integer NOT NULL,
+                              creation_address_id bigint,
+                              creation_transaction_id bigint,
+                              deleted_at_block_id integer,
+                              crr integer,
+                              updated_at timestamp with time zone DEFAULT now() NOT NULL,
+                              volume numeric(70,0),
+                              reserve_balance numeric(70,0),
+                              name character varying(255),
+                              symbol character varying(20) NOT NULL
 );
 
 
@@ -315,13 +315,13 @@ ALTER SEQUENCE public.coins_id_seq OWNED BY public.coins.id;
 --
 
 CREATE TABLE public.invalid_transactions (
-    id bigint NOT NULL,
-    from_address_id bigint NOT NULL,
-    block_id integer NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    type smallint NOT NULL,
-    hash character varying(64) NOT NULL,
-    tx_data jsonb NOT NULL
+                                             id bigint NOT NULL,
+                                             from_address_id bigint NOT NULL,
+                                             block_id integer NOT NULL,
+                                             created_at timestamp with time zone NOT NULL,
+                                             type smallint NOT NULL,
+                                             hash character varying(64) NOT NULL,
+                                             tx_data jsonb NOT NULL
 );
 
 
@@ -360,11 +360,11 @@ ALTER SEQUENCE public.invalid_transactions_id_seq OWNED BY public.invalid_transa
 --
 
 CREATE TABLE public.rewards (
-    address_id bigint NOT NULL,
-    block_id integer NOT NULL,
-    validator_id integer NOT NULL,
-    role public.rewards_role NOT NULL,
-    amount numeric(70,0) NOT NULL
+                                address_id bigint NOT NULL,
+                                block_id integer NOT NULL,
+                                validator_id integer NOT NULL,
+                                role public.rewards_role NOT NULL,
+                                amount numeric(70,0) NOT NULL
 );
 
 
@@ -375,12 +375,12 @@ CREATE TABLE public.rewards (
 --
 
 CREATE TABLE public.slashes (
-    id bigint NOT NULL,
-    address_id bigint NOT NULL,
-    block_id integer NOT NULL,
-    validator_id integer NOT NULL,
-    coin_id integer NOT NULL,
-    amount numeric(70,0) NOT NULL
+                                id bigint NOT NULL,
+                                address_id bigint NOT NULL,
+                                block_id integer NOT NULL,
+                                validator_id integer NOT NULL,
+                                coin_id integer NOT NULL,
+                                amount numeric(70,0) NOT NULL
 );
 
 
@@ -412,12 +412,12 @@ ALTER SEQUENCE public.slashes_id_seq OWNED BY public.slashes.id;
 --
 
 CREATE TABLE public.stakes (
-    id integer NOT NULL,
-    owner_address_id bigint NOT NULL,
-    validator_id integer NOT NULL,
-    coin_id integer NOT NULL,
-    value numeric(70,0) NOT NULL,
-    bip_value numeric(70,0) NOT NULL
+                               id integer NOT NULL,
+                               owner_address_id bigint NOT NULL,
+                               validator_id integer NOT NULL,
+                               coin_id integer NOT NULL,
+                               value numeric(70,0) NOT NULL,
+                               bip_value numeric(70,0) NOT NULL
 );
 
 
@@ -449,11 +449,11 @@ ALTER SEQUENCE public.stakes_id_seq OWNED BY public.stakes.id;
 --
 
 CREATE TABLE public.transaction_outputs (
-    id bigint NOT NULL,
-    transaction_id bigint NOT NULL,
-    to_address_id bigint NOT NULL,
-    coin_id integer NOT NULL,
-    value numeric(70,0) NOT NULL
+                                            id bigint NOT NULL,
+                                            transaction_id bigint NOT NULL,
+                                            to_address_id bigint NOT NULL,
+                                            coin_id integer NOT NULL,
+                                            value numeric(70,0) NOT NULL
 );
 
 
@@ -492,8 +492,8 @@ ALTER SEQUENCE public.transaction_outputs_id_seq OWNED BY public.transaction_out
 --
 
 CREATE TABLE public.transaction_validator (
-    transaction_id bigint NOT NULL,
-    validator_id integer NOT NULL
+                                              transaction_id bigint NOT NULL,
+                                              validator_id integer NOT NULL
 );
 
 
@@ -504,21 +504,21 @@ CREATE TABLE public.transaction_validator (
 --
 
 CREATE TABLE public.transactions (
-    id bigint NOT NULL,
-    from_address_id bigint NOT NULL,
-    nonce bigint NOT NULL,
-    gas_price bigint NOT NULL,
-    gas bigint NOT NULL,
-    block_id integer NOT NULL,
-    gas_coin_id integer NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    type smallint NOT NULL,
-    hash character varying(64) NOT NULL,
-    service_data text,
-    data jsonb NOT NULL,
-    tags jsonb NOT NULL,
-    payload bytea,
-    raw_tx bytea NOT NULL
+                                     id bigint NOT NULL,
+                                     from_address_id bigint NOT NULL,
+                                     nonce bigint NOT NULL,
+                                     gas_price bigint NOT NULL,
+                                     gas bigint NOT NULL,
+                                     block_id integer NOT NULL,
+                                     gas_coin_id integer NOT NULL,
+                                     created_at timestamp with time zone NOT NULL,
+                                     type smallint NOT NULL,
+                                     hash character varying(64) NOT NULL,
+                                     service_data text,
+                                     data jsonb NOT NULL,
+                                     tags jsonb NOT NULL,
+                                     payload bytea,
+                                     raw_tx bytea NOT NULL
 );
 
 
@@ -598,15 +598,15 @@ ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
 --
 
 CREATE TABLE public.validators (
-    id integer NOT NULL,
-    reward_address_id bigint,
-    owner_address_id bigint,
-    created_at_block_id integer,
-    status integer,
-    commission integer,
-    total_stake numeric(70,0),
-    public_key character varying(64) NOT NULL,
-    update_at timestamp with time zone DEFAULT now() NOT NULL
+                                   id integer NOT NULL,
+                                   reward_address_id bigint,
+                                   owner_address_id bigint,
+                                   created_at_block_id integer,
+                                   status integer,
+                                   commission integer,
+                                   total_stake numeric(70,0),
+                                   public_key character varying(64) NOT NULL,
+                                   update_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -645,9 +645,9 @@ ALTER SEQUENCE public.validator_public_keys_id_seq OWNED BY public.validators.id
 --
 
 CREATE TABLE public.index_transaction_by_address (
-    block_id bigint NOT NULL,
-    address_id bigint NOT NULL,
-    transaction_id bigint NOT NULL
+                                                     block_id bigint NOT NULL,
+                                                     address_id bigint NOT NULL,
+                                                     transaction_id bigint NOT NULL
 );
 
 --
@@ -1058,6 +1058,12 @@ CREATE INDEX coins_creator_address_id_index ON public.coins USING btree (creatio
 --
 
 CREATE INDEX coins_symbol_index ON public.coins USING btree (symbol);
+
+--
+-- Name: coins_symbol_uindex; Type: UNIQUE INDEX; Schema: public; Owner: minter
+--
+
+CREATE UNIQUE INDEX coins_symbol_uindex ON public.coins (symbol);
 
 
 --
@@ -1472,7 +1478,7 @@ ALTER TABLE ONLY public.index_transaction_by_address
 
 ALTER TABLE ONLY public.index_transaction_by_address
     ADD CONSTRAINT index_transaction_by_address_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
-    
+
 
 --
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: minter

@@ -31,7 +31,6 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	err := r.db.Model(coin).
 		Column("id").
 		Where("symbol = ?", symbol).
-		Where("deleted_at_block_id isnull").
 		Select()
 
 	if err != nil {
@@ -62,7 +61,10 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 }
 
 func (r *Repository) Save(c *models.Coin) error {
-	err := r.db.Insert(c)
+	_, err := r.db.Model(c).
+		OnConflict("(id) DO UPDATE").
+		Set("symbol = EXCLUDED.symbol").
+		Insert(c)
 	if err != nil {
 		return err
 	}
