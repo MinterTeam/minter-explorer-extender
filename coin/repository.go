@@ -62,10 +62,19 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 }
 
 func (r *Repository) Save(c *models.Coin) error {
-	err := r.db.Insert(c)
+	_, err := r.db.Model(c).
+		OnConflict("(id) DO UPDATE").
+		Set("symbol = EXCLUDED.symbol").
+		Insert(c)
 	if err != nil {
 		return err
 	}
 	r.cache.Store(c.Symbol, c.ID)
 	return nil
+}
+
+func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
+	var coins []*models.Coin
+	err := r.db.Model(&coins).Order("symbol ASC").Select()
+	return coins, err
 }

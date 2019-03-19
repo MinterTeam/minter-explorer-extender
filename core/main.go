@@ -34,6 +34,7 @@ type Extender struct {
 	transactionService  *transaction.Service
 	eventService        *events.Service
 	balanceService      *balance.Service
+	coinService         *coin.Service
 	chasingMode         bool
 	currentNodeHeight   uint64
 }
@@ -75,7 +76,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository)
-	coinService := coin.NewService(coinRepository, addressRepository)
+	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository)
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService)
 
 	return &Extender{
@@ -89,6 +90,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel()),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
+		coinService:         coinService,
 		chasingMode:         true,
 		currentNodeHeight:   0,
 	}
@@ -181,6 +183,10 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkUpdateBalanceCount; w++ {
 		go ext.balanceService.UpdateBalancesWorker(ext.balanceService.GetUpdateBalancesJobChannel())
 	}
+
+	//Coins
+	//TODO: move to own service if needed
+	go ext.coinService.UpdateAllCoinsInfoWorker()
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {

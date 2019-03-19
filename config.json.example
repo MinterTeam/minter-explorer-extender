@@ -3,6 +3,7 @@
   "app":{
     "debug": ME_DEBUG,
     "baseCoin": "ME_BASE_COIN",
+    "coinsUpdateTimeMinutes" : ME_COINS_UPDATE_TIME,
     "txChunkSize": ME_TX_CHUNK_SIZE,
     "addrChunkSize": ME_ADDR_CHUNK_SIZE,
     "eventsChunkSize": ME_EVENTS_CHUNK_SIZE
