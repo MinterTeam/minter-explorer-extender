@@ -238,13 +238,13 @@ CREATE TABLE public.coins
   id                      integer                                NOT NULL,
   creation_address_id     bigint,
   creation_transaction_id bigint,
-  deleted_at_block_id     integer,
   crr                     integer,
-  updated_at              timestamp with time zone DEFAULT now() NOT NULL,
   volume                  numeric(70, 0),
   reserve_balance         numeric(70, 0),
   name                    character varying(255),
-  symbol                  character varying(20)                  NOT NULL
+  symbol                  character varying(20)                  NOT NULL,
+  updated_at              timestamp with time zone DEFAULT now() NOT NULL,
+  deleted_at              timestamp with time zone               NULL
 );
 
 

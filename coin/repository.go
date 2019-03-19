@@ -71,3 +71,9 @@ func (r *Repository) Save(c *models.Coin) error {
 	r.cache.Store(c.Symbol, c.ID)
 	return nil
 }
+
+func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
+	var coins []*models.Coin
+	err := r.db.Model(&coins).Order("symbol ASC").Select()
+	return coins, err
+}

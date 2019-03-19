@@ -8,6 +8,8 @@ import (
 
 func New() *models.ExtenderEnvironment {
 	appName := flag.String("app_name", "Minter Extender", "App name")
+	baseCoin := flag.String("base_coin", "MNT", "Base coin symbol")
+	coinsUpdateTime := flag.Int("coins_upd_time", 3600, "Coins update time in minutes")
 	debug := flag.Bool("debug", false, "Debug mode")
 	dbName := flag.String("db_name", "", "DB name")
 	dbUser := flag.String("db_user", "", "DB user")
@@ -93,6 +95,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
 		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
+		envData.BaseCoin = config.GetString("app.baseCoin")
+		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug
@@ -118,7 +122,8 @@ func New() *models.ExtenderEnvironment {
 		envData.AddrChunkSize = *addrChunkSize
 		envData.WrkUpdateBalanceCount = *wrkUpdateBalanceCount
 		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
+		envData.BaseCoin = *baseCoin
+		envData.CoinsUpdateTime = *coinsUpdateTime
 	}
-
 	return envData
 }
