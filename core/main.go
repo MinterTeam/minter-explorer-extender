@@ -192,7 +192,8 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkSaveValidatorTxsCount; w++ {
 		go ext.transactionService.SaveTxValidatorWorker(ext.transactionService.GetSaveTxValidatorJobChannel())
 	}
-	go ext.validatorService.UpdateValidatorsAndStakesWorker(ext.validatorService.GetUpdateValidatorsAndStakesJobChannel())
+	go ext.validatorService.UpdateValidatorsWorker(ext.validatorService.GetUpdateValidatorsJobChannel())
+	go ext.validatorService.UpdateStakesWorker(ext.validatorService.GetUpdateStakesJobChannel())
 
 	// Events
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
@@ -243,8 +244,10 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	ext.logger.Error(err)
 	helpers.HandleError(err)
 
+	ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+
 	if !ext.chasingMode && height%12 == 0 {
-		ext.validatorService.GetUpdateValidatorsAndStakesJobChannel() <- models.BlockValidators{Height: height, Validators: validators}
+		ext.validatorService.GetUpdateStakesJobChannel() <- height
 	}
 }
 

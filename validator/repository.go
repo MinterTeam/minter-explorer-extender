@@ -135,3 +135,8 @@ func (r *Repository) isAllAddressesInCache(validators []*models.Validator) bool 
 	}
 	return true
 }
+
+func (r Repository) ResetAllStatuses() error {
+	_, err := r.db.Query(nil, `update validators set status = null`)
+	return err
+}
