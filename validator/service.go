@@ -13,37 +13,68 @@ import (
 )
 
 type Service struct {
-	nodeApi                      *minter_node_api.MinterNodeApi
-	repository                   *Repository
-	addressRepository            *address.Repository
-	coinRepository               *coin.Repository
-	jobUpdateValidatorsAndStakes chan models.BlockValidators
+	nodeApi             *minter_node_api.MinterNodeApi
+	repository          *Repository
+	addressRepository   *address.Repository
+	coinRepository      *coin.Repository
+	jobUpdateValidators chan uint64
+	jobUpdateStakes     chan uint64
 }
 
 func NewService(nodeApi *minter_node_api.MinterNodeApi, repository *Repository, addressRepository *address.Repository,
 	coinRepository *coin.Repository) *Service {
 	return &Service{
-		nodeApi:                      nodeApi,
-		repository:                   repository,
-		addressRepository:            addressRepository,
-		coinRepository:               coinRepository,
-		jobUpdateValidatorsAndStakes: make(chan models.BlockValidators, 1),
+		nodeApi:             nodeApi,
+		repository:          repository,
+		addressRepository:   addressRepository,
+		coinRepository:      coinRepository,
+		jobUpdateValidators: make(chan uint64, 1),
+		jobUpdateStakes:     make(chan uint64, 1),
 	}
 }
 
-func (s *Service) GetUpdateValidatorsAndStakesJobChannel() chan models.BlockValidators {
-	return s.jobUpdateValidatorsAndStakes
+func (s *Service) GetUpdateValidatorsJobChannel() chan uint64 {
+	return s.jobUpdateValidators
+}
+func (s *Service) GetUpdateStakesJobChannel() chan uint64 {
+	return s.jobUpdateStakes
 }
 
-func (s *Service) UpdateValidatorsAndStakesWorker(jobs <-chan models.BlockValidators) {
-	for blockValidators := range jobs {
-		for _, vlr := range blockValidators.Validators {
-			resp, err := s.nodeApi.GetCandidate(vlr.GetPublicKey(), blockValidators.Height)
+func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
+	for height := range jobs {
+		resp, err := s.nodeApi.GetCandidates(height)
+		helpers.HandleError(err)
+
+		err = s.repository.ResetAllStatuses()
+		helpers.HandleError(err)
+
+		for _, vlr := range resp.Result {
+			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			helpers.HandleError(err)
-			err = s.UpdateValidatorsInfoAndStakes(resp)
+			updateAt := time.Now()
+			commission, err := strconv.ParseUint(vlr.Commission, 10, 64)
+			helpers.HandleError(err)
+			rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(vlr.RewardAddress))
+			helpers.HandleError(err)
+			ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(vlr.OwnerAddress))
+			helpers.HandleError(err)
+			err = s.repository.Update(&models.Validator{
+				ID:              id,
+				PublicKey:       helpers.RemovePrefix(vlr.PubKey),
+				Status:          &vlr.Status,
+				TotalStake:      &vlr.TotalStake,
+				UpdateAt:        &updateAt,
+				Commission:      &commission,
+				RewardAddressID: &rewardAddressID,
+				OwnerAddressID:  &ownerAddressID,
+			})
 			helpers.HandleError(err)
 		}
 	}
+}
+
+func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
+	//TODO: implement
 }
 
 //Get validators PK from response and store it to validators table if not exist
