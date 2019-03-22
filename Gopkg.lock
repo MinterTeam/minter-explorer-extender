@@ -18,15 +18,15 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:bc49807b6c2e3ac0cd3f434ed59c8bc344e8932e038b71b96113407c4b11e5fe"
+  digest = "1:f0d7ba10d9e06c4e31928e923436ddd222a3606fa4e1da79e3a23b73d9126523"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "5f5ed16bdb83093a7632479b6167f06ffdb2fe3e"
-  version = "v1.3.0"
+  revision = "83a4a6e34cd7aa9427a8f5feb308fbe74d61cc1c"
+  version = "v1.3.8"
 
 [[projects]]
   branch = "master"
@@ -45,15 +45,15 @@
   version = "v2.0.2"
 
 [[projects]]
-  digest = "1:a2fffb74845f83c0db1aff37ae6773a4dff47df48b688e89a28a3126e21d1cb3"
+  digest = "1:2acbae55dfa5537c6aeb425431089856997ae0f1fda5691f584afe67da134c98"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "296ccd855aae1f519e71c239ba54910863ece510"
-  version = "v1.6.0"
+  revision = "d640737148456fda73c8a6ed8e4d364cb140faa4"
+  version = "v1.6.2"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"

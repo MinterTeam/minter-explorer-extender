@@ -213,7 +213,9 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	helpers.HandleError(err)
 
-	ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+	if !ext.chasingMode {
+		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+	}
 
 	if !ext.chasingMode && height%12 == 0 {
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
