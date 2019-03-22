@@ -95,16 +95,28 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 	return vList, err
 }
 
+func (r *Repository) UpdateAll(validators []*models.Validator) error {
+	_, err := r.db.Model(&validators).
+		Column("status").
+		Column("commission").
+		Column("reward_address_id").
+		Column("owner_address_id").
+		Column("total_stake").
+		WherePK().
+		Update()
+	return err
+}
+
 func (r *Repository) Update(validator *models.Validator) error {
 	return r.db.Update(validator)
 }
 
-func (r *Repository) UpdateStakesByValidatorId(validatorId uint64, stakes []*models.Stake) error {
-	// Delete all validators stakes before
-	_, err := r.db.Model(new(models.Stake)).Where("validator_id = ?", validatorId).Delete()
-	if err != nil {
-		return err
-	}
+func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
+	_, err := r.db.Query(nil, `delete from stakes where validator_id in (?)`, pg.In(idList))
+	return err
+}
+
+func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
 	var args []interface{}
 	for _, stake := range stakes {
 		args = append(args, stake)

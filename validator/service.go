@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
@@ -36,18 +35,18 @@ func NewService(nodeApi *minter_node_api.MinterNodeApi, repository *Repository, 
 func (s *Service) GetUpdateValidatorsJobChannel() chan uint64 {
 	return s.jobUpdateValidators
 }
+
 func (s *Service) GetUpdateStakesJobChannel() chan uint64 {
 	return s.jobUpdateStakes
 }
 
 func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		resp, err := s.nodeApi.GetCandidates(height)
+		resp, err := s.nodeApi.GetCandidates(height, false)
 		helpers.HandleError(err)
-
 		err = s.repository.ResetAllStatuses()
 		helpers.HandleError(err)
-
+		var vl []*models.Validator
 		for _, vlr := range resp.Result {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			helpers.HandleError(err)
@@ -58,9 +57,8 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			helpers.HandleError(err)
 			ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(vlr.OwnerAddress))
 			helpers.HandleError(err)
-			err = s.repository.Update(&models.Validator{
+			vl = append(vl, &models.Validator{
 				ID:              id,
-				PublicKey:       helpers.RemovePrefix(vlr.PubKey),
 				Status:          &vlr.Status,
 				TotalStake:      &vlr.TotalStake,
 				UpdateAt:        &updateAt,
@@ -68,13 +66,42 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 				RewardAddressID: &rewardAddressID,
 				OwnerAddressID:  &ownerAddressID,
 			})
-			helpers.HandleError(err)
 		}
+		err = s.repository.UpdateAll(vl)
+		helpers.HandleError(err)
 	}
 }
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
-	//TODO: implement
+	for height := range jobs {
+		resp, err := s.nodeApi.GetCandidates(height, true)
+		helpers.HandleError(err)
+		var stakes []*models.Stake
+		var validatorIds []uint64
+		for _, vlr := range resp.Result {
+			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
+			helpers.HandleError(err)
+
+			validatorIds = append(validatorIds, id)
+			for _, stake := range vlr.Stakes {
+				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(stake.Owner))
+				helpers.HandleError(err)
+				coinID, err := s.coinRepository.FindIdBySymbol(stake.Coin)
+				helpers.HandleError(err)
+				stakes = append(stakes, &models.Stake{
+					ValidatorID:    id,
+					OwnerAddressID: ownerAddressID,
+					CoinID:         coinID,
+					Value:          stake.Value,
+					BipValue:       stake.BipValue,
+				})
+			}
+		}
+		err = s.repository.DeleteStakesByValidatorIds(validatorIds)
+		helpers.HandleError(err)
+		err = s.repository.SaveAllStakes(stakes)
+		helpers.HandleError(err)
+	}
 }
 
 //Get validators PK from response and store it to validators table if not exist
@@ -88,21 +115,6 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) ([]*mod
 		return nil, err
 	}
 	return validators, err
-}
-
-func (s *Service) UpdateValidatorsInfoAndStakes(response *responses.CandidateResponse) error {
-	validator, stakes, err := s.HandleCandidateResponse(response)
-	if err != nil {
-		return err
-	}
-	if validator.ID == 0 {
-		return errors.New("validator does't exists")
-	}
-	err = s.repository.Update(validator)
-	if err != nil {
-		return err
-	}
-	return s.repository.UpdateStakesByValidatorId(validator.ID, stakes)
 }
 
 func (s *Service) HandleCandidateResponse(response *responses.CandidateResponse) (*models.Validator, []*models.Stake, error) {
