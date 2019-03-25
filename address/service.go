@@ -8,6 +8,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/MinterTeam/minter-go-node/core/check"
 	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
 	"sync"
@@ -19,14 +20,16 @@ type Service struct {
 	chBalanceAddresses chan<- models.BlockAddresses
 	jobSaveAddresses   chan []string
 	wgAddresses        sync.WaitGroup
+	logger             *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                env,
 		repository:         repository,
 		chBalanceAddresses: chBalanceAddresses,
 		jobSaveAddresses:   make(chan []string, env.WrkSaveAddressesCount),
+		logger:             logger,
 	}
 }
 
@@ -36,6 +39,7 @@ func (s *Service) GetSaveAddressesJobChannel() chan []string {
 
 func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	for addresses := range jobs {
+		s.logger.Error("empty transaction data")
 		err := s.repository.SaveAllIfNotExist(addresses)
 		helpers.HandleError(err)
 		s.wgAddresses.Done()
@@ -46,6 +50,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		if tx.Data == nil {
+			s.logger.Error("empty transaction data")
 			return nil, errors.New("empty transaction data"), nil
 		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
@@ -53,11 +58,17 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 			var txData models.SendTxData
 			jsonData, err := json.Marshal(*tx.Data)
 			if err != nil {
-				return nil, err, nil
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
 			}
 			err = json.Unmarshal(jsonData, &txData)
 			if err != nil {
-				return nil, err, nil
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
 			}
 			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		}
@@ -65,11 +76,17 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 			var txData models.MultiSendTxData
 			jsonData, err := json.Marshal(*tx.Data)
 			if err != nil {
-				return nil, err, nil
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
 			}
 			err = json.Unmarshal(jsonData, &txData)
 			if err != nil {
-				return nil, err, nil
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
 			}
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
@@ -79,14 +96,23 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 			var txData models.RedeemCheckTxData
 			decoded, err := base64.StdEncoding.DecodeString(txData.RawCheck)
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				continue
 			}
 			data, err := check.DecodeFromBytes(decoded)
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				continue
 			}
 			sender, err := data.Sender()
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				continue
 			}
 			mapAddresses[helpers.RemovePrefix(sender.String())] = struct{}{}
@@ -115,13 +141,17 @@ func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, events
 		eventsAddressesMap = make(map[string]struct{})
 	)
 
-	if blockResponse != nil && blockResponse.Result.TxCount != "0" {
+	if blockResponse != nil {
 		height, err = strconv.ParseUint(blockResponse.Result.Height, 10, 64)
 		if err != nil {
+			s.logger.Error(err)
 			return err
 		}
+	}
+	if blockResponse != nil && blockResponse.Result.TxCount != "0" {
 		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Result.Transactions)
 		if err != nil {
+			s.logger.Error(err)
 			return err
 		}
 	}
