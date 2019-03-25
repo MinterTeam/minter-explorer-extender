@@ -249,7 +249,7 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
 		link := models.BlockValidator{
 			ValidatorID: vId,
 			BlockID:     height,
-			Signed:      v.Signed,
+			Signed:      *v.Signed,
 		}
 		links = append(links, &link)
 	}
