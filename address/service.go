@@ -79,15 +79,15 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 			var txData models.RedeemCheckTxData
 			decoded, err := base64.StdEncoding.DecodeString(txData.RawCheck)
 			if err != nil {
-				return nil, err, nil
+				continue
 			}
 			data, err := check.DecodeFromBytes(decoded)
 			if err != nil {
-				return nil, err, nil
+				continue
 			}
 			sender, err := data.Sender()
 			if err != nil {
-				return nil, err, nil
+				continue
 			}
 			mapAddresses[helpers.RemovePrefix(sender.String())] = struct{}{}
 		}
