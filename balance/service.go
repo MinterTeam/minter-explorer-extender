@@ -97,6 +97,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		balances, err := s.HandleBalanceResponse(response)
 		helpers.HandleError(err)
 		result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
+		go s.broadcastService.PublishBalances(balances)
 	}
 }
 
