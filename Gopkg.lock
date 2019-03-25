@@ -45,15 +45,15 @@
   version = "v2.0.2"
 
 [[projects]]
-  digest = "1:f60eadefda7960ccea531dabfc84ec66a7d3e56828f6a3887f7ef5976a500e1a"
+  digest = "1:2acbae55dfa5537c6aeb425431089856997ae0f1fda5691f584afe67da134c98"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "34937a7681cf98bfb45fa109c002e19f47c0798c"
-  version = "v1.5.1"
+  revision = "d640737148456fda73c8a6ed8e4d364cb140faa4"
+  version = "v1.6.2"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
