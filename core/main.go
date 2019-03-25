@@ -15,8 +15,9 @@ import (
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/go-pg/pg"
-	"log"
+	"github.com/sirupsen/logrus"
 	"math"
+	"os"
 	"strconv"
 	"time"
 )
@@ -37,6 +38,7 @@ type Extender struct {
 	coinService         *coin.Service
 	chasingMode         bool
 	currentNodeHeight   uint64
+	logger              *logrus.Entry
 }
 
 type dbLogger struct{}
@@ -49,6 +51,30 @@ func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
 
 func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
+	//Init Logger
+	logger := logrus.New()
+	// Log as JSON instead of the default ASCII formatter.
+	logger.SetFormatter(&logrus.JSONFormatter{})
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	logger.SetOutput(os.Stdout)
+
+	if env.Debug {
+		logger.SetFormatter(&logrus.TextFormatter{
+			DisableColors: false,
+			FullTimestamp: true,
+		})
+	} else {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+		logger.SetLevel(logrus.WarnLevel)
+	}
+
+	contextLogger := logger.WithFields(logrus.Fields{
+		"version": "1.0",
+		"app":     "Minter Explorer Extender",
+	})
+
+	//Init DB
 	db := pg.Connect(&pg.Options{
 		User:            env.DbUser,
 		Password:        env.DbPassword,
@@ -87,12 +113,13 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(nodeApi, validatorRepository, addressRepository, coinRepository),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService),
-		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel()),
+		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
 		coinService:         coinService,
 		chasingMode:         true,
 		currentNodeHeight:   0,
+		logger:              contextLogger,
 	}
 }
 
@@ -139,7 +166,7 @@ func (ext *Extender) Run() {
 		height++
 
 		elapsed := time.Since(start)
-		log.Printf("Processing time %s", elapsed)
+		ext.logger.Info("Processing time %s", elapsed)
 	}
 }
 
@@ -191,16 +218,19 @@ func (ext *Extender) runWorkers() {
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {
 	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 }
 
 func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Save validators if not exist
 	validators, err := ext.validatorService.HandleBlockResponse(response)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 
 	ext.linkBlockValidator(response)
@@ -210,6 +240,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	}
 
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 
 	if !ext.chasingMode && height%12 == 0 {
@@ -219,6 +250,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 
 func (ext *Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 	chunksCount := int(math.Ceil(float64(len(response.Result.Transactions)) / float64(ext.env.TxChunkSize)))
 	for i := 0; i < chunksCount; i++ {
@@ -235,6 +267,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 	if len(response.Result.Events) > 0 {
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response)
+		ext.logger.Error(err)
 		helpers.HandleError(err)
 	}
 }
@@ -242,9 +275,11 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
 	var links []*models.BlockValidator
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 	for _, v := range response.Result.Validators {
 		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PubKey))
+		ext.logger.Error(err)
 		helpers.HandleError(err)
 		link := models.BlockValidator{
 			ValidatorID: vId,
@@ -254,12 +289,14 @@ func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
 		links = append(links, &link)
 	}
 	err = ext.blockRepository.LinkWithValidators(links)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 }
 
 func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []responses.Transaction) {
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
+	ext.logger.Error(err)
 	helpers.HandleError(err)
 }
 
@@ -275,11 +312,13 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	var err error
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
+		ext.logger.Error(err)
 		helpers.HandleError(err)
 	}
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
+		ext.logger.Error(err)
 		helpers.HandleError(err)
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
