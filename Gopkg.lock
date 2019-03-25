@@ -29,12 +29,35 @@
   version = "v1.3.0"
 
 [[projects]]
+  digest = "1:fc20d4c60b0597aff13a64ec1721feabce77a25887ba45bc878f0ba00dc878ea"
+  name = "github.com/MinterTeam/minter-go-node"
+  packages = [
+    "core/check",
+    "core/types",
+    "crypto",
+    "crypto/sha3",
+    "hexutil",
+    "math",
+    "rlp",
+  ]
+  pruneopts = "UT"
+  revision = "19084d38d33c9c310aa2ee9fff416d9370314e13"
+  version = "v0.14.3"
+
+[[projects]]
   branch = "master"
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   pruneopts = "UT"
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
+
+[[projects]]
+  digest = "1:093bf93a65962e8191e3e8cd8fc6c363f83d43caca9739c906531ba7210a9904"
+  name = "github.com/btcsuite/btcd"
+  packages = ["btcec"]
+  pruneopts = "UT"
+  revision = "ed77733ec07dfc8a513741138419b8d9d3de9d2d"
 
 [[projects]]
   digest = "1:b33ffd395503c2dbd0f31ba15b48bab3969c049d52ed57efe158f62ceda57555"
@@ -334,6 +357,7 @@
     "github.com/MinterTeam/minter-explorer-api/transaction",
     "github.com/MinterTeam/minter-explorer-tools/helpers",
     "github.com/MinterTeam/minter-explorer-tools/models",
+    "github.com/MinterTeam/minter-go-node/core/check",
     "github.com/centrifugal/gocent",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",

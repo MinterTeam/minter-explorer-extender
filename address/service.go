@@ -1,10 +1,12 @@
 package address
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
+	"github.com/MinterTeam/minter-go-node/core/check"
 	"github.com/daniildulin/minter-node-api/responses"
 	"math"
 	"strconv"
@@ -72,6 +74,22 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
+		}
+		if tx.Type == models.TxTypeRedeemCheck {
+			var txData models.RedeemCheckTxData
+			decoded, err := base64.StdEncoding.DecodeString(txData.RawCheck)
+			if err != nil {
+				return nil, err, nil
+			}
+			data, err := check.DecodeFromBytes(decoded)
+			if err != nil {
+				return nil, err, nil
+			}
+			sender, err := data.Sender()
+			if err != nil {
+				return nil, err, nil
+			}
+			mapAddresses[helpers.RemovePrefix(sender.String())] = struct{}{}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
