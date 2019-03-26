@@ -253,17 +253,9 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	}
 	helpers.HandleError(err)
 
-	//if !ext.chasingMode {
-	ext.validatorService.GetUpdateValidatorsJobChannel() <- height
-	//}
-
-	//if !ext.chasingMode && height%12 == 0 {
-	ext.validatorService.GetUpdateStakesJobChannel() <- height
-	//}
 	if !ext.chasingMode {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
 	}
-
 	if !ext.chasingMode && height%12 == 0 {
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
 	}
