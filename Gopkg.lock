@@ -18,15 +18,31 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:f0d7ba10d9e06c4e31928e923436ddd222a3606fa4e1da79e3a23b73d9126523"
+  digest = "1:60f506749d63964018e804df96179c525f24ad28a5a88aff06802b5903b9894f"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "83a4a6e34cd7aa9427a8f5feb308fbe74d61cc1c"
-  version = "v1.3.8"
+  revision = "7452d4ae3866c6344637e9d46af491dd9fc8a97a"
+  version = "v1.5.0"
+
+[[projects]]
+  digest = "1:fc20d4c60b0597aff13a64ec1721feabce77a25887ba45bc878f0ba00dc878ea"
+  name = "github.com/MinterTeam/minter-go-node"
+  packages = [
+    "core/check",
+    "core/types",
+    "crypto",
+    "crypto/sha3",
+    "hexutil",
+    "math",
+    "rlp",
+  ]
+  pruneopts = "UT"
+  revision = "19084d38d33c9c310aa2ee9fff416d9370314e13"
+  version = "v0.14.3"
 
 [[projects]]
   branch = "master"
@@ -35,6 +51,13 @@
   packages = ["quantile"]
   pruneopts = "UT"
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
+
+[[projects]]
+  digest = "1:093bf93a65962e8191e3e8cd8fc6c363f83d43caca9739c906531ba7210a9904"
+  name = "github.com/btcsuite/btcd"
+  packages = ["btcec"]
+  pruneopts = "UT"
+  revision = "ed77733ec07dfc8a513741138419b8d9d3de9d2d"
 
 [[projects]]
   digest = "1:b33ffd395503c2dbd0f31ba15b48bab3969c049d52ed57efe158f62ceda57555"
@@ -138,6 +161,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
   name = "github.com/magiconair/properties"
   packages = ["."]
@@ -216,6 +247,15 @@
   revision = "e56f2e22fc761e82a34aca553f6725e2aff4fe6c"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e4c72127d910a96daf869a44f3dd563b86dbe6931a172863a0e99c5ff04b59e4"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
+  source = "github.com/sirupsen/logrus"
+
+[[projects]]
   digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
   name = "github.com/spf13/afero"
   packages = [
@@ -280,17 +320,23 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f92f6956e4059f6a3efc14924d2dd58ba90da25cc57fe07ae3779ef2f5e0c5f2"
+  digest = "1:529060bb80e138c876e1d0886cafc822029dd6e707851026c98af163bfa7bc13"
   name = "golang.org/x/crypto"
-  packages = ["pbkdf2"]
+  packages = [
+    "pbkdf2",
+    "ssh/terminal",
+  ]
   pruneopts = "UT"
   revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
 
 [[projects]]
   branch = "master"
-  digest = "1:f36c7b9a36158e62ffe5d8b02d1b5955500c13106cdaeebf5323d88863cae96f"
+  digest = "1:ed708ad22c955df62e7eaba9ddd9edd3afc7818a4a72d9680bf797ac6c5ae3a8"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "a2f829d7f35f2ed1c3520c553a6226495455cae0"
 
@@ -334,11 +380,13 @@
     "github.com/MinterTeam/minter-explorer-api/transaction",
     "github.com/MinterTeam/minter-explorer-tools/helpers",
     "github.com/MinterTeam/minter-explorer-tools/models",
+    "github.com/MinterTeam/minter-go-node/core/check",
     "github.com/centrifugal/gocent",
     "github.com/daniildulin/minter-node-api",
     "github.com/daniildulin/minter-node-api/responses",
     "github.com/go-pg/pg",
     "github.com/prometheus/client_golang/prometheus/promhttp",
+    "github.com/sirupsen/logrus",
     "github.com/spf13/viper",
   ]
   solver-name = "gps-cdcl"

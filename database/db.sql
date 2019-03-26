@@ -406,35 +406,12 @@ ALTER SEQUENCE public.slashes_id_seq OWNED BY public.slashes.id;
 
 CREATE TABLE public.stakes
 (
-  id               integer        NOT NULL,
   owner_address_id bigint         NOT NULL,
   validator_id     integer        NOT NULL,
   coin_id          integer        NOT NULL,
   value            numeric(70, 0) NOT NULL,
   bip_value        numeric(70, 0) NOT NULL
 );
-
-
-
---
--- Name: stakes_id_seq; Type: SEQUENCE; Schema: public; Owner: minter
---
-
-CREATE SEQUENCE public.stakes_id_seq
-  START WITH 1
-  INCREMENT BY 1
-  NO MINVALUE
-  NO MAXVALUE
-  CACHE 1;
-
-
-
---
--- Name: stakes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: minter
---
-
-ALTER SEQUENCE public.stakes_id_seq OWNED BY public.stakes.id;
-
 
 --
 -- Name: transaction_outputs; Type: TABLE; Schema: public; Owner: minter
@@ -679,15 +656,6 @@ ALTER TABLE ONLY public.invalid_transactions
 ALTER TABLE ONLY public.slashes
   ALTER COLUMN id SET DEFAULT nextval('public.slashes_id_seq'::regclass);
 
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: minter
---
-
-ALTER TABLE ONLY public.stakes
-  ALTER COLUMN id SET DEFAULT nextval('public.stakes_id_seq'::regclass);
-
-
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: minter
 --
@@ -763,7 +731,7 @@ COPY public.blocks (id, total_txs, size, proposer_validator_id, num_txs, block_t
 -- Data for Name: coins; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.coins (id, creation_address_id, creation_transaction_id, deleted_at_block_id, crr, updated_at, volume,
+COPY public.coins (id, creation_address_id, creation_transaction_id, crr, updated_at, volume,
                    reserve_balance, name, symbol) FROM stdin;
 \.
 
@@ -817,16 +785,8 @@ SELECT pg_catalog.setval('public.slashes_id_seq', 1, false);
 -- Data for Name: stakes; Type: TABLE DATA; Schema: public; Owner: minter
 --
 
-COPY public.stakes (id, owner_address_id, validator_id, coin_id, value, bip_value) FROM stdin;
+COPY public.stakes (owner_address_id, validator_id, coin_id, value, bip_value) FROM stdin;
 \.
-
-
---
--- Name: stakes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: minter
---
-
-SELECT pg_catalog.setval('public.stakes_id_seq', 1, false);
-
 
 --
 -- Data for Name: transaction_outputs; Type: TABLE DATA; Schema: public; Owner: minter
@@ -943,7 +903,7 @@ ALTER TABLE ONLY public.slashes
 --
 
 ALTER TABLE ONLY public.stakes
-  ADD CONSTRAINT stakes_pkey PRIMARY KEY (id);
+  ADD CONSTRAINT stakes_pkey PRIMARY KEY (validator_id, owner_address_id, coin_id);
 
 
 --
@@ -1275,15 +1235,6 @@ ALTER TABLE ONLY public.blocks
 ALTER TABLE ONLY public.coins
   ADD CONSTRAINT coins_addresses_id_fk FOREIGN KEY (creation_address_id) REFERENCES public.addresses (id);
 
-
---
--- Name: coins_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
---
-
-ALTER TABLE ONLY public.coins
-  ADD CONSTRAINT coins_blocks_id_fk FOREIGN KEY (deleted_at_block_id) REFERENCES public.blocks (id);
-
-
 --
 -- Name: coins_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --
@@ -1484,3 +1435,5 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM minter;
 GRANT ALL ON SCHEMA public TO minter;
 GRANT ALL ON SCHEMA public TO PUBLIC;
+
+INSERT INTO explorer.public.coins (symbol) VALUES ('MNT');

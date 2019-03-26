@@ -39,8 +39,10 @@ func (s *Service) GetSaveAddressesJobChannel() chan []string {
 
 func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	for addresses := range jobs {
-		s.logger.Error("empty transaction data")
 		err := s.repository.SaveAllIfNotExist(addresses)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 		s.wgAddresses.Done()
 	}
