@@ -54,10 +54,12 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			vl           []*models.Validator
 			addressesMap = make(map[string]struct{})
 		)
+
+		// Collect all PubKey's and addresses for save it before
 		for _, vlr := range resp.Result {
 			vl = append(vl, &models.Validator{PublicKey: helpers.RemovePrefix(vlr.PubKey)})
 			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
-			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+			addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{}
 		}
 
 		err = s.repository.SaveAllIfNotExist(vl)
@@ -65,13 +67,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 
-		addresses := make([]string, len(addressesMap))
-		i := 0
-		for k := range addressesMap {
-			addresses[i] = k
-			i++
-		}
-		err = s.addressRepository.SaveAllIfNotExist(addresses)
+		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
 		if err != nil {
 			s.logger.Error(err)
 		}
@@ -117,8 +113,33 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 		helpers.HandleError(err)
-		var stakes []*models.Stake
-		var validatorIds []uint64
+		var (
+			stakes       []*models.Stake
+			validatorIds []uint64
+			vl           []*models.Validator
+			addressesMap = make(map[string]struct{})
+		)
+
+		// Collect all PubKey's and addresses for save it before
+		for _, vlr := range resp.Result {
+			vl = append(vl, &models.Validator{PublicKey: helpers.RemovePrefix(vlr.PubKey)})
+			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+			addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{}
+			for _, stake := range vlr.Stakes {
+				addressesMap[helpers.RemovePrefix(stake.Owner)] = struct{}{}
+			}
+		}
+
+		err = s.repository.SaveAllIfNotExist(vl)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
 		for _, vlr := range resp.Result {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			if err != nil {
