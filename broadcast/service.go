@@ -43,7 +43,7 @@ func (s *Service) PublishBlock(b *models.Block) {
 	channel := `blocks`
 	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
 	if err != nil {
-		//s.logger.Error(err)
+		s.logger.Error(err)
 	}
 	s.publish(channel, []byte(msg))
 }
