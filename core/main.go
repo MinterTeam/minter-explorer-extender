@@ -82,9 +82,9 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		ApplicationName: env.AppName,
 	})
 
-	//if env.Debug {
-	//	//	db.AddQueryHook(dbLogger{})
-	//	//}
+	if env.Debug {
+		db.AddQueryHook(dbLogger{})
+	}
 
 	//api
 	nodeApi := minter_node_api.New(env.NodeApi)
@@ -260,6 +260,13 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	//if !ext.chasingMode && height%12 == 0 {
 	ext.validatorService.GetUpdateStakesJobChannel() <- height
 	//}
+	if !ext.chasingMode {
+		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+	}
+
+	if !ext.chasingMode && height%12 == 0 {
+		ext.validatorService.GetUpdateStakesJobChannel() <- height
+	}
 }
 
 func (ext *Extender) handleTransactions(response *responses.BlockResponse, validators []*models.Validator) {
