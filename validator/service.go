@@ -46,9 +46,37 @@ func (s *Service) GetUpdateStakesJobChannel() chan uint64 {
 func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 	for height := range jobs {
 		resp, err := s.nodeApi.GetCandidates(height, false)
-		s.logger.Error(err)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
-		var vl []*models.Validator
+		var (
+			vl           []*models.Validator
+			addressesMap = make(map[string]struct{})
+		)
+		for _, vlr := range resp.Result {
+			vl = append(vl, &models.Validator{PublicKey: helpers.RemovePrefix(vlr.PubKey)})
+			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+		}
+
+		err = s.repository.SaveAllIfNotExist(vl)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		addresses := make([]string, len(addressesMap))
+		i := 0
+		for k := range addressesMap {
+			addresses[i] = k
+			i++
+		}
+		err = s.addressRepository.SaveAllIfNotExist(addresses)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		vl = make([]*models.Validator, len(resp.Result))
 		for _, vlr := range resp.Result {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			s.logger.Error(err)
