@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/centrifugal/gocent"
+	"github.com/sirupsen/logrus"
 	"log"
 )
 
@@ -19,9 +20,11 @@ type Service struct {
 	ctx               context.Context
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
+	logger            *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
+func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
+	logger *logrus.Entry) *Service {
 	wsClient := gocent.New(gocent.Config{
 		Addr: env.WsLink,
 		Key:  env.WsKey,
@@ -32,6 +35,7 @@ func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repo
 		ctx:               context.Background(),
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
+		logger:            logger,
 	}
 }
 
@@ -39,7 +43,7 @@ func (s *Service) PublishBlock(b *models.Block) {
 	channel := `blocks`
 	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
 	if err != nil {
-		log.Printf(`Error parse json: %s`, err)
+		s.logger.Error(err)
 	}
 	s.publish(channel, []byte(msg))
 }
