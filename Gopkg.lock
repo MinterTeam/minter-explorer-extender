@@ -12,8 +12,8 @@
     "tools",
   ]
   pruneopts = "UT"
-  revision = "c2cb6ba2878a3e0b011ef0104c22e9b94b206907"
-  version = "v1.1.2"
+  revision = "db6c7de69d33338e0cfb8db6ee22f8f736239deb"
+  version = "v1.1.3"
 
 [[projects]]
   digest = "1:d10197fae7d39270f0ca3626d03fdf1cd929a72a48d9f14e149e57633c668150"
@@ -85,7 +85,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:91716bb263f2547341f4230d52ed09d9b7adc9e333bd6567b2c8598d8352e4e1"
+  digest = "1:92c2d57d6acd613d34e7998eac1f820fd72b8cf00365ed3939f5852568020622"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -100,8 +100,8 @@
     "urlvalues",
   ]
   pruneopts = "UT"
-  revision = "8739ab22578066a7615d80bf38d823af75793002"
-  version = "v8.0.3"
+  revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
+  version = "v8.0.2"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
