@@ -110,10 +110,14 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 		helpers.HandleError(err)
-		err = s.repository.UpdateAll(vl)
-		if err != nil {
-			s.logger.Error(err)
+
+		if len(vl) > 0 {
+			err = s.repository.UpdateAll(vl)
+			if err != nil {
+				s.logger.Error(err)
+			}
 		}
+
 		helpers.HandleError(err)
 	}
 }
