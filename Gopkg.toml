@@ -24,11 +24,9 @@
 #   go-tests = true
 #   unused-packages = true
 
-
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-api"
-  branch = "master"
-  source = "github.com/MinterTeam/minter-explorer-api"
+  version = "1.1.2"
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-tools"

@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:2adcc0feba0ac7ac04730cacf3be3a68a34da4ff208656c3e24dedeee42a1947"
+  digest = "1:424e75c945f679a4a3dc708456b0e5b9415b182ea3d3029d7a951d814400f9e2"
   name = "github.com/MinterTeam/minter-explorer-api"
   packages = [
     "balance",
@@ -10,12 +10,10 @@
     "helpers",
     "resource",
     "tools",
-    "transaction",
-    "transaction/data_resources",
   ]
   pruneopts = "UT"
-  revision = "b8f76d6e371493b26f9834119b404df7c22ddae9"
-  version = "v1.0.3"
+  revision = "c2cb6ba2878a3e0b011ef0104c22e9b94b206907"
+  version = "v1.1.2"
 
 [[projects]]
   digest = "1:d10197fae7d39270f0ca3626d03fdf1cd929a72a48d9f14e149e57633c668150"
@@ -376,7 +374,6 @@
   input-imports = [
     "github.com/MinterTeam/minter-explorer-api/balance",
     "github.com/MinterTeam/minter-explorer-api/blocks",
-    "github.com/MinterTeam/minter-explorer-api/transaction",
     "github.com/MinterTeam/minter-explorer-tools/helpers",
     "github.com/MinterTeam/minter-explorer-tools/models",
     "github.com/MinterTeam/minter-go-node/core/check",
