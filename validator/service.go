@@ -75,17 +75,25 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 		vl = make([]*models.Validator, len(resp.Result))
 		for _, vlr := range resp.Result {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
-			s.logger.Error(err)
+			if err != nil {
+				s.logger.Error(err)
+			}
 			helpers.HandleError(err)
 			updateAt := time.Now()
 			commission, err := strconv.ParseUint(vlr.Commission, 10, 64)
-			s.logger.Error(err)
+			if err != nil {
+				s.logger.Error(err)
+			}
 			helpers.HandleError(err)
 			rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(vlr.RewardAddress))
-			s.logger.Error(err)
+			if err != nil {
+				s.logger.Error(err)
+			}
 			helpers.HandleError(err)
 			ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(vlr.OwnerAddress))
-			s.logger.Error(err)
+			if err != nil {
+				s.logger.Error(err)
+			}
 			helpers.HandleError(err)
 			vl = append(vl, &models.Validator{
 				ID:              id,
@@ -98,10 +106,14 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			})
 		}
 		err = s.repository.ResetAllStatuses()
-		s.logger.Error(err)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 		err = s.repository.UpdateAll(vl)
-		s.logger.Error(err)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 	}
 }
