@@ -126,12 +126,17 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 
 func (s *Service) ExtractAddressesEventsResponse(response *responses.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
-	for _, event := range response.Result.Events {
-		mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
-	}
-	addresses := addressesMapToSlice(mapAddresses)
 
-	return addresses, mapAddresses
+	if len(response.Result.Events) > 0 {
+		for _, event := range response.Result.Events {
+			mapAddresses[helpers.RemovePrefix(event.Value.Address)] = struct{}{}
+		}
+		addresses := addressesMapToSlice(mapAddresses)
+
+		return addresses, mapAddresses
+	}
+
+	return nil, mapAddresses
 }
 
 // Find all addresses in block response and save it
