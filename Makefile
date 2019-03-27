@@ -1,4 +1,4 @@
-APP ?= extender
+APP ?= filler
 VERSION ?= $(strip $(shell cat VERSION))
 GOOS ?= linux
 SRC = ./

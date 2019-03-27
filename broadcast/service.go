@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-api/balance"
 	"github.com/MinterTeam/minter-explorer-api/blocks"
-	"github.com/MinterTeam/minter-explorer-api/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
@@ -49,17 +48,17 @@ func (s *Service) PublishBlock(b *models.Block) {
 }
 
 func (s *Service) PublishTransactions(transactions []*models.Transaction) {
-	channel := `transactions`
-	for _, tx := range transactions {
-		mTransaction := *tx
-		adr, err := s.addressRepository.FindById(tx.FromAddressID)
-		mTransaction.FromAddress = &models.Address{Address: adr}
-		msg, err := json.Marshal(new(transaction.Resource).Transform(mTransaction))
-		if err != nil {
-			log.Printf(`Error parse json: %s`, err)
-		}
-		s.publish(channel, []byte(msg))
-	}
+	//channel := `transactions`
+	//for _, tx := range transactions {
+	//	mTransaction := *tx
+	//	adr, err := s.addressRepository.FindById(tx.FromAddressID)
+	//	mTransaction.FromAddress = &models.Address{Address: adr}
+	//	msg, err := json.Marshal(new(transaction.Resource).Transform(mTransaction))
+	//	if err != nil {
+	//		log.Printf(`Error parse json: %s`, err)
+	//	}
+	//	s.publish(channel, []byte(msg))
+	//}
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {

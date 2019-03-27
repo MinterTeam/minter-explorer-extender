@@ -18,18 +18,18 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:60f506749d63964018e804df96179c525f24ad28a5a88aff06802b5903b9894f"
+  digest = "1:d10197fae7d39270f0ca3626d03fdf1cd929a72a48d9f14e149e57633c668150"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "7452d4ae3866c6344637e9d46af491dd9fc8a97a"
-  version = "v1.5.0"
+  revision = "8169a3525029fca905d0ce15f68f84a36a348968"
+  version = "v1.5.1"
 
 [[projects]]
-  digest = "1:fc20d4c60b0597aff13a64ec1721feabce77a25887ba45bc878f0ba00dc878ea"
+  digest = "1:00ee81331f08036600b9f637d73b3280c676babed9e40f3bce80591446c123ee"
   name = "github.com/MinterTeam/minter-go-node"
   packages = [
     "core/check",
@@ -41,8 +41,8 @@
     "rlp",
   ]
   pruneopts = "UT"
-  revision = "19084d38d33c9c310aa2ee9fff416d9370314e13"
-  version = "v0.14.3"
+  revision = "10703fe1f50ddfadafdd6cf7ba10ff451ec92308"
+  version = "v0.15.0"
 
 [[projects]]
   branch = "master"
@@ -68,15 +68,15 @@
   version = "v2.0.2"
 
 [[projects]]
-  digest = "1:2acbae55dfa5537c6aeb425431089856997ae0f1fda5691f584afe67da134c98"
+  digest = "1:4d75c65aad0ab7d86073b372457e969bf0e01305173227f2843e810af6aeafe3"
   name = "github.com/daniildulin/minter-node-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "d640737148456fda73c8a6ed8e4d364cb140faa4"
-  version = "v1.6.2"
+  revision = "b205424b6343a0b0407139386473a30fa9d36f88"
+  version = "v1.7.0"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -87,7 +87,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:92c2d57d6acd613d34e7998eac1f820fd72b8cf00365ed3939f5852568020622"
+  digest = "1:91716bb263f2547341f4230d52ed09d9b7adc9e333bd6567b2c8598d8352e4e1"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -102,8 +102,8 @@
     "urlvalues",
   ]
   pruneopts = "UT"
-  revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
-  version = "v8.0.2"
+  revision = "8739ab22578066a7615d80bf38d823af75793002"
+  version = "v8.0.3"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
@@ -234,7 +234,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0573a48c92e778ad732779bf1e5064a5085ab3fbd236ad71e53cab5753ef3e6e"
+  digest = "1:c31163bd62461e0c5f7ddc7363e39ef8d9e929693e77b5c11c709b05f9cb9219"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
@@ -244,27 +244,26 @@
     "xfs",
   ]
   pruneopts = "UT"
-  revision = "e56f2e22fc761e82a34aca553f6725e2aff4fe6c"
+  revision = "55ae3d9d557340b5bc24cd8aa5f6fa2c2ab31352"
 
 [[projects]]
-  branch = "master"
   digest = "1:e4c72127d910a96daf869a44f3dd563b86dbe6931a172863a0e99c5ff04b59e4"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
   revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
-  source = "github.com/sirupsen/logrus"
+  version = "v1.4.0"
 
 [[projects]]
-  digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
+  digest = "1:bb495ec276ab82d3dd08504bbc0594a65de8c3b22c6f2aaa92d05b73fbf3a82e"
   name = "github.com/spf13/afero"
   packages = [
     ".",
     "mem",
   ]
   pruneopts = "UT"
-  revision = "f4711e4db9e9a1d3887343acb72b2bbfc2f686f5"
-  version = "v1.2.1"
+  revision = "588a75ec4f32903aa5e39a2619ba6a4631e28424"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:08d65904057412fc0270fc4812a1c90c594186819243160dc779a402d4b6d0bc"
@@ -320,25 +319,25 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:529060bb80e138c876e1d0886cafc822029dd6e707851026c98af163bfa7bc13"
+  digest = "1:35ce874cf16f78a2da908ab28b0277497e36603d289db00d39da5200bc8ace08"
   name = "golang.org/x/crypto"
   packages = [
     "pbkdf2",
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
+  revision = "a5d413f7728c81fb97d96a2b722368945f651e78"
 
 [[projects]]
   branch = "master"
-  digest = "1:ed708ad22c955df62e7eaba9ddd9edd3afc7818a4a72d9680bf797ac6c5ae3a8"
+  digest = "1:6b3e6ddcebac95be1d690dbd53b5aa2e520715becb7e521bb526ccf3b4c53c15"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "a2f829d7f35f2ed1c3520c553a6226495455cae0"
+  revision = "f49334f85ddcf0f08d7fb6dd7363e9e6d6b777eb"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
