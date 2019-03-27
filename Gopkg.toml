@@ -48,7 +48,7 @@
 
 [[constraint]]
   name = "github.com/go-pg/pg"
-  version = "8.0.3"
+  version = "8.0.2"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
