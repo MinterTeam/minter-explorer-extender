@@ -62,8 +62,7 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 
 func (r *Repository) Save(c *models.Coin) error {
 	_, err := r.db.Model(c).
-		OnConflict("(id) DO UPDATE").
-		Set("symbol = EXCLUDED.symbol").
+		OnConflict("DO NOTHING").
 		Insert(c)
 	if err != nil {
 		return err
