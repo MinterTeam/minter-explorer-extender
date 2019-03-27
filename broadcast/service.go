@@ -68,7 +68,9 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 
 	for _, item := range balances {
 		symbol, err := s.coinRepository.FindSymbolById(item.CoinID)
-		helpers.HandleError(err)
+		if err != nil {
+			continue
+		}
 		adr, err := s.addressRepository.FindById(item.AddressID)
 		helpers.HandleError(err)
 		mBalance := *item
