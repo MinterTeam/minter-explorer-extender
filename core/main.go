@@ -255,9 +255,9 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 
 	// No need to update candidate and stakes at the same time
 	// Candidate will be updated in the next iteration
-	if !ext.chasingMode && height%12 == 0 {
+	if height%12 == 0 {
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
-	} else if !ext.chasingMode {
+	} else {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
 	}
 }

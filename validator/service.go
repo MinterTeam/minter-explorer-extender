@@ -72,7 +72,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 
-		vl = make([]*models.Validator, len(resp.Result))
+		var vls []*models.Validator
 		for _, vlr := range resp.Result {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			if err != nil {
@@ -95,7 +95,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 				s.logger.Error(err)
 			}
 			helpers.HandleError(err)
-			vl = append(vl, &models.Validator{
+			vls = append(vls, &models.Validator{
 				ID:              id,
 				Status:          &vlr.Status,
 				TotalStake:      &vlr.TotalStake,
@@ -111,8 +111,8 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 		}
 		helpers.HandleError(err)
 
-		if len(vl) > 0 {
-			err = s.repository.UpdateAll(vl)
+		if len(vls) > 0 {
+			err = s.repository.UpdateAll(vls)
 			if err != nil {
 				s.logger.Error(err)
 			}

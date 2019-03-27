@@ -96,19 +96,15 @@ func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Vali
 }
 
 func (r *Repository) UpdateAll(validators []*models.Validator) error {
-	if len(validators) > 0 {
-		_, err := r.db.Model(&validators).
-			Column("status").
-			Column("commission").
-			Column("reward_address_id").
-			Column("owner_address_id").
-			Column("total_stake").
-			WherePK().
-			Update()
-		return err
-	}
-
-	return nil
+	_, err := r.db.Model(&validators).
+		Column("status").
+		Column("commission").
+		Column("reward_address_id").
+		Column("owner_address_id").
+		Column("total_stake").
+		WherePK().
+		Update()
+	return err
 }
 
 func (r *Repository) Update(validator *models.Validator) error {
