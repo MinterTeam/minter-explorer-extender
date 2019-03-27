@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:424e75c945f679a4a3dc708456b0e5b9415b182ea3d3029d7a951d814400f9e2"
+  digest = "1:394e06ab0fdf38c4fe79e0c8b51478c0eb0e5d3c5cbb2d659423c14f5ac0e4d3"
   name = "github.com/MinterTeam/minter-explorer-api"
   packages = [
     "balance",
@@ -10,6 +10,8 @@
     "helpers",
     "resource",
     "tools",
+    "transaction",
+    "transaction/data_resources",
   ]
   pruneopts = "UT"
   revision = "db6c7de69d33338e0cfb8db6ee22f8f736239deb"
@@ -39,8 +41,8 @@
     "rlp",
   ]
   pruneopts = "UT"
-  revision = "10703fe1f50ddfadafdd6cf7ba10ff451ec92308"
-  version = "v0.15.0"
+  revision = "05fc0f3cde48286359dd464c43dda2f0ea6c8a5d"
+  version = "v0.15.1"
 
 [[projects]]
   branch = "master"
@@ -85,7 +87,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:92c2d57d6acd613d34e7998eac1f820fd72b8cf00365ed3939f5852568020622"
+  digest = "1:91716bb263f2547341f4230d52ed09d9b7adc9e333bd6567b2c8598d8352e4e1"
   name = "github.com/go-pg/pg"
   packages = [
     ".",
@@ -100,8 +102,8 @@
     "urlvalues",
   ]
   pruneopts = "UT"
-  revision = "3aa3c0bd0a7e1567ffe8735b10fb012759870261"
-  version = "v8.0.2"
+  revision = "8739ab22578066a7615d80bf38d823af75793002"
+  version = "v8.0.3"
 
 [[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
@@ -374,6 +376,7 @@
   input-imports = [
     "github.com/MinterTeam/minter-explorer-api/balance",
     "github.com/MinterTeam/minter-explorer-api/blocks",
+    "github.com/MinterTeam/minter-explorer-api/transaction",
     "github.com/MinterTeam/minter-explorer-tools/helpers",
     "github.com/MinterTeam/minter-explorer-tools/models",
     "github.com/MinterTeam/minter-go-node/core/check",
