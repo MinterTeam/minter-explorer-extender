@@ -50,6 +50,11 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 		helpers.HandleError(err)
+
+		if len(resp.Result) <= 0 {
+			return
+		}
+
 		var (
 			validators   = make([]*models.Validator, len(resp.Result))
 			addressesMap = make(map[string]struct{})
@@ -165,13 +170,13 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(stake.Owner))
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(stake.Coin)
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				stakes = append(stakes, &models.Stake{
 					ValidatorID:    id,
 					OwnerAddressID: ownerAddressID,
