@@ -138,7 +138,7 @@ func (s *Service) HandleBalanceResponse(response *responses.BalancesResponse) ([
 			coinId, err := s.coinRepository.FindIdBySymbol(c)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{"coin": c}).Error(err)
-				return nil, err
+				continue
 			}
 			balances = append(balances, &models.Balance{
 				AddressID: addressId,
