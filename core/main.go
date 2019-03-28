@@ -100,7 +100,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, contextLogger)
-	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository)
+	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
 
 	return &Extender{
@@ -244,6 +244,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	ext.linkBlockValidator(response)
 
 	if response.Result.TxCount != "0" {
+		ext.handleCoinsFromTransactions(response.Result.Transactions)
 		ext.handleTransactions(response, validators)
 	}
 
@@ -259,6 +260,21 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
 	} else {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+	}
+}
+
+func (ext *Extender) handleCoinsFromTransactions(transactions []responses.Transaction) {
+	coins, err := ext.coinService.ExtractCoinsFromTransactions(transactions)
+	if err != nil {
+		ext.logger.Error(err)
+		helpers.HandleError(err)
+	}
+	if len(coins) > 0 {
+		err = ext.coinService.CreateNewCoins(coins)
+		if err != nil {
+			ext.logger.Error(err)
+			helpers.HandleError(err)
+		}
 	}
 }
 

@@ -279,11 +279,6 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 		RawTx:         rawTxData[:rawTx],
 	}
 
-	if transaction.Type == models.TxTypeCreateCoin {
-		err = s.coinService.CreateFromTx(tx)
-		helpers.HandleError(err)
-	}
-
 	return transaction, nil
 }
 

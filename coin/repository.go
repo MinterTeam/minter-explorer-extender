@@ -73,6 +73,30 @@ func (r *Repository) Save(c *models.Coin) error {
 	return nil
 }
 
+func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
+	var args []interface{}
+	for _, coin := range coins {
+		_, exist := r.cache.Load(coin.Symbol)
+		if !exist {
+			args = append(args, coin)
+		}
+	}
+	// if all addresses do nothing
+	if len(args) == 0 {
+		return nil
+	}
+	_, err := r.db.Model(args...).OnConflict("DO NOTHING").Insert()
+
+	if err != nil {
+		return err
+	}
+	for _, coin := range coins {
+		r.cache.Store(coin.Symbol, coin.ID)
+		r.invCache.Store(coin.ID, coin.Symbol)
+	}
+	return err
+}
+
 func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
 	var coins []*models.Coin
 	err := r.db.Model(&coins).Order("symbol ASC").Select()

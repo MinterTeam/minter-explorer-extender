@@ -8,6 +8,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )
@@ -17,15 +18,17 @@ type Service struct {
 	nodeApi           *minter_node_api.MinterNodeApi
 	repository        *Repository
 	addressRepository *address.Repository
+	logger            *logrus.Entry
 }
 
 func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_api.MinterNodeApi, repository *Repository,
-	addressRepository *address.Repository) *Service {
+	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:               env,
 		nodeApi:           nodeApi,
 		repository:        repository,
 		addressRepository: addressRepository,
+		logger:            logger,
 	}
 }
 
@@ -37,35 +40,64 @@ type CreateCoinData struct {
 	Crr            string `json:"crr"`
 }
 
-func (s *Service) CreateFromTx(tx responses.Transaction) error {
+func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transaction) ([]*models.Coin, error) {
+	var coins []*models.Coin
+	for _, tx := range transactions {
+		if tx.Type == models.TxTypeCreateCoin {
+			coin, err := s.CreateFromTx(tx)
+			if err != nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			coins = append(coins, coin)
+		}
+	}
+	return coins, nil
+}
+
+func (s *Service) CreateFromTx(tx responses.Transaction) (*models.Coin, error) {
 	if tx.Data == nil {
-		return errors.New("no data for creating a coin")
+		s.logger.Warn("empty transaction data")
+		return nil, errors.New("no data for creating a coin")
 	}
 	var txData models.CreateCoinTxData
 	jsonData, err := json.Marshal(*tx.Data)
 	if err != nil {
-		return err
+		s.logger.Error(err)
+		return nil, err
 	}
 	err = json.Unmarshal(jsonData, &txData)
 	if err != nil {
-		return err
+		s.logger.Error(err)
+		return nil, err
 	}
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
-		return err
+		s.logger.Error(err)
+		return nil, err
 	}
 	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
 	if err != nil {
-		return err
+		s.logger.Error(err)
+		return nil, err
 	}
-	return s.repository.Save(&models.Coin{
+	return &models.Coin{
 		CreationAddressID: &fromId,
 		Crr:               crr,
 		Volume:            txData.InitialAmount,
 		ReserveBalance:    txData.InitialReserve,
 		Name:              txData.Name,
 		Symbol:            txData.Symbol,
-	})
+	}, nil
+}
+
+func (s *Service) CreateNewCoins(coins []*models.Coin) error {
+	err := s.repository.SaveAllIfNotExist(coins)
+	if err != nil {
+		s.logger.Error(err)
+
+	}
+	return err
 }
 
 func (s *Service) UpdateAllCoinsInfoWorker() {
