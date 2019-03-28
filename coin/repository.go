@@ -63,7 +63,7 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 func (r *Repository) Save(c *models.Coin) error {
 	_, err := r.db.Model(c).
 		Where("symbol = ?symbol").
-		OnConflict("DO NOTHING").
+		OnConflict("DO NOTHING"). //TODO: change to DO UPDATE
 		SelectOrInsert()
 
 	if err != nil {
@@ -71,6 +71,30 @@ func (r *Repository) Save(c *models.Coin) error {
 	}
 	r.cache.Store(c.Symbol, c.ID)
 	return nil
+}
+
+func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
+	var args []interface{}
+	for _, coin := range coins {
+		_, exist := r.cache.Load(coin.Symbol)
+		if !exist {
+			args = append(args, coin)
+		}
+	}
+	// if all addresses do nothing
+	if len(args) == 0 {
+		return nil
+	}
+	_, err := r.db.Model(args...).OnConflict("DO NOTHING").Insert()
+
+	if err != nil {
+		return err
+	}
+	for _, coin := range coins {
+		r.cache.Store(coin.Symbol, coin.ID)
+		r.invCache.Store(coin.ID, coin.Symbol)
+	}
+	return err
 }
 
 func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
