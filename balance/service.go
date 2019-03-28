@@ -171,7 +171,7 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 			mapAddressBalances[nodeBalance.AddressID][nodeBalance.CoinID].Value = nodeBalance.Value
 			forUpdate = append(forUpdate, mapAddressBalances[nodeBalance.AddressID][nodeBalance.CoinID])
 			delete(mapAddressBalances[nodeBalance.AddressID], nodeBalance.CoinID)
-		} else {
+		} else if nodeBalance.CoinID > 0 {
 			forCreate = append(forCreate, nodeBalance)
 			delete(mapAddressBalances[nodeBalance.AddressID], nodeBalance.CoinID)
 		}
