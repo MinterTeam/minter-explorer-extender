@@ -44,7 +44,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transacti
 	var coins []*models.Coin
 	for _, tx := range transactions {
 		if tx.Type == models.TxTypeCreateCoin {
-			coin, err := s.CreateFromTx(tx)
+			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
 				s.logger.Error(err)
 				return nil, err
@@ -55,7 +55,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transacti
 	return coins, nil
 }
 
-func (s *Service) CreateFromTx(tx responses.Transaction) (*models.Coin, error) {
+func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) {
 	if tx.Data == nil {
 		s.logger.Warn("empty transaction data")
 		return nil, errors.New("no data for creating a coin")

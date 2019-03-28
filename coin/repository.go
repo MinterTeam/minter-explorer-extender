@@ -63,7 +63,7 @@ func (r *Repository) FindSymbolById(id uint64) (string, error) {
 func (r *Repository) Save(c *models.Coin) error {
 	_, err := r.db.Model(c).
 		Where("symbol = ?symbol").
-		OnConflict("DO NOTHING").
+		OnConflict("DO NOTHING"). //TODO: change to DO UPDATE
 		SelectOrInsert()
 
 	if err != nil {
