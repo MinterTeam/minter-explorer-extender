@@ -9,7 +9,6 @@ import (
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
 	"github.com/sirupsen/logrus"
-	"log"
 	"math"
 	"sync"
 )
@@ -125,18 +124,20 @@ func (s *Service) HandleBalanceResponse(response *responses.BalancesResponse) ([
 	var balances []*models.Balance
 
 	if len(response.Result) == 0 {
-		log.Println("No data in response")
+		s.logger.Warn("No data in response")
 		return nil, nil
 	}
 
 	for _, item := range response.Result {
 		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(item.Address))
 		if err != nil {
+			s.logger.WithFields(logrus.Fields{"address": item.Address}).Error(err)
 			return nil, err
 		}
 		for c, val := range item.Balance {
 			coinId, err := s.coinRepository.FindIdBySymbol(c)
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{"coin": c}).Error(err)
 				return nil, err
 			}
 			balances = append(balances, &models.Balance{
@@ -154,6 +155,7 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 
 	dbBalances, err := s.repository.FindAllByAddress(addresses)
 	if err != nil {
+		s.logger.Error(err)
 		return err
 	}
 	//If no balances in DB save all
@@ -178,6 +180,7 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 	if len(forCreate) > 0 {
 		err = s.repository.SaveAll(forCreate)
 		if err != nil {
+			s.logger.Error(err)
 			return err
 		}
 	}
@@ -185,6 +188,7 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 	if len(forUpdate) > 0 {
 		err = s.repository.UpdateAll(forUpdate)
 		if err != nil {
+			s.logger.Error(err)
 			return err
 		}
 	}
@@ -197,6 +201,7 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 	if len(forDelete) > 0 {
 		err = s.repository.DeleteAll(forDelete)
 		if err != nil {
+			s.logger.Error(err)
 			return err
 		}
 	}
