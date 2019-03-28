@@ -12,6 +12,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
 	"time"
@@ -29,10 +30,12 @@ type Service struct {
 	jobSaveTxsOutput    chan []*models.Transaction
 	jobSaveValidatorTxs chan []*models.TransactionValidator
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
+	logger              *logrus.Entry
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
-	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service, broadcastService *broadcast.Service) *Service {
+	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
+	broadcastService *broadcast.Service, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		txRepository:        repository,
@@ -45,6 +48,7 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, address
 		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
 		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
 		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
+		logger:              logger,
 	}
 }
 
@@ -72,12 +76,14 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 		if tx.Log == nil {
 			transaction, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
+				s.logger.Error(err)
 				return err
 			}
 			txList = append(txList, transaction)
 		} else {
 			transaction, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
+				s.logger.Error(err)
 				return err
 			}
 			invalidTxList = append(invalidTxList, transaction)
@@ -98,6 +104,9 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 	for transactions := range jobs {
 		err := s.txRepository.SaveAll(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 
 		links, err := s.getLinksTxValidator(transactions)
@@ -127,12 +136,18 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {
 	for transactions := range jobs {
 		err := s.SaveAllTxOutputs(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 	}
 }
 func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTransaction) {
 	for transactions := range jobs {
 		err := s.txRepository.SaveAllInvalid(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 	}
 }
@@ -140,6 +155,9 @@ func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTra
 func (s *Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidator) {
 	for links := range jobs {
 		err := s.txRepository.LinkWithValidators(links)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 	}
 }

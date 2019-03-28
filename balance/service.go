@@ -8,6 +8,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/daniildulin/minter-node-api"
 	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/sirupsen/logrus"
 	"log"
 	"math"
 	"sync"
@@ -24,6 +25,7 @@ type Service struct {
 	jobUpdateBalance       chan AddressesBalancesContainer
 	chAddresses            chan models.BlockAddresses
 	wgBalances             sync.WaitGroup
+	logger                 *logrus.Entry
 }
 
 type AddressesBalancesContainer struct {
@@ -38,7 +40,8 @@ type AddressesBalancesContainer struct {
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi *minter_node_api.MinterNodeApi,
-	addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service) *Service {
+	addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		env:                    env,
 		repository:             repository,
@@ -49,6 +52,7 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi
 		chAddresses:            make(chan models.BlockAddresses),
 		jobUpdateBalance:       make(chan AddressesBalancesContainer, env.WrkUpdateBalanceCount),
 		jobGetBalancesFromNode: make(chan models.BlockAddresses, env.WrkGetBalancesFromNodeCount),
+		logger:                 logger,
 	}
 }
 
@@ -93,8 +97,14 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 			addresses[i] = `"Mx` + adr + `"`
 		}
 		response, err := s.nodeApi.GetAddresses(addresses, blockAddresses.Height)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 		balances, err := s.HandleBalanceResponse(response)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 		result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
 		go s.broadcastService.PublishBalances(balances)
@@ -104,6 +114,9 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 	for container := range jobs {
 		err := s.updateBalances(container.Addresses, container.Balances)
+		if err != nil {
+			s.logger.Error(err)
+		}
 		helpers.HandleError(err)
 	}
 }

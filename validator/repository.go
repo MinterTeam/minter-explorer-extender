@@ -112,7 +112,7 @@ func (r *Repository) Update(validator *models.Validator) error {
 }
 
 func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
-	_, err := r.db.Query(nil, `delete from stakes where validator_id in (?)`, pg.In(idList))
+	_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
 	return err
 }
 
@@ -149,6 +149,6 @@ func (r *Repository) isAllAddressesInCache(validators []*models.Validator) bool 
 }
 
 func (r Repository) ResetAllStatuses() error {
-	_, err := r.db.Query(nil, `update validators set status = null`)
+	_, err := r.db.Query(nil, `update validators set status = null;`)
 	return err
 }
