@@ -112,6 +112,9 @@ func (r *Repository) Update(validator *models.Validator) error {
 }
 
 func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
+	if len(idList) <= 0 {
+		return nil
+	}
 	_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
 	return err
 }

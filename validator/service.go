@@ -51,77 +51,75 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 		}
 		helpers.HandleError(err)
 
-		if len(resp.Result) <= 0 {
-			return
-		}
+		if len(resp.Result) > 0 {
+			var (
+				validators   = make([]*models.Validator, len(resp.Result))
+				addressesMap = make(map[string]struct{})
+			)
 
-		var (
-			validators   = make([]*models.Validator, len(resp.Result))
-			addressesMap = make(map[string]struct{})
-		)
+			// Collect all PubKey's and addresses for save it before
+			for i, vlr := range resp.Result {
+				validators[i] = &models.Validator{PublicKey: helpers.RemovePrefix(vlr.PubKey)}
+				addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+				addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{}
+			}
 
-		// Collect all PubKey's and addresses for save it before
-		for i, vlr := range resp.Result {
-			validators[i] = &models.Validator{PublicKey: helpers.RemovePrefix(vlr.PubKey)}
-			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
-			addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{}
-		}
+			err = s.repository.SaveAllIfNotExist(validators)
+			if err != nil {
+				s.logger.Error(err)
+			}
 
-		err = s.repository.SaveAllIfNotExist(validators)
-		if err != nil {
-			s.logger.Error(err)
-		}
+			err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
+			if err != nil {
+				s.logger.Error(err)
+			}
 
-		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
-		if err != nil {
-			s.logger.Error(err)
-		}
+			for i, validator := range resp.Result {
+				updateAt := time.Now()
+				status := validator.Status
+				totalStake := validator.TotalStake
 
-		for i, validator := range resp.Result {
-			updateAt := time.Now()
-			status := validator.Status
-			totalStake := validator.TotalStake
-
-			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PubKey))
+				id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PubKey))
+				if err != nil {
+					s.logger.Error(err)
+				}
+				helpers.HandleError(err)
+				commission, err := strconv.ParseUint(validator.Commission, 10, 64)
+				if err != nil {
+					s.logger.Error(err)
+				}
+				helpers.HandleError(err)
+				rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
+				if err != nil {
+					s.logger.Error(err)
+				}
+				helpers.HandleError(err)
+				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
+				if err != nil {
+					s.logger.Error(err)
+				}
+				helpers.HandleError(err)
+				validators[i] = &models.Validator{
+					ID:              id,
+					Status:          &status,
+					TotalStake:      &totalStake,
+					UpdateAt:        &updateAt,
+					Commission:      &commission,
+					RewardAddressID: &rewardAddressID,
+					OwnerAddressID:  &ownerAddressID,
+				}
+			}
+			err = s.repository.ResetAllStatuses()
 			if err != nil {
 				s.logger.Error(err)
 			}
 			helpers.HandleError(err)
-			commission, err := strconv.ParseUint(validator.Commission, 10, 64)
+			err = s.repository.UpdateAll(validators)
 			if err != nil {
 				s.logger.Error(err)
 			}
 			helpers.HandleError(err)
-			rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
-			if err != nil {
-				s.logger.Error(err)
-			}
-			helpers.HandleError(err)
-			ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
-			if err != nil {
-				s.logger.Error(err)
-			}
-			helpers.HandleError(err)
-			validators[i] = &models.Validator{
-				ID:              id,
-				Status:          &status,
-				TotalStake:      &totalStake,
-				UpdateAt:        &updateAt,
-				Commission:      &commission,
-				RewardAddressID: &rewardAddressID,
-				OwnerAddressID:  &ownerAddressID,
-			}
 		}
-		err = s.repository.ResetAllStatuses()
-		if err != nil {
-			s.logger.Error(err)
-		}
-		helpers.HandleError(err)
-		err = s.repository.UpdateAll(validators)
-		if err != nil {
-			s.logger.Error(err)
-		}
-		helpers.HandleError(err)
 	}
 }
 
