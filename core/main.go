@@ -245,7 +245,6 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	ext.linkBlockValidator(response)
 
 	if response.Result.TxCount != "0" {
-		//ext.handleCoinsFromTransactions(response.Result.Transactions)
 		ext.handleTransactions(response, validators)
 	}
 
