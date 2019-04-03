@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/block"
@@ -41,16 +40,17 @@ type Extender struct {
 	logger              *logrus.Entry
 }
 
-type dbLogger struct{}
+type dbLogger struct {
+	logger *logrus.Entry
+}
 
 func (d dbLogger) BeforeQuery(q *pg.QueryEvent) {}
 
 func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
-	fmt.Println(q.FormattedQuery())
+	d.logger.Info(q.FormattedQuery())
 }
 
 func NewExtender(env *models.ExtenderEnvironment) *Extender {
-
 	//Init Logger
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{})
@@ -83,7 +83,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 	})
 
 	if env.Debug {
-		db.AddQueryHook(dbLogger{})
+		db.AddQueryHook(dbLogger{logger: contextLogger})
 	}
 
 	//api
@@ -159,6 +159,7 @@ func (ext *Extender) Run() {
 		}
 		helpers.HandleError(err)
 
+		ext.handleCoinsFromTransactions(blockResponse.Result.Transactions)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
 
@@ -244,7 +245,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	ext.linkBlockValidator(response)
 
 	if response.Result.TxCount != "0" {
-		ext.handleCoinsFromTransactions(response.Result.Transactions)
+		//ext.handleCoinsFromTransactions(response.Result.Transactions)
 		ext.handleTransactions(response, validators)
 	}
 
@@ -264,16 +265,18 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 }
 
 func (ext *Extender) handleCoinsFromTransactions(transactions []responses.Transaction) {
-	coins, err := ext.coinService.ExtractCoinsFromTransactions(transactions)
-	if err != nil {
-		ext.logger.Error(err)
-		helpers.HandleError(err)
-	}
-	if len(coins) > 0 {
-		err = ext.coinService.CreateNewCoins(coins)
+	if len(transactions) > 0 {
+		coins, err := ext.coinService.ExtractCoinsFromTransactions(transactions)
 		if err != nil {
 			ext.logger.Error(err)
 			helpers.HandleError(err)
+		}
+		if len(coins) > 0 {
+			err = ext.coinService.CreateNewCoins(coins)
+			if err != nil {
+				ext.logger.Error(err)
+				helpers.HandleError(err)
+			}
 		}
 	}
 }

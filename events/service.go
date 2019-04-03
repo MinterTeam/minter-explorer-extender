@@ -40,10 +40,9 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 	)
 
 	for _, event := range response.Result.Events {
-
-		//TODO: handle this event
 		if event.Type == "minter/CoinLiquidationEvent" {
-			continue
+			err := s.coinRepository.DeleteBySymbol(event.Value.Coin)
+			return err
 		}
 
 		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value.Address))

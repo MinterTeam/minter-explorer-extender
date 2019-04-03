@@ -88,6 +88,7 @@ func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) 
 		ReserveBalance:    txData.InitialReserve,
 		Name:              txData.Name,
 		Symbol:            txData.Symbol,
+		DeletedAt:         nil,
 	}, nil
 }
 

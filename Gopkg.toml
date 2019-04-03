@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-tools"
-  version = "1.5.1"
+  version = "1.5.2"
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-go-node"

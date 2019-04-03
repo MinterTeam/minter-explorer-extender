@@ -65,7 +65,6 @@ func (r *Repository) Save(c *models.Coin) error {
 		Where("symbol = ?symbol").
 		OnConflict("DO NOTHING"). //TODO: change to DO UPDATE
 		SelectOrInsert()
-
 	if err != nil {
 		return err
 	}
@@ -74,19 +73,7 @@ func (r *Repository) Save(c *models.Coin) error {
 }
 
 func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
-	var args []interface{}
-	for _, coin := range coins {
-		_, exist := r.cache.Load(coin.Symbol)
-		if !exist {
-			args = append(args, coin)
-		}
-	}
-	// if all addresses do nothing
-	if len(args) == 0 {
-		return nil
-	}
-	_, err := r.db.Model(args...).OnConflict("DO NOTHING").Insert()
-
+	_, err := r.db.Model(&coins).OnConflict("(symbol) DO UPDATE").Insert()
 	if err != nil {
 		return err
 	}
@@ -101,4 +88,10 @@ func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
 	var coins []*models.Coin
 	err := r.db.Model(&coins).Order("symbol ASC").Select()
 	return coins, err
+}
+
+func (r Repository) DeleteBySymbol(symbol string) error {
+	coin := &models.Coin{Symbol: symbol}
+	_, err := r.db.Model(coin).Where("symbol = ?symbol").Delete()
+	return err
 }
