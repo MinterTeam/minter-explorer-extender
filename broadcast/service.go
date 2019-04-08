@@ -95,6 +95,6 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 func (s *Service) publish(ch string, msg []byte) {
 	err := s.client.Publish(s.ctx, ch, msg)
 	if err != nil {
-		log.Printf(`Error calling publish: %s`, err)
+		s.logger.Warn(err)
 	}
 }
