@@ -107,7 +107,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository),
+		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger),
@@ -216,6 +216,7 @@ func (ext *Extender) runWorkers() {
 
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
+	go ext.coinService.UpdateCoinsInfoFromCoinsMap(ext.coinService.GetUpdateCoinsFromCoinsMapJobChannel())
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {

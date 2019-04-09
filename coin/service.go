@@ -14,23 +14,25 @@ import (
 )
 
 type Service struct {
-	env               *models.ExtenderEnvironment
-	nodeApi           *minter_node_api.MinterNodeApi
-	repository        *Repository
-	addressRepository *address.Repository
-	logger            *logrus.Entry
-	jobUpdateCoins    chan []*models.Transaction
+	env                   *models.ExtenderEnvironment
+	nodeApi               *minter_node_api.MinterNodeApi
+	repository            *Repository
+	addressRepository     *address.Repository
+	logger                *logrus.Entry
+	jobUpdateCoins        chan []*models.Transaction
+	jobUpdateCoinsFromMap chan map[string]struct{}
 }
 
 func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_api.MinterNodeApi, repository *Repository,
 	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
-		env:               env,
-		nodeApi:           nodeApi,
-		repository:        repository,
-		addressRepository: addressRepository,
-		logger:            logger,
-		jobUpdateCoins:    make(chan []*models.Transaction, 1),
+		env:                   env,
+		nodeApi:               nodeApi,
+		repository:            repository,
+		addressRepository:     addressRepository,
+		logger:                logger,
+		jobUpdateCoins:        make(chan []*models.Transaction, 1),
+		jobUpdateCoinsFromMap: make(chan map[string]struct{}, 1),
 	}
 }
 
@@ -44,6 +46,10 @@ type CreateCoinData struct {
 
 func (s *Service) GetUpdateCoinsFromTxsJobChannel() chan []*models.Transaction {
 	return s.jobUpdateCoins
+}
+
+func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[string]struct{} {
+	return s.jobUpdateCoinsFromMap
 }
 
 func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transaction) ([]*models.Coin, error) {
@@ -146,6 +152,12 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				coinsMap[txData.CoinToSell] = struct{}{}
 			}
 		}
+		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap
+	}
+}
+
+func (s Service) UpdateCoinsInfoFromCoinsMap(job <-chan map[string]struct{}) {
+	for coinsMap := range job {
 		delete(coinsMap, s.env.BaseCoin)
 		if len(coinsMap) > 0 {
 			coinsForUpdate := make([]string, len(coinsMap))
