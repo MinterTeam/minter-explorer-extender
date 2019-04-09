@@ -126,36 +126,24 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				if err != nil {
 					s.logger.Error(err)
 				}
-				if txData.CoinToBuy != s.env.BaseCoin {
-					coinsMap[txData.CoinToBuy] = struct{}{}
-				}
-				if txData.CoinToSell != s.env.BaseCoin {
-					coinsMap[txData.CoinToSell] = struct{}{}
-				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			case models.TxTypeBuyCoin:
 				var txData models.BuyCoinTxData
 				err := json.Unmarshal(tx.Data, &txData)
 				if err != nil {
 					s.logger.Error(err)
 				}
-				if txData.CoinToBuy != s.env.BaseCoin {
-					coinsMap[txData.CoinToBuy] = struct{}{}
-				}
-				if txData.CoinToSell != s.env.BaseCoin {
-					coinsMap[txData.CoinToSell] = struct{}{}
-				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			case models.TxTypeSellAllCoin:
 				var txData models.SellAllCoinTxData
 				err := json.Unmarshal(tx.Data, &txData)
 				if err != nil {
 					s.logger.Error(err)
 				}
-				if txData.CoinToBuy != s.env.BaseCoin {
-					coinsMap[txData.CoinToBuy] = struct{}{}
-				}
-				if txData.CoinToSell != s.env.BaseCoin {
-					coinsMap[txData.CoinToSell] = struct{}{}
-				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			case models.TxTypeMultiSend:
 				var txData models.MultiSendTxData
 				err := json.Unmarshal(tx.Data, &txData)
@@ -163,12 +151,11 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 					s.logger.Error(err)
 				}
 				for _, receiver := range txData.List {
-					if receiver.Coin != s.env.BaseCoin {
-						coinsMap[receiver.Coin] = struct{}{}
-					}
+					coinsMap[receiver.Coin] = struct{}{}
 				}
 			}
 		}
+		delete(coinsMap, s.env.BaseCoin)
 		if len(coinsMap) > 0 {
 			coinsForUpdate := make([]string, len(coinsMap))
 			i := 0
