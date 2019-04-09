@@ -122,9 +122,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				s.logger.Error(err)
 				continue
 			}
-			if symbol != s.env.BaseCoin {
-				coinsMap[symbol] = struct{}{}
-			}
+			coinsMap[symbol] = struct{}{}
 			switch tx.Type {
 			case models.TxTypeSellCoin:
 				var txData models.SellCoinTxData
