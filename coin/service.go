@@ -144,15 +144,6 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				}
 				coinsMap[txData.CoinToBuy] = struct{}{}
 				coinsMap[txData.CoinToSell] = struct{}{}
-			case models.TxTypeMultiSend:
-				var txData models.MultiSendTxData
-				err := json.Unmarshal(tx.Data, &txData)
-				if err != nil {
-					s.logger.Error(err)
-				}
-				for _, receiver := range txData.List {
-					coinsMap[receiver.Coin] = struct{}{}
-				}
 			}
 		}
 		delete(coinsMap, s.env.BaseCoin)
