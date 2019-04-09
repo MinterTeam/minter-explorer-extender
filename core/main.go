@@ -215,8 +215,7 @@ func (ext *Extender) runWorkers() {
 	}
 
 	//Coins
-	//TODO: move to own service if needed
-	go ext.coinService.UpdateAllCoinsInfoWorker()
+	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) {
