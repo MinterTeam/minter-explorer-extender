@@ -16,17 +16,20 @@ type Service struct {
 	validatorRepository *validator.Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
+	coinService         *coin.Service
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository, addressRepository *address.Repository, coinRepository *coin.Repository) *Service {
+func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
+	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
 		validatorRepository: validatorRepository,
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
+		coinService:         coinService,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 	}
@@ -35,8 +38,9 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, validat
 //Handle response and save block to DB
 func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.EventsResponse) error {
 	var (
-		rewards []*models.Reward
-		slashes []*models.Slash
+		rewards           []*models.Reward
+		slashes           []*models.Slash
+		coinsForUpdateMap = make(map[string]struct{})
 	)
 
 	for _, event := range response.Result.Events {
@@ -69,6 +73,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			})
 
 		case models.SlashEvent:
+			coinsForUpdateMap[event.Value.Coin] = struct{}{}
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
 			if err != nil {
 				return err
@@ -82,6 +87,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 				ValidatorID: validatorId,
 			})
 		}
+	}
+
+	if len(coinsForUpdateMap) > 0 {
+		s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsForUpdateMap
 	}
 
 	if len(rewards) > 0 {

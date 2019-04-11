@@ -92,6 +92,7 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 
 	if len(txList) > 0 {
 		s.GetSaveTxJobChannel() <- txList
+		s.coinService.GetUpdateCoinsFromTxsJobChannel() <- txList
 	}
 
 	if len(invalidTxList) > 0 {
