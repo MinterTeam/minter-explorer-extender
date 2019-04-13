@@ -99,14 +99,13 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 		balances, err := s.HandleBalanceResponse(response)
 		if err != nil {
 			s.logger.Error(err)
+		} else {
+			result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
+			go s.broadcastService.PublishBalances(balances)
 		}
-		helpers.HandleError(err)
-		result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
-		go s.broadcastService.PublishBalances(balances)
 	}
 }
 
@@ -116,7 +115,6 @@ func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 	}
 }
 
