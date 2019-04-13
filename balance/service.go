@@ -98,6 +98,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		response, err := s.nodeApi.GetAddresses(addresses, blockAddresses.Height)
 		if err != nil {
 			s.logger.Error(err)
+			continue
 		}
 		balances, err := s.HandleBalanceResponse(response)
 		if err != nil {
