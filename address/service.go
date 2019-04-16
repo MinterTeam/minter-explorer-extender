@@ -2,12 +2,11 @@ package address
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/MinterTeam/minter-go-node/core/check"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
@@ -57,46 +56,15 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 		if tx.Type == models.TxTypeSend {
-			var txData models.SendTxData
-			jsonData, err := json.Marshal(*tx.Data)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
-			}
-			err = json.Unmarshal(jsonData, &txData)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
-			}
-			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
+			mapAddresses[helpers.RemovePrefix(tx.RawData.(models.SendTxData).To)] = struct{}{}
 		}
 		if tx.Type == models.TxTypeMultiSend {
-			var txData models.MultiSendTxData
-			jsonData, err := json.Marshal(*tx.Data)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
-			}
-			err = json.Unmarshal(jsonData, &txData)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
-			}
-			for _, receiver := range txData.List {
+			for _, receiver := range tx.RawData.(models.MultiSendTxData).List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
 		}
 		if tx.Type == models.TxTypeRedeemCheck {
-			var txData models.RedeemCheckTxData
-			decoded, err := base64.StdEncoding.DecodeString(txData.RawCheck)
+			decoded, err := base64.StdEncoding.DecodeString(tx.RawData.(models.RedeemCheckTxData).RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,

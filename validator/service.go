@@ -5,15 +5,15 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )
 
 type Service struct {
-	nodeApi             *minter_node_api.MinterNodeApi
+	nodeApi             *minter_node_go_api.MinterNodeApi
 	repository          *Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
@@ -22,7 +22,7 @@ type Service struct {
 	logger              *logrus.Entry
 }
 
-func NewService(nodeApi *minter_node_api.MinterNodeApi, repository *Repository, addressRepository *address.Repository,
+func NewService(nodeApi *minter_node_go_api.MinterNodeApi, repository *Repository, addressRepository *address.Repository,
 	coinRepository *coin.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		nodeApi:             nodeApi,
@@ -49,7 +49,6 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 
 		if len(resp.Result) > 0 {
 			var (
@@ -113,12 +112,10 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			if err != nil {
 				s.logger.Error(err)
 			}
-			helpers.HandleError(err)
 			err = s.repository.UpdateAll(validators)
 			if err != nil {
 				s.logger.Error(err)
 			}
-			helpers.HandleError(err)
 		}
 	}
 }
@@ -129,7 +126,6 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 		var (
 			stakes       []*models.Stake
 			validatorIds = make([]uint64, len(resp.Result))
@@ -188,12 +184,10 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 		err = s.repository.SaveAllStakes(stakes)
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 	}
 }
 

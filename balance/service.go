@@ -6,8 +6,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
@@ -15,7 +15,7 @@ import (
 
 type Service struct {
 	env                    *models.ExtenderEnvironment
-	nodeApi                *minter_node_api.MinterNodeApi
+	nodeApi                *minter_node_go_api.MinterNodeApi
 	repository             *Repository
 	addressRepository      *address.Repository
 	coinRepository         *coin.Repository
@@ -30,7 +30,7 @@ type Service struct {
 type AddressesBalancesContainer struct {
 	Addresses         []string
 	Balances          []*models.Balance
-	nodeApi           *minter_node_api.MinterNodeApi
+	nodeApi           *minter_node_go_api.MinterNodeApi
 	repository        *Repository
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
@@ -38,7 +38,7 @@ type AddressesBalancesContainer struct {
 	broadcastService  *broadcast.Service
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi *minter_node_api.MinterNodeApi,
+func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi *minter_node_go_api.MinterNodeApi,
 	addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry) *Service {
 	return &Service{
@@ -116,7 +116,6 @@ func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 	}
 }
 
