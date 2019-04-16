@@ -6,7 +6,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"math"
 )
 

@@ -1,13 +1,12 @@
 package coin
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
@@ -15,7 +14,7 @@ import (
 
 type Service struct {
 	env                   *models.ExtenderEnvironment
-	nodeApi               *minter_node_api.MinterNodeApi
+	nodeApi               *minter_node_go_api.MinterNodeApi
 	repository            *Repository
 	addressRepository     *address.Repository
 	logger                *logrus.Entry
@@ -23,7 +22,7 @@ type Service struct {
 	jobUpdateCoinsFromMap chan map[string]struct{}
 }
 
-func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_api.MinterNodeApi, repository *Repository,
+func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_go_api.MinterNodeApi, repository *Repository,
 	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
@@ -72,17 +71,7 @@ func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) 
 		s.logger.Warn("empty transaction data")
 		return nil, errors.New("no data for creating a coin")
 	}
-	var txData models.CreateCoinTxData
-	jsonData, err := json.Marshal(*tx.Data)
-	if err != nil {
-		s.logger.Error(err)
-		return nil, err
-	}
-	err = json.Unmarshal(jsonData, &txData)
-	if err != nil {
-		s.logger.Error(err)
-		return nil, err
-	}
+	txData := tx.IData.(models.CreateCoinTxData)
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		s.logger.Error(err)
@@ -125,29 +114,14 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 			coinsMap[symbol] = struct{}{}
 			switch tx.Type {
 			case models.TxTypeSellCoin:
-				var txData models.SellCoinTxData
-				err := json.Unmarshal(tx.Data, &txData)
-				if err != nil {
-					s.logger.Error(err)
-				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.SellCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.SellCoinTxData).CoinToSell] = struct{}{}
 			case models.TxTypeBuyCoin:
-				var txData models.BuyCoinTxData
-				err := json.Unmarshal(tx.Data, &txData)
-				if err != nil {
-					s.logger.Error(err)
-				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToSell] = struct{}{}
 			case models.TxTypeSellAllCoin:
-				var txData models.SellAllCoinTxData
-				err := json.Unmarshal(tx.Data, &txData)
-				if err != nil {
-					s.logger.Error(err)
-				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToSell] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap

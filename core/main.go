@@ -11,8 +11,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/go-pg/pg"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -25,7 +25,7 @@ const ChasingModDiff = 2
 
 type Extender struct {
 	env                 *models.ExtenderEnvironment
-	nodeApi             *minter_node_api.MinterNodeApi
+	nodeApi             *minter_node_go_api.MinterNodeApi
 	blockService        *block.Service
 	addressService      *address.Service
 	blockRepository     *block.Repository
@@ -87,7 +87,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 	}
 
 	//api
-	nodeApi := minter_node_api.New(env.NodeApi)
+	nodeApi := minter_node_go_api.New(env.NodeApi)
 
 	// Repositories
 	blockRepository := block.NewRepository(db)

@@ -11,7 +11,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/daniildulin/minter-node-api/responses"
+	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
@@ -178,32 +178,23 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			continue
 		}
 		if tx.Type == models.TxTypeSend {
-			var txData models.SendTxData
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				return err
-			}
-			if txData.To == "" {
+			if tx.IData.(models.SendTxData).To == "" {
 				return errors.New("empty receiver of transaction")
 			}
-			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(txData.To))
+
+			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.IData.(models.SendTxData).To))
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(txData.Coin)
+			coinID, err := s.coinRepository.FindIdBySymbol(tx.IData.(models.SendTxData).Coin)
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         txData.Value,
+				Value:         tx.IData.(models.SendTxData).Value,
 			})
 		}
 		if tx.Type == models.TxTypeMultiSend {
-			var txData models.MultiSendTxData
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				return err
-			}
-			for _, receiver := range txData.List {
+			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
 				toId, err := s.addressRepository.FindId(helpers.RemovePrefix(receiver.To))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
@@ -250,10 +241,6 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 	if err != nil {
 		return nil, err
 	}
-	txData, err := json.Marshal(*tx.Data)
-	if err != nil {
-		return nil, err
-	}
 	payload, err := base64.StdEncoding.DecodeString(tx.Payload)
 	if err != nil {
 		return nil, err
@@ -274,7 +261,8 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 		Type:          tx.Type,
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		ServiceData:   tx.ServiceData,
-		Data:          txData,
+		Data:          tx.Data,
+		IData:         tx.IData,
 		Tags:          *tx.Tags,
 		Payload:       payload,
 		RawTx:         rawTxData[:rawTx],
@@ -309,38 +297,20 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		if tx.ID == 0 {
 			return nil, errors.New("no transaction id")
 		}
-		var (
-			err         error
-			validatorPk string
-		)
+		var validatorPk string
 		switch tx.Type {
 		case models.TxTypeDeclareCandidacy:
-			var txData models.DeclareCandidacyTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
+			validatorPk = tx.IData.(models.DeclareCandidacyTxData).PubKey
 		case models.TxTypeDelegate:
-			var txData models.DelegateTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
+			validatorPk = tx.IData.(models.DelegateTxData).PubKey
 		case models.TxTypeUnbound:
-			var txData models.UnbondTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
+			validatorPk = tx.IData.(models.UnbondTxData).PubKey
 		case models.TxTypeSetCandidateOnline:
-			var txData models.SetCandidateTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
+			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
 		case models.TxTypeSetCandidateOffline:
-			var txData models.SetCandidateTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
+			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
 		case models.TxTypeEditCandidate:
-			var txData models.EditCandidateTxData
-			err = json.Unmarshal(tx.Data, &txData)
-			validatorPk = txData.PubKey
-		}
-		if err != nil {
-			return nil, err
+			validatorPk = tx.IData.(models.EditCandidateTxData).PubKey
 		}
 
 		if validatorPk != "" {
