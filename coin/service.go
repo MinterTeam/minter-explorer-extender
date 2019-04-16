@@ -71,7 +71,7 @@ func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) 
 		s.logger.Warn("empty transaction data")
 		return nil, errors.New("no data for creating a coin")
 	}
-	txData := tx.RawData.(models.CreateCoinTxData)
+	txData := tx.IData.(models.CreateCoinTxData)
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		s.logger.Error(err)
@@ -114,14 +114,14 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 			coinsMap[symbol] = struct{}{}
 			switch tx.Type {
 			case models.TxTypeSellCoin:
-				coinsMap[tx.RawData.(models.SellCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.RawData.(models.SellCoinTxData).CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.SellCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.SellCoinTxData).CoinToSell] = struct{}{}
 			case models.TxTypeBuyCoin:
-				coinsMap[tx.RawData.(models.BuyCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.RawData.(models.BuyCoinTxData).CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToSell] = struct{}{}
 			case models.TxTypeSellAllCoin:
-				coinsMap[tx.RawData.(models.SellAllCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.RawData.(models.SellAllCoinTxData).CoinToSell] = struct{}{}
+				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToBuy] = struct{}{}
+				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToSell] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap

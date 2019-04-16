@@ -4,7 +4,7 @@
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-explorer-tools"
-  version = "2.0.2"
+  version = "2.0.3"
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-go-node"
@@ -16,7 +16,7 @@
 
 [[constraint]]
   name = "github.com/MinterTeam/minter-node-go-api"
-  version = "1.0.1"
+  version = "1.0.2"
 
 [[constraint]]
   name = "github.com/go-pg/pg"

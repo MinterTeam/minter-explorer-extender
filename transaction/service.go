@@ -178,23 +178,23 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			continue
 		}
 		if tx.Type == models.TxTypeSend {
-			if tx.RawData.(models.SendTxData).To == "" {
+			if tx.IData.(models.SendTxData).To == "" {
 				return errors.New("empty receiver of transaction")
 			}
 
-			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.RawData.(models.SendTxData).To))
+			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.IData.(models.SendTxData).To))
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(tx.RawData.(models.SendTxData).Coin)
+			coinID, err := s.coinRepository.FindIdBySymbol(tx.IData.(models.SendTxData).Coin)
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         tx.RawData.(models.SendTxData).Value,
+				Value:         tx.IData.(models.SendTxData).Value,
 			})
 		}
 		if tx.Type == models.TxTypeMultiSend {
-			for _, receiver := range tx.RawData.(models.MultiSendTxData).List {
+			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
 				toId, err := s.addressRepository.FindId(helpers.RemovePrefix(receiver.To))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
@@ -262,7 +262,7 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		ServiceData:   tx.ServiceData,
 		Data:          tx.Data,
-		RawData:       tx.RawData,
+		IData:         tx.IData,
 		Tags:          *tx.Tags,
 		Payload:       payload,
 		RawTx:         rawTxData[:rawTx],
@@ -300,17 +300,17 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		var validatorPk string
 		switch tx.Type {
 		case models.TxTypeDeclareCandidacy:
-			validatorPk = tx.RawData.(models.DeclareCandidacyTxData).PubKey
+			validatorPk = tx.IData.(models.DeclareCandidacyTxData).PubKey
 		case models.TxTypeDelegate:
-			validatorPk = tx.RawData.(models.DelegateTxData).PubKey
+			validatorPk = tx.IData.(models.DelegateTxData).PubKey
 		case models.TxTypeUnbound:
-			validatorPk = tx.RawData.(models.UnbondTxData).PubKey
+			validatorPk = tx.IData.(models.UnbondTxData).PubKey
 		case models.TxTypeSetCandidateOnline:
-			validatorPk = tx.RawData.(models.SetCandidateTxData).PubKey
+			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
 		case models.TxTypeSetCandidateOffline:
-			validatorPk = tx.RawData.(models.SetCandidateTxData).PubKey
+			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
 		case models.TxTypeEditCandidate:
-			validatorPk = tx.RawData.(models.EditCandidateTxData).PubKey
+			validatorPk = tx.IData.(models.EditCandidateTxData).PubKey
 		}
 
 		if validatorPk != "" {

@@ -56,15 +56,15 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Tran
 		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 		if tx.Type == models.TxTypeSend {
-			mapAddresses[helpers.RemovePrefix(tx.RawData.(models.SendTxData).To)] = struct{}{}
+			mapAddresses[helpers.RemovePrefix(tx.IData.(models.SendTxData).To)] = struct{}{}
 		}
 		if tx.Type == models.TxTypeMultiSend {
-			for _, receiver := range tx.RawData.(models.MultiSendTxData).List {
+			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
 		}
 		if tx.Type == models.TxTypeRedeemCheck {
-			decoded, err := base64.StdEncoding.DecodeString(tx.RawData.(models.RedeemCheckTxData).RawCheck)
+			decoded, err := base64.StdEncoding.DecodeString(tx.IData.(models.RedeemCheckTxData).RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,

@@ -18,15 +18,15 @@
   version = "v1.1.4"
 
 [[projects]]
-  digest = "1:601d310aa8b26deffa82cec965f01ddc5f66cacd438ea9616500b5d54113966a"
+  digest = "1:abb53a541a68e742879e8ad1d6ddb2b41f325920a55f069b6edea45223adaecc"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "df5e2e7566ed63bcd27120ad7c704fb5408b9e56"
-  version = "v2.0.2"
+  revision = "a8e1fd607ea026f0dc1fb4af6905cd5b74434076"
+  version = "v2.0.3"
 
 [[projects]]
   digest = "1:00ee81331f08036600b9f637d73b3280c676babed9e40f3bce80591446c123ee"
@@ -45,15 +45,15 @@
   version = "v0.15.2"
 
 [[projects]]
-  digest = "1:342b32954146198e2fccdc335d9a513477f3a08e1d5fa7e2e9ef5fabb0ad636d"
+  digest = "1:809e5a0a256130b9c37a7f1de43474a19e101ad7eafb7a8d346a3292acd3bb9a"
   name = "github.com/MinterTeam/minter-node-go-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "65c2fa571d6bb08e114b65e9d2244c43169f5830"
-  version = "v1.0.1"
+  revision = "3795573995c11d435f3efb31bfe8018393e402cc"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
@@ -234,11 +234,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5e412e2a03bd0cfdb102db97212be2e625df74fa8b2d4a8a51f107b1456e256b"
+  digest = "1:49b09905e781d7775c086604cc00083e1832d0783f1f421b79f42657c457d029"
   name = "github.com/prometheus/procfs"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e22ddced71425e65e388b17b7d0289c5ea77d06e"
+  revision = "8368d24ba045f26503eb745b624d930cbe214c79"
 
 [[projects]]
   digest = "1:fd61cf4ae1953d55df708acb6b91492d538f49c305b364a014049914495db426"
