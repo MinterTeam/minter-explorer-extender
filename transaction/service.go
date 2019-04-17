@@ -229,10 +229,6 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 	if err != nil {
 		return nil, err
 	}
-	gasPrice, err := strconv.ParseUint(tx.GasPrice, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	gas, err := strconv.ParseUint(tx.Gas, 10, 64)
 	if err != nil {
 		return nil, err
@@ -254,7 +250,7 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 		FromAddressID: fromId,
 		BlockID:       blockHeight,
 		Nonce:         nonce,
-		GasPrice:      gasPrice,
+		GasPrice:      uint64(tx.GasPrice),
 		Gas:           gas,
 		GasCoinID:     gasCoin,
 		CreatedAt:     blockCreatedAt,
