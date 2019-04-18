@@ -54,15 +54,15 @@
   version = "v0.19.0"
 
 [[projects]]
-  digest = "1:c53d546fd9b91f4f0a25492a33c3d68d681f56f709b9d45550ac6871c5d890b6"
+  digest = "1:6a629a0a6e509a26746d9f5be8d1c10ea37b8f15a9d1ee2adde791dcc270427f"
   name = "github.com/MinterTeam/minter-node-go-api"
   packages = [
     ".",
     "responses",
   ]
   pruneopts = "UT"
-  revision = "aeda42897638fb578398d2df7958cdcb47fe699b"
-  version = "v1.2.1"
+  revision = "1be8ab9cefe54ea611d356435f62d7ed73a6c849"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"

@@ -11,10 +11,24 @@
 
 The official repository of Minter Explorer Extender service.
 
+Extender is a service responsible for seeding the database from the blockchain network. Part of the Minter Explorer service.
+
 _NOTE: This project in active development stage so feel free to send us questions, issues, and wishes_
 
+<p align="center" background="black"><img src="minter-explorer.jpeg" width="400"></p>
+
+## BUILD
+
+- dep ensure
+
+- replace Minter Node in vendor directory ```cd vendor/github.com/MinterTeam && rm -rf minter-go-node && git clone https://github.com/MinterTeam/minter-go-node.git```
+
+- make build
 
 ## RUN
+
+If you run Extender for the first time yoг need to run  [Explorer Genesis Uploader](https://github.com/MinterTeam/explorer-genesis-uploader)
+to fill data from genesis file (you can use the same config file for both services)
 
 ./extender -config=/etc/minter/config.json
 
