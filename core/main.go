@@ -242,7 +242,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	}
 	helpers.HandleError(err)
 
-	ext.linkBlockValidator(response)
+	ext.linkBlockValidator(*response)
 
 	if response.Result.TxCount != "0" {
 		ext.handleTransactions(response, validators)
@@ -308,7 +308,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 	}
 }
 
-func (ext *Extender) linkBlockValidator(response *responses.BlockResponse) {
+func (ext *Extender) linkBlockValidator(response responses.BlockResponse) {
 	var links []*models.BlockValidator
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	if err != nil {
