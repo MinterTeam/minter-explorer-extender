@@ -81,23 +81,23 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 				id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PubKey))
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				commission, err := strconv.ParseUint(validator.Commission, 10, 64)
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
 				if err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				helpers.HandleError(err)
 				validators[i] = &models.Validator{
 					ID:              id,
 					Status:          &status,
@@ -157,8 +157,8 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PubKey))
 			if err != nil {
 				s.logger.Error(err)
+				continue
 			}
-			helpers.HandleError(err)
 			validatorIds[i] = id
 			for _, stake := range vlr.Stakes {
 				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(stake.Owner))
