@@ -7,6 +7,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
 	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/sirupsen/logrus"
 	"math"
 )
 
@@ -19,10 +20,12 @@ type Service struct {
 	coinService         *coin.Service
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
+	logger              *logrus.Entry
 }
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
-	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service) *Service {
+	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -32,6 +35,7 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, validat
 		coinService:         coinService,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
+		logger:              logger,
 	}
 }
 
@@ -47,18 +51,30 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 		if event.Type == "minter/CoinLiquidationEvent" {
 			err := s.coinRepository.DeleteBySymbol(event.Value.Coin)
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"coin": event.Value.Coin,
+				}).Error(err)
 				return err
 			}
+			continue
+		}
+		if event.Type == "minter/UnbondEvent" {
 			continue
 		}
 
 		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value.Address))
 		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"address": event.Value.Address,
+			}).Error(err)
 			return err
 		}
 
 		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value.ValidatorPubKey))
 		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"public_key": event.Value.ValidatorPubKey,
+			}).Error(err)
 			return err
 		}
 
@@ -76,6 +92,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			coinsForUpdateMap[event.Value.Coin] = struct{}{}
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
 			if err != nil {
+				s.logger.Error(err)
 				return err
 			}
 
