@@ -107,7 +107,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService),
+		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, contextLogger),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger),
