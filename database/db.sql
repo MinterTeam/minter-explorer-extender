@@ -1220,15 +1220,6 @@ ALTER TABLE ONLY public.block_validator
 ALTER TABLE ONLY public.block_validator
     ADD CONSTRAINT block_validator_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
-
---
--- Name: blocks_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
---
-
-ALTER TABLE ONLY public.blocks
-    ADD CONSTRAINT blocks_validators_id_fk FOREIGN KEY (proposer_validator_id) REFERENCES public.validators (id);
-
-
 --
 -- Name: coins_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
 --

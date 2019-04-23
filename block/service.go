@@ -43,8 +43,15 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 	helpers.HandleError(err)
 	size, err := strconv.ParseUint(response.Result.Size, 10, 64)
 	helpers.HandleError(err)
-	proposerId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Result.Proposer))
-	helpers.HandleError(err)
+
+	var proposerId uint64
+	if response.Result.Proposer != "" {
+		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Result.Proposer))
+		helpers.HandleError(err)
+	} else {
+		proposerId = 1
+	}
+
 	block := &models.Block{
 		ID:                  height,
 		TotalTxs:            totalTx,
