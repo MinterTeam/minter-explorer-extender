@@ -112,19 +112,21 @@ func (r *Repository) Update(validator *models.Validator) error {
 }
 
 func (r Repository) DeleteStakesNotInListIds(idList []uint64) error {
-	if len(idList) <= 0 {
-		return nil
+	if len(idList) > 0 {
+		_, err := r.db.Query(nil, `delete from stakes where id not in (?);`, pg.In(idList))
+		return err
+
 	}
-	_, err := r.db.Query(nil, `delete from stakes where id not in (?);`, pg.In(idList))
-	return err
+	return nil
 }
 
 func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
-	if len(idList) <= 0 {
-		return nil
+	if len(idList) > 0 {
+		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
+		return err
+
 	}
-	_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
-	return err
+	return nil
 }
 
 func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
