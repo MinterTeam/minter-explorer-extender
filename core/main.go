@@ -159,8 +159,8 @@ func (ext *Extender) Run() {
 		}
 		helpers.HandleError(err)
 
-		ext.handleCoinsFromTransactions(blockResponse.Result.Transactions)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
+		ext.handleCoinsFromTransactions(blockResponse.Result.Transactions)
 		ext.handleBlockResponse(blockResponse)
 
 		go ext.handleEventResponse(height, eventsResponse)
