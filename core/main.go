@@ -244,7 +244,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 
 	ext.linkBlockValidator(*response)
 
-	if response.Result.TxCount != "0" {
+	if response.Result.TxCount != "0" && len(validators) > 0 {
 		ext.handleTransactions(response, validators)
 	}
 
@@ -258,7 +258,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 	// Candidate will be updated in the next iteration
 	if height%12 == 0 {
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
-	} else {
+	} else if height > 1 {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
 	}
 }
@@ -309,6 +309,9 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *responses
 }
 
 func (ext *Extender) linkBlockValidator(response responses.BlockResponse) {
+	if response.Result.Height == "1" {
+		return
+	}
 	var links []*models.BlockValidator
 	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
 	if err != nil {
