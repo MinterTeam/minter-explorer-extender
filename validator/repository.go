@@ -111,6 +111,14 @@ func (r *Repository) Update(validator *models.Validator) error {
 	return r.db.Update(validator)
 }
 
+func (r Repository) DeleteStakesNotInListIds(idList []uint64) error {
+	if len(idList) <= 0 {
+		return nil
+	}
+	_, err := r.db.Query(nil, `delete from stakes where id not in (?);`, pg.In(idList))
+	return err
+}
+
 func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 	if len(idList) <= 0 {
 		return nil
@@ -120,15 +128,8 @@ func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 }
 
 func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
-	var args []interface{}
-	for _, stake := range stakes {
-		args = append(args, stake)
-	}
-	// if all addresses do nothing
-	if len(args) == 0 {
-		return nil
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&stakes).OnConflict("(owner_address_id, validator_id, coin_id) DO UPDATE").Insert()
+	return err
 }
 
 func (r *Repository) addToCache(validators []*models.Validator) {

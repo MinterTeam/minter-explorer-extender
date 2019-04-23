@@ -180,11 +180,17 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 				})
 			}
 		}
-		err = s.repository.DeleteStakesByValidatorIds(validatorIds)
+
+		err = s.repository.SaveAllStakes(stakes)
 		if err != nil {
 			s.logger.Error(err)
+			panic(err)
 		}
-		err = s.repository.SaveAllStakes(stakes)
+		stakesId := make([]uint64, len(stakes))
+		for i, stake := range stakes {
+			stakesId[i] = stake.ID
+		}
+		err = s.repository.DeleteStakesNotInListIds(stakesId)
 		if err != nil {
 			s.logger.Error(err)
 		}
