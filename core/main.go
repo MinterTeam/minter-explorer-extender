@@ -109,7 +109,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
 		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, contextLogger),
 		blockRepository:     blockRepository,
-		validatorService:    validator.NewService(nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger),
+		validatorService:    validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger),
 		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
 		validatorRepository: validatorRepository,
@@ -244,6 +244,7 @@ func (ext *Extender) handleBlockResponse(response *responses.BlockResponse) {
 
 	ext.linkBlockValidator(*response)
 
+	//first block don't have validators
 	if response.Result.TxCount != "0" && len(validators) > 0 {
 		ext.handleTransactions(response, validators)
 	}

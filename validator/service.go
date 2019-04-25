@@ -8,11 +8,13 @@ import (
 	"github.com/MinterTeam/minter-node-go-api"
 	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
+	"math"
 	"strconv"
 	"time"
 )
 
 type Service struct {
+	env                 *models.ExtenderEnvironment
 	nodeApi             *minter_node_go_api.MinterNodeApi
 	repository          *Repository
 	addressRepository   *address.Repository
@@ -22,9 +24,10 @@ type Service struct {
 	logger              *logrus.Entry
 }
 
-func NewService(nodeApi *minter_node_go_api.MinterNodeApi, repository *Repository, addressRepository *address.Repository,
-	coinRepository *coin.Repository, logger *logrus.Entry) *Service {
+func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_go_api.MinterNodeApi, repository *Repository,
+	addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
 	return &Service{
+		env:                 env,
 		nodeApi:             nodeApi,
 		repository:          repository,
 		addressRepository:   addressRepository,
@@ -181,11 +184,20 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			}
 		}
 
-		err = s.repository.SaveAllStakes(stakes)
-		if err != nil {
-			s.logger.Error(err)
-			panic(err)
+		chunksCount := int(math.Ceil(float64(len(stakes)) / float64(s.env.StakeChunkSize)))
+		for i := 0; i < chunksCount; i++ {
+			start := s.env.StakeChunkSize * i
+			end := start + s.env.StakeChunkSize
+			if end > len(stakes) {
+				end = len(stakes)
+			}
+			err = s.repository.SaveAllStakes(stakes[start:end])
+			if err != nil {
+				s.logger.Error(err)
+				panic(err)
+			}
 		}
+
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = stake.ID
