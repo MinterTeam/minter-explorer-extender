@@ -19,6 +19,7 @@ func New() *models.ExtenderEnvironment {
 	nodeApi := flag.String("node_api", "", "DB password")
 	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
 	eventsChunkSize := flag.Int("event_chunk_size", 100, "Events chunk size")
+	stakeChunkSize := flag.Int("stake_chunk_size", 100, "Stake chunk size")
 	configFile := flag.String("config", "", "Env file")
 	apiHost := flag.String("api_host", "", "API host")
 	apiPort := flag.Int("api_port", 8000, "API port")
@@ -81,6 +82,7 @@ func New() *models.ExtenderEnvironment {
 		envData.TxChunkSize = config.GetInt("app.txChunkSize")
 		envData.AddrChunkSize = config.GetInt("app.addrChunkSize")
 		envData.EventsChunkSize = config.GetInt("app.eventsChunkSize")
+		envData.StakeChunkSize = config.GetInt("app.stakeChunkSize")
 		envData.ApiHost = config.GetString("extenderApi.host")
 		envData.ApiPort = config.GetInt("extenderApi.port")
 		envData.WsLink = wsLink
@@ -108,6 +110,7 @@ func New() *models.ExtenderEnvironment {
 		envData.NodeApi = *nodeApi
 		envData.TxChunkSize = *txChunkSize
 		envData.EventsChunkSize = *eventsChunkSize
+		envData.StakeChunkSize = *stakeChunkSize
 		envData.ApiHost = *apiHost
 		envData.ApiPort = *apiPort
 		envData.WsLink = *wsLink
