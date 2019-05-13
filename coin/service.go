@@ -72,25 +72,30 @@ func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) 
 		return nil, errors.New("no data for creating a coin")
 	}
 	txData := tx.IData.(models.CreateCoinTxData)
-	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
-	if err != nil {
-		s.logger.Error(err)
-		return nil, err
-	}
+
 	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
 	if err != nil {
 		s.logger.Error(err)
 		return nil, err
 	}
-	return &models.Coin{
-		CreationAddressID: &fromId,
-		Crr:               crr,
-		Volume:            txData.InitialAmount,
-		ReserveBalance:    txData.InitialReserve,
-		Name:              txData.Name,
-		Symbol:            txData.Symbol,
-		DeletedAt:         nil,
-	}, nil
+
+	coin := &models.Coin{
+		Crr:            crr,
+		Volume:         txData.InitialAmount,
+		ReserveBalance: txData.InitialReserve,
+		Name:           txData.Name,
+		Symbol:         txData.Symbol,
+		DeletedAt:      nil,
+	}
+
+	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
+	if err != nil {
+		s.logger.Error(err)
+	} else {
+		coin.CreationAddressID = &fromId
+	}
+
+	return coin, nil
 }
 
 func (s *Service) CreateNewCoins(coins []*models.Coin) error {
