@@ -68,7 +68,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "1.0",
+		"version": "2.1.0",
 		"app":     "Minter Explorer Extender",
 	})
 
@@ -77,8 +77,6 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		User:            env.DbUser,
 		Password:        env.DbPassword,
 		Database:        env.DbName,
-		PoolSize:        env.DbPoolSize,
-		MinIdleConns:    env.DbMinIdleConns,
 		ApplicationName: env.AppName,
 	})
 
@@ -159,8 +157,8 @@ func (ext *Extender) Run() {
 		}
 		helpers.HandleError(err)
 
-		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleCoinsFromTransactions(blockResponse.Result.Transactions)
+		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
 
 		go ext.handleEventResponse(height, eventsResponse)

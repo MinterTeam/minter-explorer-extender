@@ -43,6 +43,7 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 			s.logger.Error(err)
 		}
 		helpers.HandleError(err)
+
 		s.wgAddresses.Done()
 	}
 }
