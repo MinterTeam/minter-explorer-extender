@@ -105,7 +105,7 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, contextLogger),
+		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, balanceRepository, contextLogger),
 		blockRepository:     blockRepository,
 		validatorService:    validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger),
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger),
@@ -120,7 +120,13 @@ func NewExtender(env *models.ExtenderEnvironment) *Extender {
 }
 
 func (ext *Extender) Run() {
-	err := ext.blockRepository.DeleteLastBlockData()
+	//check connections to node
+	_, err := ext.nodeApi.GetStatus()
+	if err == nil {
+		err = ext.blockRepository.DeleteLastBlockData()
+	} else {
+		ext.logger.Error(err)
+	}
 	helpers.HandleError(err)
 
 	var height uint64
@@ -136,8 +142,6 @@ func (ext *Extender) Run() {
 	} else {
 		height = 1
 	}
-
-	helpers.HandleError(err)
 
 	for {
 		start := time.Now()

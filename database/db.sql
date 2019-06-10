@@ -1429,4 +1429,4 @@ GRANT ALL ON SCHEMA public TO minter;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 INSERT INTO explorer.public.coins (symbol)
-VALUES ('MNT');
+VALUES ('BIP');

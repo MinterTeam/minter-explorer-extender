@@ -2,6 +2,7 @@ package events
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
+	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
@@ -18,6 +19,7 @@ type Service struct {
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
 	coinService         *coin.Service
+	balanceRepository   *balance.Repository
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	logger              *logrus.Entry
@@ -25,7 +27,7 @@ type Service struct {
 
 func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	logger *logrus.Entry) *Service {
+	balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -33,6 +35,7 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, validat
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		coinService:         coinService,
+		balanceRepository:   balanceRepository,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 		logger:              logger,
@@ -49,7 +52,19 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 
 	for _, event := range response.Result.Events {
 		if event.Type == "minter/CoinLiquidationEvent" {
-			err := s.coinRepository.DeleteBySymbol(event.Value.Coin)
+
+			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
+
+			err = s.balanceRepository.DeleteByCoinId(coinId)
+
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"coin": event.Value.Coin,
+				}).Error(err)
+				return err
+			}
+
+			err = s.coinRepository.DeleteBySymbol(event.Value.Coin)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"coin": event.Value.Coin,
