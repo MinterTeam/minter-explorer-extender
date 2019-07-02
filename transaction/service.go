@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/validator"
 	"github.com/MinterTeam/minter-explorer-tools/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/models"
+	"github.com/MinterTeam/minter-go-node/core/check"
 	"github.com/MinterTeam/minter-node-go-api/responses"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -173,10 +174,10 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		if tx.ID == 0 {
 			return errors.New("no transaction id")
 		}
-		idsList = append(idsList, tx.ID)
-		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend {
+		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend && tx.Type != models.TxTypeRedeemCheck {
 			continue
 		}
+		idsList = append(idsList, tx.ID)
 		if tx.Type == models.TxTypeSend {
 			if tx.IData.(models.SendTxData).To == "" {
 				return errors.New("empty receiver of transaction")
@@ -207,7 +208,45 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				})
 			}
 		}
+		if tx.Type == models.TxTypeRedeemCheck {
+			decoded, err := base64.StdEncoding.DecodeString(tx.IData.(models.RedeemCheckTxData).RawCheck)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
+			}
+			data, err := check.DecodeFromBytes(decoded)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
+			}
+			sender, err := data.Sender()
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				continue
+			}
+
+			// We are put a creator of a check into "to" field
+			// because "from" field use for a person who created a transaction
+			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender.String()))
+			helpers.HandleError(err)
+			coinID, err := s.coinRepository.FindIdBySymbol(data.Coin.String())
+			helpers.HandleError(err)
+
+			list = append(list, &models.TransactionOutput{
+				TransactionID: tx.ID,
+				ToAddressID:   toId,
+				CoinID:        coinID,
+				Value:         data.Value.String(),
+			})
+		}
 	}
+
 	if len(list) > 0 {
 		err := s.txRepository.SaveAllTxOutputs(list)
 		helpers.HandleError(err)
