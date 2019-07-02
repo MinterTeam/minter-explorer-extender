@@ -231,6 +231,8 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				continue
 			}
 
+			// We are put a creator of a check into "to" field
+			// because "from" field use for a person who created a transaction
 			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender.String()))
 			helpers.HandleError(err)
 			coinID, err := s.coinRepository.FindIdBySymbol(data.Coin.String())
