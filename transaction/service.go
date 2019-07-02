@@ -174,10 +174,13 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		if tx.ID == 0 {
 			return errors.New("no transaction id")
 		}
+
+		idsList = append(idsList, tx.ID)
+
 		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend && tx.Type != models.TxTypeRedeemCheck {
 			continue
 		}
-		idsList = append(idsList, tx.ID)
+
 		if tx.Type == models.TxTypeSend {
 			if tx.IData.(models.SendTxData).To == "" {
 				return errors.New("empty receiver of transaction")
