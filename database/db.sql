@@ -365,6 +365,23 @@ CREATE TABLE public.rewards
 
 
 --
+-- Name: aggregated_rewards; Type: TABLE; Schema: public; Owner: minter
+--
+
+CREATE TABLE public.aggregated_rewards
+(
+  time_id       timestamp with time zone NOT NULL,
+  to_block_id   integer                  NOT NULL,
+  from_block_id integer                  NOT NULL,
+  address_id    bigint                   NOT NULL,
+  validator_id  integer                  NOT NULL,
+  role          public.rewards_role      NOT NULL,
+  amount        numeric(70, 0)           NOT NULL
+);
+
+
+
+--
 -- Name: slashes; Type: TABLE; Schema: public; Owner: minter
 --
 
@@ -1066,6 +1083,39 @@ CREATE INDEX rewards_validator_id_index ON public.rewards USING btree (validator
 
 
 --
+-- Name: aggregated_rewards_address_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX aggregated_rewards_address_id_index ON public.aggregated_rewards USING btree (address_id);
+
+
+
+--
+-- Name: aggregated_rewards_validator_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX aggregated_rewards_validator_id_index ON public.aggregated_rewards USING btree (validator_id);
+
+
+
+--
+-- Name: aggregated_rewards_time_id_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE INDEX aggregated_rewards_time_id_index ON public.aggregated_rewards USING btree (time_id);
+
+
+
+--
+-- Name: aggregated_rewards_from_block_id_address_id_validator_id_role_index; Type: INDEX; Schema: public; Owner: minter
+--
+
+CREATE UNIQUE INDEX aggregated_rewards_from_block_id_address_id_validator_id_role_index ON public.aggregated_rewards
+USING btree (from_block_id, address_id, validator_id, role);
+
+
+
+--
 -- Name: slashes_address_id_index; Type: INDEX; Schema: public; Owner: minter
 --
 
@@ -1273,6 +1323,38 @@ ALTER TABLE ONLY public.rewards
 
 ALTER TABLE ONLY public.rewards
     ADD CONSTRAINT rewards_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
+
+
+--
+-- Name: aggregated_rewards_addresses_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.aggregated_rewards
+  ADD CONSTRAINT aggregated_rewards_addresses_id_fk FOREIGN KEY (address_id) REFERENCES public.addresses (id);
+
+
+--
+-- Name: aggregated_rewards_from_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.aggregated_rewards
+  ADD CONSTRAINT aggregated_rewards_from_blocks_id_fk FOREIGN KEY (from_block_id) REFERENCES public.blocks (id);
+
+
+--
+-- Name: aggregated_rewards_to_blocks_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.aggregated_rewards
+  ADD CONSTRAINT aggregated_rewards_to_blocks_id_fk FOREIGN KEY (to_block_id) REFERENCES public.blocks (id);
+
+
+--
+-- Name: aggregated_rewards_validators_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: minter
+--
+
+ALTER TABLE ONLY public.aggregated_rewards
+  ADD CONSTRAINT aggregated_rewards_validators_id_fk FOREIGN KEY (validator_id) REFERENCES public.validators (id);
 
 
 --

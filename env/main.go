@@ -35,6 +35,8 @@ func New() *models.ExtenderEnvironment {
 	addrChunkSize := flag.Int("addr_chunk_size", 10, "Count of workers that save transaction-validator link")
 	wrkUpdateBalanceCount := flag.Int("wrk_upd_balances_count", 1, "Count of workers that update balance")
 	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node ")
+	rewardAggregateEveryBlocksCount := flag.Int("reward_aggregate_every_blocks_count", 60, "Every X block will be launched reward aggregation")
+	rewardAggregateTimeInterval := flag.String("reward_aggregate_time_interval", "hour", "Rewards aggregation time interval('hour' or 'day')")
 
 	flag.Parse()
 
@@ -97,6 +99,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
 		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
+		envData.RewardAggregateEveryBlocksCount = config.GetInt("workers.rewardAggregateBlocksCount")
+		envData.RewardAggregateTimeInterval = config.GetString("workers.rewardsAggregateTimeInterval")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
 	} else {
@@ -125,6 +129,8 @@ func New() *models.ExtenderEnvironment {
 		envData.AddrChunkSize = *addrChunkSize
 		envData.WrkUpdateBalanceCount = *wrkUpdateBalanceCount
 		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
+		envData.RewardAggregateEveryBlocksCount = *rewardAggregateEveryBlocksCount
+		envData.RewardAggregateTimeInterval = *rewardAggregateTimeInterval
 		envData.BaseCoin = *baseCoin
 		envData.CoinsUpdateTime = *coinsUpdateTime
 	}
