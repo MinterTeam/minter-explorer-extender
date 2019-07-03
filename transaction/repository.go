@@ -68,6 +68,21 @@ insert into index_transaction_by_address (block_id, address_id, transaction_id)
    where t.id in (?))
 ON CONFLICT DO NOTHING;
 	`, pg.In(txsId), pg.In(txsId))
+	return err
+}
 
+func (r Repository) IndexLastNTxAddress(txsNumber int) error {
+	_, err := r.db.Query(nil, `
+insert into index_transaction_by_address (block_id, address_id, transaction_id)
+    (select it.block_id, it.from_address_id, it.id
+     from transactions as it
+     where it.block_id > (select (id - ?) from blocks order by id desc limit 1)
+     union
+     select ot.block_id, touts.to_address_id, touts.transaction_id
+     from transaction_outputs touts
+            inner join transactions ot on touts.transaction_id = ot.id
+     where ot.block_id > (select (id - ?) from blocks order by id desc limit 1))
+ON CONFLICT DO NOTHING;
+	`, txsNumber, txsNumber)
 	return err
 }

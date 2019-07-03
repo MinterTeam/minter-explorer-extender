@@ -164,6 +164,17 @@ func (s *Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidat
 	}
 }
 
+func (s *Service) UpdateTxsIndexWorker() {
+	for {
+		err := s.txRepository.IndexLastNTxAddress(s.env.WrkUpdateTxsIndexNumTxs)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		helpers.HandleError(err)
+		time.Sleep(time.Duration(s.env.WrkUpdateTxsIndexTime) * time.Second)
+	}
+}
+
 func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	var (
 		list    []*models.TransactionOutput

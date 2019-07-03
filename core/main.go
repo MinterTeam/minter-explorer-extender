@@ -191,6 +191,7 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= ext.env.WrkSaveInvTxsCount; w++ {
 		go ext.transactionService.SaveInvalidTransactionsWorker(ext.transactionService.GetSaveInvalidTxsJobChannel())
 	}
+	go ext.transactionService.UpdateTxsIndexWorker()
 
 	// Validators
 	for w := 1; w <= ext.env.WrkSaveValidatorTxsCount; w++ {

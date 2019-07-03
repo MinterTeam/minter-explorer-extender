@@ -18,7 +18,9 @@
     "saveAddresses": ME_WRK_SAVE_ADDR,
     "saveTxValidator": ME_WRK_SAVE_TX_VAL,
     "updateBalance": ME_WRK_UPD_BALANCE,
-    "balancesFromNode": ME_WRK_BALANCE_NODE
+    "balancesFromNode": ME_WRK_BALANCE_NODE,
+    "updateTxsIndexNumTxs": ME_WRK_UPD_TXS_INDEX_NUM,
+    "updateTxsIndexTime": ME_WRK_UPD_TXS_INDEX_TIME
   },
   "database": {
     "host": "ME_DB_HOST",

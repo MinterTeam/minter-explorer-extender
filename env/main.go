@@ -34,8 +34,9 @@ func New() *models.ExtenderEnvironment {
 	wrkSaveValidatorTxsCount := flag.Int("wrk_save_val_tx_count", 3, "Count of workers that save transaction-validator link")
 	addrChunkSize := flag.Int("addr_chunk_size", 10, "Count of workers that save transaction-validator link")
 	wrkUpdateBalanceCount := flag.Int("wrk_upd_balances_count", 1, "Count of workers that update balance")
-	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node ")
-
+	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node")
+	wrkUpdateTxsIndexNumTxs := flag.Int("wrk_update_txs_index_num_txs", 1, "Count of blocks that should be reindex")
+	wrkUpdateTxsIndexTime := flag.Int("wrk_update_txs_index_time", 1, "Time in seconds which worker sleep before the next iteration")
 	flag.Parse()
 
 	envData := new(models.ExtenderEnvironment)
@@ -99,6 +100,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
+		envData.WrkUpdateTxsIndexNumTxs = config.GetInt("workers.updateTxsIndexNumTxs")
+		envData.WrkUpdateTxsIndexTime = config.GetInt("workers.updateTxsIndexSleepSec")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug
@@ -127,6 +130,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
 		envData.BaseCoin = *baseCoin
 		envData.CoinsUpdateTime = *coinsUpdateTime
+		envData.WrkUpdateTxsIndexNumTxs = *wrkUpdateTxsIndexNumTxs
+		envData.WrkUpdateTxsIndexTime = *wrkUpdateTxsIndexTime
 	}
 	return envData
 }
