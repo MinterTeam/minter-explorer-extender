@@ -99,8 +99,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
 		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
-		envData.RewardAggregateEveryBlocksCount = config.GetInt("workers.rewardAggregateBlocksCount")
-		envData.RewardAggregateTimeInterval = config.GetString("workers.rewardsAggregateTimeInterval")
+		envData.RewardAggregateEveryBlocksCount = config.GetInt("app.rewardsAggregateBlocksCount")
+		envData.RewardAggregateTimeInterval = config.GetString("app.rewardsAggregateTimeInterval")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
 	} else {
