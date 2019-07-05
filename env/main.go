@@ -37,6 +37,10 @@ func New() *models.ExtenderEnvironment {
 	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node")
 	wrkUpdateTxsIndexNumTxs := flag.Int("wrk_update_txs_index_num_txs", 1, "Count of blocks that should be reindex")
 	wrkUpdateTxsIndexTime := flag.Int("wrk_update_txs_index_time", 1, "Time in seconds which worker sleep before the next iteration")
+	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node ")
+	rewardAggregateEveryBlocksCount := flag.Int("reward_aggregate_every_blocks_count", 60, "Every X block will be launched reward aggregation")
+	rewardAggregateTimeInterval := flag.String("reward_aggregate_time_interval", "hour", "Rewards aggregation time interval('hour' or 'day')")
+
 	flag.Parse()
 
 	envData := new(models.ExtenderEnvironment)
@@ -98,6 +102,8 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
 		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
+		envData.RewardAggregateEveryBlocksCount = config.GetInt("app.rewardsAggregateBlocksCount")
+		envData.RewardAggregateTimeInterval = config.GetString("app.rewardsAggregateTimeInterval")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
 		envData.WrkUpdateTxsIndexNumTxs = config.GetInt("workers.updateTxsIndexNumTxs")

@@ -26,15 +26,15 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:ea9c7c99ef610493522e3c4de60fc2c6f767c69e5883c8b6ca1517d4135f1c2c"
+  digest = "1:8f839fac2abb998a1ccd708f57cee695c06de474c28a68c5c221879e7f006739"
   name = "github.com/MinterTeam/minter-explorer-tools"
   packages = [
     "helpers",
     "models",
   ]
   pruneopts = "UT"
-  revision = "79ae1c204776ff7f5d6eadce743b546e10ae34c1"
-  version = "v2.2.0"
+  revision = "425c106e170cbc98a26f646657ff8ebe456f9a17"
+  version = "v2.2.2"
 
 [[projects]]
   digest = "1:29c687cfd7e988c2666eec9fa372ae61ad6beeec5719465dcca0b2c5998d053b"
