@@ -1107,11 +1107,11 @@ CREATE INDEX aggregated_rewards_time_id_index ON public.aggregated_rewards USING
 
 
 --
--- Name: aggregated_rewards_from_block_id_address_id_validator_id_role_index; Type: INDEX; Schema: public; Owner: minter
+-- Name: aggregated_rewards_unique_index; Type: INDEX; Schema: public; Owner: minter
 --
 
-CREATE UNIQUE INDEX aggregated_rewards_from_block_id_address_id_validator_id_role_index ON public.aggregated_rewards
-USING btree (from_block_id, address_id, validator_id, role);
+CREATE UNIQUE INDEX aggregated_rewards_unique_index ON public.aggregated_rewards
+USING btree (time_id, address_id, validator_id, role);
 
 
 
