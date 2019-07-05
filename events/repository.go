@@ -62,7 +62,7 @@ insert into aggregated_rewards (time_id,
                                          group by r.address_id, r.validator_id, r.role, date_trunc(?, b.created_at)
                                          order by min(b.created_at) desc)
 ON CONFLICT (time_id,address_id,validator_id,role)
-            DO UPDATE set amount = EXCLUDED.amount, to_block_id = EXCLUDED.to_block_id;
+            DO UPDATE set amount = EXCLUDED.amount, to_block_id = EXCLUDED.to_block_id, from_block_id = EXCLUDED.from_block_id;
 	`, aggregateInterval, beforeBlockId, aggregateInterval)
 	return err
 }
