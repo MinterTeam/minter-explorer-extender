@@ -58,7 +58,7 @@ insert into aggregated_rewards (time_id,
                                          where b.created_at >=
                                                (select coalesce(max(time_id), (select min(created_at) from blocks))
                                                 from aggregated_rewards)
-                                           and b.created_at > (select created_at from blocks where id = ?)
+                                           and b.created_at < (select created_at from blocks where id = ?)
                                          group by r.address_id, r.validator_id, r.role, date_trunc(?, b.created_at)
                                          order by min(b.created_at) desc)
 ON CONFLICT (time_id,address_id,validator_id,role)
