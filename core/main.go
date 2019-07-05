@@ -165,6 +165,9 @@ func (ext *Extender) Run() {
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
 
+		if height%uint64(ext.env.RewardAggregateEveryBlocksCount) == 0 {
+			go ext.eventService.AggregateRewards(ext.env.RewardAggregateTimeInterval, height)
+		}
 		go ext.handleEventResponse(height, eventsResponse)
 
 		height++
