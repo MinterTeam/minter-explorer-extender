@@ -166,7 +166,7 @@ func (s *Service) SaveTxValidatorWorker(jobs <-chan []*models.TransactionValidat
 
 func (s *Service) UpdateTxsIndexWorker() {
 	for {
-		err := s.txRepository.IndexLastNTxAddress(s.env.WrkUpdateTxsIndexNumTxs)
+		err := s.txRepository.IndexLastNTxAddress(s.env.WrkUpdateTxsIndexNumBlocks)
 		if err != nil {
 			s.logger.Error(err)
 		}
