@@ -158,6 +158,11 @@ func (s *Service) SaveSlashesWorker(jobs <-chan []*models.Slash) {
 	}
 }
 
+func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint64) {
+	err := s.repository.AggregateRewards(aggregateInterval, beforeBlockId)
+	helpers.HandleError(err)
+}
+
 func (s *Service) saveRewards(rewards []*models.Reward) {
 	chunksCount := int(math.Ceil(float64(len(rewards)) / float64(s.env.EventsChunkSize)))
 	for i := 0; i < chunksCount; i++ {

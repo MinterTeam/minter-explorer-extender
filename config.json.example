@@ -7,7 +7,9 @@
     "txChunkSize": ME_TX_CHUNK_SIZE,
     "addrChunkSize": ME_ADDR_CHUNK_SIZE,
     "eventsChunkSize": ME_EVENTS_CHUNK_SIZE,
-    "stakeChunkSize": ME_STAKE_CHUNK_SIZE
+    "stakeChunkSize": ME_STAKE_CHUNK_SIZE,
+    "rewardsAggregateBlocksCount": ME_AGGREGATE_REWARDS_EVERY_BLOCKS_COUNT,
+    "rewardsAggregateTimeInterval": "ME_AGGREGATE_REWARDS_TIME_INTERVAL"
   },
   "workers": {
     "saveTxs": ME_WRK_SAVE_TXS,
