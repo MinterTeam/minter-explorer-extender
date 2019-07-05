@@ -34,10 +34,11 @@ func New() *models.ExtenderEnvironment {
 	wrkSaveValidatorTxsCount := flag.Int("wrk_save_val_tx_count", 3, "Count of workers that save transaction-validator link")
 	addrChunkSize := flag.Int("addr_chunk_size", 10, "Count of workers that save transaction-validator link")
 	wrkUpdateBalanceCount := flag.Int("wrk_upd_balances_count", 1, "Count of workers that update balance")
-	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node ")
+	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node")
+	wrkUpdateTxsIndexNumBlocks := flag.Int("wrk_update_txs_index_num_blocks", 120, "Count of blocks that should be reindex")
+	wrkUpdateTxsIndexTime := flag.Int("wrk_update_txs_index_time", 60, "Time in seconds which worker sleep before the next iteration")
 	rewardAggregateEveryBlocksCount := flag.Int("reward_aggregate_every_blocks_count", 60, "Every X block will be launched reward aggregation")
 	rewardAggregateTimeInterval := flag.String("reward_aggregate_time_interval", "hour", "Rewards aggregation time interval('hour' or 'day')")
-
 	flag.Parse()
 
 	envData := new(models.ExtenderEnvironment)
@@ -103,6 +104,8 @@ func New() *models.ExtenderEnvironment {
 		envData.RewardAggregateTimeInterval = config.GetString("app.rewardsAggregateTimeInterval")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
+		envData.WrkUpdateTxsIndexNumBlocks = config.GetInt("workers.updateTxsIndexNumBlocks")
+		envData.WrkUpdateTxsIndexTime = config.GetInt("workers.updateTxsIndexSleepSec")
 	} else {
 		envData.AppName = *appName
 		envData.Debug = *debug
@@ -129,10 +132,12 @@ func New() *models.ExtenderEnvironment {
 		envData.AddrChunkSize = *addrChunkSize
 		envData.WrkUpdateBalanceCount = *wrkUpdateBalanceCount
 		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
-		envData.RewardAggregateEveryBlocksCount = *rewardAggregateEveryBlocksCount
-		envData.RewardAggregateTimeInterval = *rewardAggregateTimeInterval
 		envData.BaseCoin = *baseCoin
 		envData.CoinsUpdateTime = *coinsUpdateTime
+		envData.WrkUpdateTxsIndexNumBlocks = *wrkUpdateTxsIndexNumBlocks
+		envData.WrkUpdateTxsIndexTime = *wrkUpdateTxsIndexTime
+		envData.RewardAggregateEveryBlocksCount = *rewardAggregateEveryBlocksCount
+		envData.RewardAggregateTimeInterval = *rewardAggregateTimeInterval
 	}
 	return envData
 }
