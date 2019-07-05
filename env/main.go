@@ -100,7 +100,7 @@ func New() *models.ExtenderEnvironment {
 		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
 		envData.BaseCoin = config.GetString("app.baseCoin")
 		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
-		envData.WrkUpdateTxsIndexNumBlocks = config.GetInt("workers.updateTxsIndexNumTxs")
+		envData.WrkUpdateTxsIndexNumBlocks = config.GetInt("workers.updateTxsIndexNumBlocks")
 		envData.WrkUpdateTxsIndexTime = config.GetInt("workers.updateTxsIndexSleepSec")
 	} else {
 		envData.AppName = *appName
