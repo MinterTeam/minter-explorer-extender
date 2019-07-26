@@ -170,7 +170,6 @@ func (s *Service) UpdateTxsIndexWorker() {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		helpers.HandleError(err)
 		time.Sleep(time.Duration(s.env.WrkUpdateTxsIndexTime) * time.Second)
 	}
 }
