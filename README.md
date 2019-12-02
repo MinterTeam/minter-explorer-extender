@@ -17,20 +17,42 @@ _NOTE: This project in active development stage so feel free to send us question
 
 <p align="center" background="black"><img src="minter-explorer.jpeg" width="400"></p>
 
+## Related services:
+- [explorer-gate](https://github.com/MinterTeam/explorer-gate)
+- [explorer-api](https://github.com/MinterTeam/minter-explorer-api)
+- [explorer-validators](https://github.com/MinterTeam/minter-explorer-validators) - API for validators meta
+- [explorer-tools](https://github.com/MinterTeam/minter-explorer-tools) - common packages
+- [explorer-genesis-uploader](https://github.com/MinterTeam/explorer-genesis-uploader)
+
 ## BUILD
 
 - dep ensure
 
 - replace Minter Node in vendor directory ```cd vendor/github.com/MinterTeam && rm -rf minter-go-node && git clone https://github.com/MinterTeam/minter-go-node.git```
 
-- make build
+- run `make build`
 
-## RUN
+## USE
 
-If you run Extender for the first time yoг need to run  [Explorer Genesis Uploader](https://github.com/MinterTeam/explorer-genesis-uploader)
-to fill data from genesis file (you can use the same config file for both services)
+### Requirement
 
-./extender -config=/etc/minter/config.json
+- PostgresSQL
+
+- Centrifugo (WebSocket server) [GitHub](https://github.com/centrifugal/centrifugo)
+
+### Setup
+
+- use database migration from `database` directory
+
+- build and move the compiled file to the directory e.g. `/opt/minter/extender`
+
+- copy config.json.example to config.json file in extender's directory and fill with own values
+
+- build and run [explorer-genesis-uploader](https://github.com/MinterTeam/explorer-genesis-uploader) to fill data from genesis file (you can use the same config file for both services)
+
+#### Run
+
+./extender -config=/path/to/config.json
 
 ### Config file
 
@@ -43,12 +65,12 @@ Example:
   "name": "Minter Extender",
   "app": {
     "debug": true,
-    "baseCoin": "MNT",
-    "txChunkSize": 200,
-    "addrChunkSize": 30,
-    "eventsChunkSize": 200
+    "baseCoin": "MNT", -- MNT for testnet / BIP for mainnet
+    "txChunkSize": 200, -- number of transactions wich "save transaction worker" handled per iteration
+    "addrChunkSize": 30, -- number of addresses wich "save addresses worker" handled per iteration
+    "eventsChunkSize": 200 -- number of event wich "save event worker" handled per iteration
   },
-  "workers": {
+  "workers": { -- count of workers
     "saveTxs": 10,
     "saveTxsOutput": 5,
     "saveInvalidTxs": 2,
@@ -76,7 +98,7 @@ Example:
     "host": "",
     "port": 8800
   },
-  "wsServer": {
+  "wsServer": { -- centrifugo connect data 
     "isSecure": true,
     "link": "localhost",
     "port": "",
