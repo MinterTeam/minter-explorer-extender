@@ -161,6 +161,9 @@ func (s *Service) SaveSlashesWorker(jobs <-chan []*models.Slash) {
 func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint64) {
 	err := s.repository.AggregateRewards(aggregateInterval, beforeBlockId)
 	helpers.HandleError(err)
+	// 17280 - approximately numbers of blocks per day
+	// TODO: move to config
+	s.repository.DropOldRewardsData(17280)
 }
 
 func (s *Service) saveRewards(rewards []*models.Reward) {
