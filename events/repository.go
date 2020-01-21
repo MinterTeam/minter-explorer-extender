@@ -66,3 +66,10 @@ ON CONFLICT (time_id,address_id,validator_id,role)
 	`, aggregateInterval, beforeBlockId, aggregateInterval)
 	return err
 }
+
+func (r *Repository) DropOldRewardsData(saveBlocksCount uint32) error {
+	_, err := r.db.Query(nil, `
+		delete from rewards where block_id < ((select id from blocks order by id desc limit 1) - ?);
+	`, saveBlocksCount)
+	return err
+}
