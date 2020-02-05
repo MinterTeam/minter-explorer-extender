@@ -4,16 +4,17 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
+	"github.com/MinterTeam/minter-explorer-extender/env"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
 	"github.com/sirupsen/logrus"
 	"math"
 )
 
 type Service struct {
-	env                 *models.ExtenderEnvironment
+	env                 *env.ExtenderEnvironment
 	repository          *Repository
 	validatorRepository *validator.Repository
 	addressRepository   *address.Repository
@@ -25,7 +26,7 @@ type Service struct {
 	logger              *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
+func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
 	return &Service{
@@ -43,31 +44,31 @@ func NewService(env *models.ExtenderEnvironment, repository *Repository, validat
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.EventsResponse) error {
+func (s *Service) HandleEventResponse(blockHeight uint64, response *api.EventsResult) error {
 	var (
 		rewards           []*models.Reward
 		slashes           []*models.Slash
 		coinsForUpdateMap = make(map[string]struct{})
 	)
 
-	for _, event := range response.Result.Events {
+	for _, event := range response.Events {
 		if event.Type == "minter/CoinLiquidationEvent" {
 
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
+			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
 
 			err = s.balanceRepository.DeleteByCoinId(coinId)
 
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value.Coin,
+					"coin": event.Value["coin"],
 				}).Error(err)
 				return err
 			}
 
-			err = s.coinRepository.DeleteBySymbol(event.Value.Coin)
+			err = s.coinRepository.DeleteBySymbol(event.Value["coin"])
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value.Coin,
+					"coin": event.Value["coin"],
 				}).Error(err)
 				return err
 			}
@@ -77,18 +78,18 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			continue
 		}
 
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value.Address))
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value["address"]))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"address": event.Value.Address,
+				"address": event.Value["address"],
 			}).Error(err)
 			return err
 		}
 
-		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value.ValidatorPubKey))
+		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value["validator_pub_key"]))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"public_key": event.Value.ValidatorPubKey,
+				"public_key": event.Value["validator_pub_key"],
 			}).Error(err)
 			return err
 		}
@@ -97,15 +98,15 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 		case models.RewardEvent:
 			rewards = append(rewards, &models.Reward{
 				BlockID:     blockHeight,
-				Role:        event.Value.Role,
-				Amount:      event.Value.Amount,
+				Role:        event.Value["role"],
+				Amount:      event.Value["amount"],
 				AddressID:   addressId,
 				ValidatorID: validatorId,
 			})
 
 		case models.SlashEvent:
-			coinsForUpdateMap[event.Value.Coin] = struct{}{}
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value.Coin)
+			coinsForUpdateMap[event.Value["coin"]] = struct{}{}
+			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
 			if err != nil {
 				s.logger.Error(err)
 				return err
@@ -114,7 +115,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *responses.Ev
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
 				CoinID:      coinId,
-				Amount:      event.Value.Amount,
+				Amount:      event.Value["amount"],
 				AddressID:   addressId,
 				ValidatorID: validatorId,
 			})

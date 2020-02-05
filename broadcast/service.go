@@ -3,13 +3,11 @@ package broadcast
 import (
 	"context"
 	"encoding/json"
-	"github.com/MinterTeam/minter-explorer-api/balance"
-	"github.com/MinterTeam/minter-explorer-api/blocks"
-	"github.com/MinterTeam/minter-explorer-api/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
+	"github.com/MinterTeam/minter-explorer-extender/env"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -23,7 +21,7 @@ type Service struct {
 	logger            *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
+func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
 	logger *logrus.Entry) *Service {
 	wsClient := gocent.New(gocent.Config{
 		Addr: env.WsLink,

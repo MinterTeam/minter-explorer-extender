@@ -21,3 +21,4 @@ tmp/
 media/
 
 config.json
+.env

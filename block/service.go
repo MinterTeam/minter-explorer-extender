@@ -3,9 +3,9 @@ package block
 import (
 	"github.com/MinterTeam/minter-explorer-extender/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/validator"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
 	"strconv"
 	"time"
 )
@@ -34,19 +34,19 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
-	height, err := strconv.ParseUint(response.Result.Height, 10, 64)
+func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
+	height, err := strconv.ParseUint(response.Height, 10, 64)
 	helpers.HandleError(err)
-	totalTx, err := strconv.ParseUint(response.Result.TotalTx, 10, 64)
+	totalTx, err := strconv.ParseUint(response.TotalTxs, 10, 64)
 	helpers.HandleError(err)
-	numTx, err := strconv.ParseUint(response.Result.TxCount, 10, 32)
+	numTx, err := strconv.ParseUint(response.NumTxs, 10, 32)
 	helpers.HandleError(err)
-	size, err := strconv.ParseUint(response.Result.Size, 10, 64)
+	size, err := strconv.ParseUint(response.Size, 10, 64)
 	helpers.HandleError(err)
 
 	var proposerId uint64
-	if response.Result.Proposer != "" {
-		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Result.Proposer))
+	if response.Proposer != "" {
+		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Proposer))
 		helpers.HandleError(err)
 	} else {
 		proposerId = 1
@@ -57,11 +57,11 @@ func (s *Service) HandleBlockResponse(response *responses.BlockResponse) error {
 		TotalTxs:            totalTx,
 		NumTxs:              uint32(numTx),
 		Size:                size,
-		BlockTime:           s.getBlockTime(response.Result.Time),
-		CreatedAt:           response.Result.Time,
-		BlockReward:         response.Result.BlockReward,
+		BlockTime:           s.getBlockTime(response.Time),
+		CreatedAt:           response.Time,
+		BlockReward:         response.BlockReward,
 		ProposerValidatorID: proposerId,
-		Hash:                response.Result.Hash,
+		Hash:                response.Hash,
 	}
 	s.SetBlockCache(block)
 

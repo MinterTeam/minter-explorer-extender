@@ -3,18 +3,19 @@ package coin
 import (
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/address"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-node-go-api"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/MinterTeam/minter-explorer-extender/env"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/minter-go-sdk/transaction"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )
 
 type Service struct {
-	env                   *models.ExtenderEnvironment
-	nodeApi               *minter_node_go_api.MinterNodeApi
+	env                   *env.ExtenderEnvironment
+	nodeApi               *api.Api
 	repository            *Repository
 	addressRepository     *address.Repository
 	logger                *logrus.Entry
@@ -22,7 +23,7 @@ type Service struct {
 	jobUpdateCoinsFromMap chan map[string]struct{}
 }
 
-func NewService(env *models.ExtenderEnvironment, nodeApi *minter_node_go_api.MinterNodeApi, repository *Repository,
+func NewService(env *env.ExtenderEnvironment, nodeApi *api.Api, repository *Repository,
 	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
@@ -51,10 +52,10 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[string]struct{
 	return s.jobUpdateCoinsFromMap
 }
 
-func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transaction) ([]*models.Coin, error) {
+func (s Service) ExtractCoinsFromTransactions(transactions []api.TransactionResult) ([]*models.Coin, error) {
 	var coins []*models.Coin
 	for _, tx := range transactions {
-		if tx.Type == models.TxTypeCreateCoin {
+		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
 			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
 				s.logger.Error(err)
@@ -66,25 +67,19 @@ func (s Service) ExtractCoinsFromTransactions(transactions []responses.Transacti
 	return coins, nil
 }
 
-func (s *Service) ExtractFromTx(tx responses.Transaction) (*models.Coin, error) {
+func (s *Service) ExtractFromTx(tx api.TransactionResult) (*models.Coin, error) {
 	if tx.Data == nil {
 		s.logger.Warn("empty transaction data")
 		return nil, errors.New("no data for creating a coin")
 	}
-	txData := tx.IData.(models.CreateCoinTxData)
-
-	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
-	if err != nil {
-		s.logger.Error(err)
-		return nil, err
-	}
-
+	var txData transaction.CreateCoinData
+	err := tx.Data.FillStruct(txData)
 	coin := &models.Coin{
-		Crr:            crr,
-		Volume:         txData.InitialAmount,
-		ReserveBalance: txData.InitialReserve,
+		Crr:            uint64(txData.ConstantReserveRatio),
+		Volume:         txData.InitialAmount.String(),
+		ReserveBalance: txData.InitialReserve.String(),
 		Name:           txData.Name,
-		Symbol:         txData.Symbol,
+		Symbol:         string(txData.Symbol[:]),
 		DeletedAt:      nil,
 	}
 
@@ -117,14 +112,14 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				continue
 			}
 			coinsMap[symbol] = struct{}{}
-			switch tx.Type {
-			case models.TxTypeSellCoin:
+			switch transaction.Type(tx.Type) {
+			case transaction.TypeSellCoin:
 				coinsMap[tx.IData.(models.SellCoinTxData).CoinToBuy] = struct{}{}
 				coinsMap[tx.IData.(models.SellCoinTxData).CoinToSell] = struct{}{}
-			case models.TxTypeBuyCoin:
+			case transaction.TypeBuyCoin:
 				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToBuy] = struct{}{}
 				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToSell] = struct{}{}
-			case models.TxTypeSellAllCoin:
+			case transaction.TypeSellAllCoin:
 				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToBuy] = struct{}{}
 				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToSell] = struct{}{}
 			}
@@ -171,7 +166,7 @@ func (s *Service) UpdateCoinsInfo(symbols []string) error {
 }
 
 func (s *Service) GetCoinFromNode(symbol string) (*models.Coin, error) {
-	coinResp, err := s.nodeApi.GetCoinInfo(symbol)
+	coinResp, err := s.nodeApi.CoinInfo(symbol, 0)
 	if err != nil {
 		s.logger.Error(err)
 		return nil, err
@@ -184,19 +179,17 @@ func (s *Service) GetCoinFromNode(symbol string) (*models.Coin, error) {
 		return nil, err
 	}
 	coin.ID = id
-	if coinResp.Error != nil {
-		return nil, errors.New(coinResp.Error.Message)
-	}
-	crr, err := strconv.ParseUint(coinResp.Result.Crr, 10, 64)
+
+	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
 	if err != nil {
 		s.logger.Error(err)
 		return nil, err
 	}
-	coin.Name = coinResp.Result.Name
-	coin.Symbol = coinResp.Result.Symbol
+	coin.Name = coinResp.Name
+	coin.Symbol = coinResp.Symbol
 	coin.Crr = crr
-	coin.ReserveBalance = coinResp.Result.ReserveBalance
-	coin.Volume = coinResp.Result.Volume
+	coin.ReserveBalance = coinResp.ReserveBalance
+	coin.Volume = coinResp.Volume
 	coin.DeletedAt = nil
 	coin.UpdatedAt = now
 	return coin, nil
