@@ -31,6 +31,7 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	err := r.db.Model(coin).
 		Column("id").
 		Where("symbol = ?", symbol).
+		AllWithDeleted().
 		Select()
 
 	if err != nil {

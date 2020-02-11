@@ -66,7 +66,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 				return nil, err, nil
 			}
 			to := hex.EncodeToString(txData.To[:])
-			mapAddresses[helpers.RemovePrefix(to)] = struct{}{}
+			mapAddresses[to] = struct{}{}
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeMultisend {

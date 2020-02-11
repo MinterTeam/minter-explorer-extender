@@ -53,11 +53,8 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *api.EventsRe
 
 	for _, event := range response.Events {
 		if event.Type == "minter/CoinLiquidationEvent" {
-
 			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
-
 			err = s.balanceRepository.DeleteByCoinId(coinId)
-
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"coin": event.Value["coin"],

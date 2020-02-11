@@ -112,7 +112,7 @@ func (r *Repository) SaveAllIfNotExist(addresses []string) error {
 	return err
 }
 
-func (r Repository) SaveFromMapIfNotExists(addresses map[string]struct{}) error {
+func (r *Repository) SaveFromMapIfNotExists(addresses map[string]struct{}) error {
 	list := make([]string, len(addresses))
 	i := 0
 	for k := range addresses {

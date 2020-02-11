@@ -194,24 +194,27 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeSend {
-			if tx.IData.(models.SendTxData).To == "" {
-				return errors.New("empty receiver of transaction")
-			}
-
-			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.IData.(models.SendTxData).To))
+			var txData models.SendTxData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(tx.IData.(models.SendTxData).Coin)
+			toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
+			helpers.HandleError(err)
+			coinID, err := s.coinRepository.FindIdBySymbol(txData.Coin)
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         tx.IData.(models.SendTxData).Value,
+				Value:         txData.Value,
 			})
 		}
 		if transaction.Type(tx.Type) == transaction.TypeMultisend {
-			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
-				toId, err := s.addressRepository.FindId(helpers.RemovePrefix(receiver.To))
+			var txData models.MultiSendTxData
+			err := helpers.ConvertStruct(tx.IData, &txData)
+			helpers.HandleError(err)
+
+			for _, receiver := range txData.List {
+				toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(receiver.To))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
 				helpers.HandleError(err)
@@ -224,7 +227,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			}
 		}
 		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
-
 			var txData transaction.IssueCheckData
 			err := helpers.ConvertStruct(tx.IData, txData)
 			if err != nil {
@@ -351,17 +353,53 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		var validatorPk string
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeDeclareCandidacy:
-			validatorPk = tx.IData.(models.DeclareCandidacyTxData).PubKey
+			var txData transaction.DeclareCandidacyData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		case transaction.TypeDelegate:
-			validatorPk = tx.IData.(models.DelegateTxData).PubKey
+			var txData transaction.DelegateData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		case transaction.TypeUnbond:
-			validatorPk = tx.IData.(models.UnbondTxData).PubKey
+			var txData transaction.UnbondData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		case transaction.TypeSetCandidateOnline:
-			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
+			var txData transaction.SetCandidateOnData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		case transaction.TypeSetCandidateOffline:
-			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
+			var txData transaction.SetCandidateOffData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		case transaction.TypeEditCandidate:
-			validatorPk = tx.IData.(models.EditCandidateTxData).PubKey
+			var txData transaction.EditCandidateData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		}
 
 		if validatorPk != "" {

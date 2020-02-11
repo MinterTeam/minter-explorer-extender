@@ -7,18 +7,20 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_USER}
+      POSTGRES_DB: explorer
+      POSTGRES_USER: minter
+      POSTGRES_PASSWORD: password
     volumes:
       - ./tmp/postgresql:/var/lib/postgresql/data
       - ./database/db.sql:/docker-entrypoint-initdb.d/init.sql
   centrifugo:
     image: centrifugo/centrifugo:v2.2.2
     environment:
-      - CENTRIFUGO_SECRET=${CENTRIFUGO_SECRET}
-      - CENTRIFUGO_ADMIN_PASSWORD=${CENTRIFUGO_ADMIN_PASSWORD}
-      - CENTRIFUGO_ADMIN_SECRET=${CENTRIFUGO_ADMIN_SECRET}
+      - CENTRIFUGO_SECRET=d9ff2b00-1d1f-4c35-8a9e-7068ef6b4f94
+      - CENTRIFUGO_ADMIN_PASSWORD=password
+      - CENTRIFUGO_ADMIN_SECRET=minter
+    ports:
+      - 8000:8000
     command: centrifugo --api_insecure --client_insecure
   extender:
     build: ./

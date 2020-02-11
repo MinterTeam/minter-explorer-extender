@@ -3,10 +3,12 @@ package broadcast
 import (
 	"context"
 	"encoding/json"
+	"github.com/MinterTeam/minter-explorer-api/balance"
+	"github.com/MinterTeam/minter-explorer-api/blocks"
+	"github.com/MinterTeam/minter-explorer-api/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/coin"
 	"github.com/MinterTeam/minter-explorer-extender/env"
-	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
@@ -67,10 +69,14 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 	for _, item := range balances {
 		symbol, err := s.coinRepository.FindSymbolById(item.CoinID)
 		if err != nil {
+			s.logger.Error(err)
 			continue
 		}
 		adr, err := s.addressRepository.FindById(item.AddressID)
-		helpers.HandleError(err)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
 		mBalance := *item
 		mBalance.Address = &models.Address{Address: adr}
 		mBalance.Coin = &models.Coin{Symbol: symbol}
@@ -80,7 +86,10 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 
 	for addressId, items := range mapBalances {
 		adr, err := s.addressRepository.FindById(addressId)
-		helpers.HandleError(err)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
 		channel := "Mx" + adr
 		msg, err := json.Marshal(items)
 		if err != nil {

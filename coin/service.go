@@ -72,14 +72,24 @@ func (s *Service) ExtractFromTx(tx api.TransactionResult) (*models.Coin, error) 
 		s.logger.Warn("empty transaction data")
 		return nil, errors.New("no data for creating a coin")
 	}
-	var txData transaction.CreateCoinData
+	var txData = new(api.CreateCoinData)
 	err := tx.Data.FillStruct(txData)
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
 	coin := &models.Coin{
-		Crr:            uint64(txData.ConstantReserveRatio),
-		Volume:         txData.InitialAmount.String(),
-		ReserveBalance: txData.InitialReserve.String(),
+		Crr:            crr,
+		Volume:         txData.InitialAmount,
+		ReserveBalance: txData.InitialReserve,
 		Name:           txData.Name,
-		Symbol:         string(txData.Symbol[:]),
+		Symbol:         txData.Symbol,
 		DeletedAt:      nil,
 	}
 
@@ -114,14 +124,29 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 			coinsMap[symbol] = struct{}{}
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeSellCoin:
-				coinsMap[tx.IData.(models.SellCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.IData.(models.SellCoinTxData).CoinToSell] = struct{}{}
+				var txData api.SellCoinData
+				err := helpers.ConvertStruct(tx.IData, txData)
+				if tx.Data == nil {
+					s.logger.Error(err)
+				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			case transaction.TypeBuyCoin:
-				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.IData.(models.BuyCoinTxData).CoinToSell] = struct{}{}
+				var txData api.BuyCoinData
+				err := helpers.ConvertStruct(tx.IData, txData)
+				if tx.Data == nil {
+					s.logger.Error(err)
+				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			case transaction.TypeSellAllCoin:
-				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToBuy] = struct{}{}
-				coinsMap[tx.IData.(models.SellAllCoinTxData).CoinToSell] = struct{}{}
+				var txData api.SellAllCoinData
+				err := helpers.ConvertStruct(tx.IData, txData)
+				if tx.Data == nil {
+					s.logger.Error(err)
+				}
+				coinsMap[txData.CoinToBuy] = struct{}{}
+				coinsMap[txData.CoinToSell] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap
