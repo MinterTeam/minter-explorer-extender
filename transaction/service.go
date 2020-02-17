@@ -226,8 +226,9 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				})
 			}
 		}
+
 		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
-			var txData transaction.IssueCheckData
+			txData := new(api.RedeemCheckData)
 			err := helpers.ConvertStruct(tx.IData, txData)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
@@ -235,26 +236,30 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				}).Error(err)
 				continue
 			}
-			sender, err := txData.Sender()
+			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
 				}).Error(err)
-				continue
+				return err
 			}
-
+			sender, err := data.Sender()
+			if err != nil {
+				s.logger.Error(err)
+				return err
+			}
 			// We are put a creator of a check into "to" field
 			// because "from" field use for a person who created a transaction
 			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender))
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(string(txData.Coin[:]))
+			coinID, err := s.coinRepository.FindIdBySymbol(string(data.Coin[:]))
 			helpers.HandleError(err)
 
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         txData.Value.String(),
+				Value:         data.Value.String(),
 			})
 		}
 	}

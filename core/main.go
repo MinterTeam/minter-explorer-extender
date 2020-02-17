@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/address"
 	"github.com/MinterTeam/minter-explorer-extender/balance"
 	"github.com/MinterTeam/minter-explorer-extender/block"
@@ -74,7 +75,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	//Init DB
 	db := pg.Connect(&pg.Options{
-		Addr:            env.DbHost,
+		Addr:            fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
 		User:            env.DbUser,
 		Password:        env.DbPassword,
 		Database:        env.DbName,

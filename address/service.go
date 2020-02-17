@@ -71,7 +71,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 
 		if transaction.Type(tx.Type) == transaction.TypeMultisend {
 			var txData transaction.MultisendData
-			err := tx.Data.FillStruct(txData)
+			err := tx.Data.FillStruct(&txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err, nil
@@ -83,13 +83,22 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
-			var txData transaction.IssueCheckData
+			txData := new(api.RedeemCheckData)
 			err := tx.Data.FillStruct(txData)
 			if err != nil {
-				s.logger.Error(err)
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				return nil, err, nil
 			}
-			sender, err := txData.Sender()
+			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				return nil, err, nil
+			}
+			sender, err := data.Sender()
 			if err != nil {
 				s.logger.Error(err)
 				return nil, err, nil

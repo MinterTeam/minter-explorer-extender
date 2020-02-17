@@ -12,6 +12,7 @@ type ExtenderEnvironment struct {
 	CoinsUpdateTime                 int
 	Debug                           bool
 	DbHost                          string
+	DbPort                          string
 	DbName                          string
 	DbUser                          string
 	DbPassword                      string
@@ -117,6 +118,7 @@ func New() *ExtenderEnvironment {
 	envData.Debug = os.Getenv("APP_DEBUG") == "1"
 	envData.BaseCoin = os.Getenv("APP_BASE_COIN")
 	envData.DbHost = os.Getenv("DB_HOST")
+	envData.DbPort = os.Getenv("DB_PORT")
 	envData.DbName = os.Getenv("DB_NAME")
 	envData.DbUser = os.Getenv("DB_USER")
 	envData.DbPassword = os.Getenv("DB_PASSWORD")
