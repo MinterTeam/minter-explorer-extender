@@ -1,8 +1,6 @@
 package address
 
 import (
-	"encoding/hex"
-	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/env"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
@@ -52,33 +50,31 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 func (s *Service) ExtractAddressesFromTransactions(transactions []api.TransactionResult) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
-		if tx.Data == nil {
-			s.logger.Error("empty transaction data")
-			return nil, errors.New("empty transaction data"), nil
-		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 
 		if transaction.Type(tx.Type) == transaction.TypeSend {
-			var txData transaction.SendData
-			err := tx.Data.FillStruct(txData)
+			var txData api.SendData
+			err := tx.Data.FillStruct(&txData)
 			if tx.Data == nil {
-				s.logger.Error(err)
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				return nil, err, nil
 			}
-			to := hex.EncodeToString(txData.To[:])
-			mapAddresses[to] = struct{}{}
+			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeMultisend {
-			var txData transaction.MultisendData
+			var txData api.MultisendData
 			err := tx.Data.FillStruct(&txData)
-			if tx.Data == nil {
-				s.logger.Error(err)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
 				return nil, err, nil
 			}
 			for _, receiver := range txData.List {
-				to := hex.EncodeToString(receiver.To[:])
-				mapAddresses[helpers.RemovePrefix(to)] = struct{}{}
+				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
 		}
 
@@ -136,14 +132,12 @@ func (s *Service) HandleResponses(blockResponse *api.BlockResult, eventsResponse
 	if blockResponse != nil {
 		height, err = strconv.ParseUint(blockResponse.Height, 10, 64)
 		if err != nil {
-			s.logger.Error(err)
 			return err
 		}
 	}
 	if blockResponse != nil && blockResponse.NumTxs != "0" {
 		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Transactions)
 		if err != nil {
-			s.logger.Error(err)
 			return err
 		}
 	}

@@ -115,8 +115,8 @@ func New() *ExtenderEnvironment {
 	}
 
 	envData := new(ExtenderEnvironment)
-	envData.Debug = os.Getenv("APP_DEBUG") == "1"
-	envData.BaseCoin = os.Getenv("APP_BASE_COIN")
+	envData.Debug = os.Getenv("EXTENDER_DEBUG") == "1"
+	envData.BaseCoin = os.Getenv("MINTER_BASE_COIN")
 	envData.DbHost = os.Getenv("DB_HOST")
 	envData.DbPort = os.Getenv("DB_PORT")
 	envData.DbName = os.Getenv("DB_NAME")

@@ -10,4 +10,4 @@ RUN go mod download
 
 RUN go get github.com/githubnemo/CompileDaemon
 
-ENTRYPOINT CompileDaemon --exclude-dir=.git --build="go build -o ./builds/linux/extender ./cmd/extender.go"
+ENTRYPOINT CompileDaemon --exclude-dir=.git --build="go build -o ./builds/linux/extender ./cmd/extender.go" -command="./builds/linux/extender"

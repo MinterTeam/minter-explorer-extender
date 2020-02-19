@@ -16,12 +16,43 @@ services:
   centrifugo:
     image: centrifugo/centrifugo:v2.2.2
     environment:
-      - CENTRIFUGO_SECRET=d9ff2b00-1d1f-4c35-8a9e-7068ef6b4f94
-      - CENTRIFUGO_ADMIN_PASSWORD=password
-      - CENTRIFUGO_ADMIN_SECRET=minter
+      CENTRIFUGO_SECRET: d9ff2b00-1d1f-4c35-8a9e-7068ef6b4f94
+      CENTRIFUGO_ADMIN_PASSWORD: password
+      CENTRIFUGO_ADMIN_SECRET: minter
     ports:
       - 8000:8000
     command: centrifugo --api_insecure --client_insecure
+  explorer:
+    image: naizer/minter-explorer-api:latest
+    environment:
+      EXPLORER_DEBUG: 1
+      MINTER_BASE_COIN: MNT
+      BIP_DEV_API: localhost
+      CENTRIFUGO_SECRET: d9ff2b00-1d1f-4c35-8a9e-7068ef6b4f94
+      CENTRIFUGO_LINK: ws://centrifugo:8000/connection/websocket
+      CENTRIFUGO_BLOCK_CHANNEL: blocks
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_POOL_SIZE: 20
+      DB_NAME: explorer
+      DB_USER: minter
+      DB_PASSWORD: password
+      NODE_API: https://minter-node-1.testnet.minter.network:8841
+      EXPLORER_PORT: 8080
+    links:
+      - centrifugo
+      - postgres
+    depends_on:
+      - postgres
+      - centrifugo
+    ports:
+      - 8080:8080
+  gate:
+    image: minterteam/explorer-gate:latest
+    env_file:
+      - .env
+    ports:
+      - 9000:9000
   extender:
     build: ./
     volumes:

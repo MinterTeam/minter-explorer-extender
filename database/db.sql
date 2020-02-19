@@ -51,8 +51,8 @@ SET default_with_oids = false;
 
 CREATE TABLE public.addresses
 (
-    id                  bigint                NOT NULL,
-    address             character varying(40) NOT NULL,
+    id                  bigint        NOT NULL,
+    address             character(40) NOT NULL,
     updated_at          timestamp with time zone,
     updated_at_block_id bigint
 );
