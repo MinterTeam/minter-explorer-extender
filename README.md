@@ -5,8 +5,9 @@
         <img src="https://img.shields.io/packagist/l/doctrine/orm.svg" alt="License">
     </a>
     <img alt="undefined" src="https://img.shields.io/github/last-commit/MinterTeam/minter-explorer-extender.svg">
-    <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/minterteam/explorer-extender">
-
+    <a href="https://hub.docker.com/r/minterteam/explorer-extender" target="_blank">
+        <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/minterteam/explorer-extender">
+    </a>
 </p>
 
 # Minter Explorer Extender
