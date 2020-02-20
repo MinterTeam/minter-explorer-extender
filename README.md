@@ -5,6 +5,8 @@
         <img src="https://img.shields.io/packagist/l/doctrine/orm.svg" alt="License">
     </a>
     <img alt="undefined" src="https://img.shields.io/github/last-commit/MinterTeam/minter-explorer-extender.svg">
+    <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/minterteam/explorer-extender">
+
 </p>
 
 # Minter Explorer Extender
@@ -26,11 +28,9 @@ _NOTE: This project in active development stage so feel free to send us question
 
 ## BUILD
 
-- dep ensure
+- run `go mod download`
 
-- replace Minter Node in vendor directory ```cd vendor/github.com/MinterTeam && rm -rf minter-go-node && git clone https://github.com/MinterTeam/minter-go-node.git```
-
-- run `make build`
+- run `go build -o ./builds/extender ./cmd/extender.go`
 
 ## USE
 
@@ -46,63 +46,10 @@ _NOTE: This project in active development stage so feel free to send us question
 
 - build and move the compiled file to the directory e.g. `/opt/minter/extender`
 
-- copy config.json.example to config.json file in extender's directory and fill with own values
+- copy .env.prod to .env file in extender's directory and fill with own values
 
 - build and run [explorer-genesis-uploader](https://github.com/MinterTeam/explorer-genesis-uploader) to fill data from genesis file (you can use the same config file for both services)
 
 #### Run
 
-./extender -config=/path/to/config.json
-
-### Config file
-
-Support JSON and YAML formats 
-
-Example:
-
-```
-{
-  "name": "Minter Extender",
-  "app": {
-    "debug": true,
-    "baseCoin": "MNT", -- MNT for testnet / BIP for mainnet
-    "txChunkSize": 200, -- number of transactions wich "save transaction worker" handled per iteration
-    "addrChunkSize": 30, -- number of addresses wich "save addresses worker" handled per iteration
-    "eventsChunkSize": 200 -- number of event wich "save event worker" handled per iteration
-  },
-  "workers": { -- count of workers
-    "saveTxs": 10,
-    "saveTxsOutput": 5,
-    "saveInvalidTxs": 2,
-    "saveRewards": 3,
-    "saveSlashes": 3,
-    "saveAddresses": 3,
-    "saveTxValidator": 2,
-    "updateBalance": 2,
-    "balancesFromNode": 3
-  },
-  "database": {
-    "host": "localhost",
-    "name": "explorer",
-    "user": "minter",
-    "password": "password",
-    "minIdleConns": 10,
-    "poolSize": 20
-  },
-  "minterApi": {
-    "isSecure": false,
-    "link": "localhost",
-    "port": 8841
-  },
-  "extenderApi": {
-    "host": "",
-    "port": 8800
-  },
-  "wsServer": { -- centrifugo connect data 
-    "isSecure": true,
-    "link": "localhost",
-    "port": "",
-    "key": "secret-key"
-  }
-}
-```
+./extender
