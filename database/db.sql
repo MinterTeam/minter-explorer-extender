@@ -584,15 +584,20 @@ ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
 
 CREATE TABLE public.validators
 (
-    id                  integer                                NOT NULL,
-    reward_address_id   bigint,
-    owner_address_id    bigint,
-    created_at_block_id integer,
-    status              integer,
-    commission          integer,
-    total_stake         numeric(70, 0),
-    public_key          character varying(64)                  NOT NULL,
-    update_at           timestamp with time zone DEFAULT now() NOT NULL
+    id                       integer                                NOT NULL,
+    reward_address_id        bigint,
+    owner_address_id         bigint,
+    created_at_block_id      integer,
+    status                   integer,
+    commission               integer,
+    total_stake              numeric(70, 0),
+    public_key               character varying(64)                  NOT NULL,
+    name                     varchar,
+    description              varchar, 
+    site_url                 varchar,
+    icon_url                 varchar,
+    meta_updated_at_block_id bigint,
+    update_at                timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
