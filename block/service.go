@@ -1,8 +1,8 @@
 package block
 
 import (
-	"github.com/MinterTeam/minter-explorer-extender/broadcast"
-	"github.com/MinterTeam/minter-explorer-extender/validator"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
+	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/MinterTeam/minter-go-sdk/api"

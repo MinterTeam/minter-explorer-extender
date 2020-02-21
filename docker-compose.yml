@@ -23,7 +23,7 @@ services:
       - 8000:8000
     command: centrifugo --api_insecure --client_insecure
   explorer:
-    image: naizer/minter-explorer-api:latest
+    image: minterteam/minter-explorer-api:latest
     environment:
       EXPLORER_DEBUG: 1
       MINTER_BASE_COIN: MNT

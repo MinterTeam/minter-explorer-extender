@@ -7,7 +7,6 @@ import (
 )
 
 type ExtenderEnvironment struct {
-	AppName                         string
 	BaseCoin                        string
 	CoinsUpdateTime                 int
 	Debug                           bool
@@ -19,7 +18,6 @@ type ExtenderEnvironment struct {
 	WsLink                          string
 	WsKey                           string
 	NodeApi                         string
-	ApiHost                         string
 	ApiPort                         int
 	TxChunkSize                     int
 	AddrChunkSize                   int
@@ -144,6 +142,5 @@ func New() *ExtenderEnvironment {
 	envData.WrkUpdateTxsIndexTime = int(wrkUpdateTxsIndexTime)
 	envData.RewardAggregateEveryBlocksCount = int(rewardAggregateEveryBlocksCount)
 	envData.ApiPort = int(extenderApiPort)
-	envData.ApiHost = ""
 	return envData
 }

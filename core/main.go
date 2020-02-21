@@ -2,15 +2,15 @@ package core
 
 import (
 	"fmt"
-	"github.com/MinterTeam/minter-explorer-extender/address"
-	"github.com/MinterTeam/minter-explorer-extender/balance"
-	"github.com/MinterTeam/minter-explorer-extender/block"
-	"github.com/MinterTeam/minter-explorer-extender/broadcast"
-	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-extender/env"
-	"github.com/MinterTeam/minter-explorer-extender/events"
-	"github.com/MinterTeam/minter-explorer-extender/transaction"
-	"github.com/MinterTeam/minter-explorer-extender/validator"
+	"github.com/MinterTeam/minter-explorer-extender/v2/address"
+	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
+	"github.com/MinterTeam/minter-explorer-extender/v2/block"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
+	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
+	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/events"
+	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
+	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/MinterTeam/minter-go-sdk/api"
@@ -69,17 +69,16 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "2.2.0",
+		"version": "2.2.1",
 		"app":     "Minter Explorer Extender",
 	})
 
 	//Init DB
 	db := pg.Connect(&pg.Options{
-		Addr:            fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-		User:            env.DbUser,
-		Password:        env.DbPassword,
-		Database:        env.DbName,
-		ApplicationName: env.AppName,
+		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
+		User:     env.DbUser,
+		Password: env.DbPassword,
+		Database: env.DbName,
 	})
 
 	//if env.Debug {
