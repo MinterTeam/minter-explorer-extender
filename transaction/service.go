@@ -1,18 +1,20 @@
 package transaction
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/MinterTeam/minter-explorer-extender/address"
-	"github.com/MinterTeam/minter-explorer-extender/broadcast"
-	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-extender/validator"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-go-node/core/check"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"fmt"
+	"github.com/MinterTeam/minter-explorer-extender/v2/address"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
+	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
+	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/minter-go-sdk/transaction"
+	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
@@ -20,7 +22,7 @@ import (
 )
 
 type Service struct {
-	env                 *models.ExtenderEnvironment
+	env                 *env.ExtenderEnvironment
 	txRepository        *Repository
 	addressRepository   *address.Repository
 	validatorRepository *validator.Repository
@@ -34,7 +36,7 @@ type Service struct {
 	logger              *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
+func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry) *Service {
 	return &Service{
@@ -68,13 +70,13 @@ func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValid
 
 //Handle response and save block to DB
 func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
-	transactions []responses.Transaction) error {
+	transactions []api.TransactionResult) error {
 
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction
 
 	for _, tx := range transactions {
-		if tx.Log == nil {
+		if tx.Log == "" {
 			transaction, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
 				s.logger.Error(err)
@@ -187,29 +189,32 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 
 		idsList = append(idsList, tx.ID)
 
-		if tx.Type != models.TxTypeSend && tx.Type != models.TxTypeMultiSend && tx.Type != models.TxTypeRedeemCheck {
+		if transaction.Type(tx.Type) != transaction.TypeSend && transaction.Type(tx.Type) != transaction.TypeMultisend && transaction.Type(tx.Type) != transaction.TypeRedeemCheck {
 			continue
 		}
 
-		if tx.Type == models.TxTypeSend {
-			if tx.IData.(models.SendTxData).To == "" {
-				return errors.New("empty receiver of transaction")
-			}
-
-			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.IData.(models.SendTxData).To))
+		if transaction.Type(tx.Type) == transaction.TypeSend {
+			var txData models.SendTxData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(tx.IData.(models.SendTxData).Coin)
+			toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
+			helpers.HandleError(err)
+			coinID, err := s.coinRepository.FindIdBySymbol(txData.Coin)
 			helpers.HandleError(err)
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   toId,
 				CoinID:        coinID,
-				Value:         tx.IData.(models.SendTxData).Value,
+				Value:         txData.Value,
 			})
 		}
-		if tx.Type == models.TxTypeMultiSend {
-			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
-				toId, err := s.addressRepository.FindId(helpers.RemovePrefix(receiver.To))
+		if transaction.Type(tx.Type) == transaction.TypeMultisend {
+			var txData models.MultiSendTxData
+			err := helpers.ConvertStruct(tx.IData, &txData)
+			helpers.HandleError(err)
+
+			for _, receiver := range txData.List {
+				toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(receiver.To))
 				helpers.HandleError(err)
 				coinID, err := s.coinRepository.FindIdBySymbol(receiver.Coin)
 				helpers.HandleError(err)
@@ -221,34 +226,33 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				})
 			}
 		}
-		if tx.Type == models.TxTypeRedeemCheck {
-			decoded, err := base64.StdEncoding.DecodeString(tx.IData.(models.RedeemCheckTxData).RawCheck)
+
+		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
+			txData := new(api.RedeemCheckData)
+			err := helpers.ConvertStruct(tx.IData, txData)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
 				}).Error(err)
 				continue
 			}
-			data, err := check.DecodeFromBytes(decoded)
+			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
 				}).Error(err)
-				continue
+				return err
 			}
 			sender, err := data.Sender()
 			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
+				s.logger.Error(err)
+				return err
 			}
-
 			// We are put a creator of a check into "to" field
 			// because "from" field use for a person who created a transaction
-			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender.String()))
+			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender))
 			helpers.HandleError(err)
-			coinID, err := s.coinRepository.FindIdBySymbol(data.Coin.String())
+			coinID, err := s.coinRepository.FindIdBySymbol(string(data.Coin[:]))
 			helpers.HandleError(err)
 
 			list = append(list, &models.TransactionOutput{
@@ -272,7 +276,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	return nil
 }
 
-func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
+func (s *Service) handleValidTransaction(tx api.TransactionResult, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -289,16 +293,24 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 	if err != nil {
 		return nil, err
 	}
-	payload, err := base64.StdEncoding.DecodeString(tx.Payload)
-	if err != nil {
-		return nil, err
-	}
 	rawTxData := make([]byte, hex.DecodedLen(len(tx.RawTx)))
 	rawTx, err := hex.Decode(rawTxData, []byte(tx.RawTx))
 	if err != nil {
 		return nil, err
 	}
-	transaction := &models.Transaction{
+
+	txDataJson, err := json.Marshal(tx.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	mapTxTags := structs.Map(tx.Tags)
+	mapTags := make(map[string]string)
+	for k, v := range mapTxTags {
+		mapTags[k] = fmt.Sprintf("%v", v)
+	}
+
+	return &models.Transaction{
 		FromAddressID: fromId,
 		BlockID:       blockHeight,
 		Nonce:         nonce,
@@ -306,20 +318,18 @@ func (s *Service) handleValidTransaction(tx responses.Transaction, blockHeight u
 		Gas:           gas,
 		GasCoinID:     gasCoin,
 		CreatedAt:     blockCreatedAt,
-		Type:          tx.Type,
+		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
-		ServiceData:   tx.ServiceData,
-		Data:          tx.Data,
-		IData:         tx.IData,
-		Tags:          *tx.Tags,
-		Payload:       payload,
+		ServiceData:   string(tx.ServiceData),
+		IData:         tx.Data,
+		Data:          txDataJson,
+		Tags:          mapTags,
+		Payload:       tx.Payload,
 		RawTx:         rawTxData[:rawTx],
-	}
-
-	return transaction, nil
+	}, nil
 }
 
-func (s *Service) handleInvalidTransaction(tx responses.Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
+func (s *Service) handleInvalidTransaction(tx api.TransactionResult, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -332,7 +342,7 @@ func (s *Service) handleInvalidTransaction(tx responses.Transaction, blockHeight
 		FromAddressID: fromId,
 		BlockID:       blockHeight,
 		CreatedAt:     blockCreatedAt,
-		Type:          tx.Type,
+		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(invalidTxData),
 	}, nil
@@ -346,19 +356,55 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 			return nil, errors.New("no transaction id")
 		}
 		var validatorPk string
-		switch tx.Type {
-		case models.TxTypeDeclareCandidacy:
-			validatorPk = tx.IData.(models.DeclareCandidacyTxData).PubKey
-		case models.TxTypeDelegate:
-			validatorPk = tx.IData.(models.DelegateTxData).PubKey
-		case models.TxTypeUnbound:
-			validatorPk = tx.IData.(models.UnbondTxData).PubKey
-		case models.TxTypeSetCandidateOnline:
-			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
-		case models.TxTypeSetCandidateOffline:
-			validatorPk = tx.IData.(models.SetCandidateTxData).PubKey
-		case models.TxTypeEditCandidate:
-			validatorPk = tx.IData.(models.EditCandidateTxData).PubKey
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeDeclareCandidacy:
+			var txData transaction.DeclareCandidacyData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
+		case transaction.TypeDelegate:
+			var txData transaction.DelegateData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
+		case transaction.TypeUnbond:
+			var txData transaction.UnbondData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
+		case transaction.TypeSetCandidateOnline:
+			var txData transaction.SetCandidateOnData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
+		case transaction.TypeSetCandidateOffline:
+			var txData transaction.SetCandidateOffData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
+		case transaction.TypeEditCandidate:
+			var txData transaction.EditCandidateData
+			err := helpers.ConvertStruct(tx.IData, txData)
+			if tx.Data == nil {
+				s.logger.Error(err)
+				return nil, err
+			}
+			validatorPk = string(txData.PubKey[:])
 		}
 
 		if validatorPk != "" {

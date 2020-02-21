@@ -1,143 +1,146 @@
 package env
 
 import (
-	"flag"
-	"github.com/MinterTeam/minter-explorer-tools/models"
+	"log"
 	"os"
+	"strconv"
 )
 
-func New() *models.ExtenderEnvironment {
-	appName := flag.String("app_name", "Minter Extender", "App name")
-	baseCoin := flag.String("base_coin", "MNT", "Base coin symbol")
-	coinsUpdateTime := flag.Int("coins_upd_time", 3600, "Coins update time in minutes")
-	debug := flag.Bool("debug", false, "Debug mode")
-	dbName := flag.String("db_name", "", "DB name")
-	dbUser := flag.String("db_user", "", "DB user")
-	dbPassword := flag.String("db_password", "", "DB password")
-	dbMinIdleConns := flag.Int("db_min_idle_conns", 10, "DB min idle connections")
-	dbPoolSize := flag.Int("db_pool_size", 20, "DB pool size")
-	nodeApi := flag.String("node_api", "", "DB password")
-	txChunkSize := flag.Int("tx_chunk_size", 100, "Transactions chunk size")
-	eventsChunkSize := flag.Int("event_chunk_size", 100, "Events chunk size")
-	stakeChunkSize := flag.Int("stake_chunk_size", 100, "Stake chunk size")
-	configFile := flag.String("config", "", "Env file")
-	apiHost := flag.String("api_host", "", "API host")
-	apiPort := flag.Int("api_port", 8000, "API port")
-	wsLink := flag.String("ws_link", "", "WebSocket server link")
-	wsKey := flag.String("ws_key", "", "WebSocket API key")
-	wrkSaveTxsCount := flag.Int("wrk_save_txs_count", 3, "Count of workers that save transactions")
-	wrkSaveTxsOutputCount := flag.Int("wrk_save_txs_output_count", 3, "Count of workers that save transactions output")
-	wrkSaveInvalidTxsCount := flag.Int("wrk_save_invtxs_count", 3, "Count of workers that save invalid transactions")
-	wrkSaveRewardsCount := flag.Int("wrk_save_rewards_count", 3, "Count of workers that save rewards")
-	wrkSaveSlashesCount := flag.Int("wrk_save_slashes_count", 3, "Count of workers that save slashes")
-	wrkSaveAddressesCount := flag.Int("wrk_save_addresses_count", 3, "Count of workers that save addresses")
-	wrkSaveValidatorTxsCount := flag.Int("wrk_save_val_tx_count", 3, "Count of workers that save transaction-validator link")
-	addrChunkSize := flag.Int("addr_chunk_size", 10, "Count of workers that save transaction-validator link")
-	wrkUpdateBalanceCount := flag.Int("wrk_upd_balances_count", 1, "Count of workers that update balance")
-	wrkGetBalancesFromNodeCount := flag.Int("wrk_node_balance_count", 1, "Count of workers that get balance from node")
-	wrkUpdateTxsIndexNumBlocks := flag.Int("wrk_update_txs_index_num_blocks", 120, "Count of blocks that should be reindex")
-	wrkUpdateTxsIndexTime := flag.Int("wrk_update_txs_index_time", 60, "Time in seconds which worker sleep before the next iteration")
-	rewardAggregateEveryBlocksCount := flag.Int("reward_aggregate_every_blocks_count", 60, "Every X block will be launched reward aggregation")
-	rewardAggregateTimeInterval := flag.String("reward_aggregate_time_interval", "hour", "Rewards aggregation time interval('hour' or 'day')")
-	flag.Parse()
+type ExtenderEnvironment struct {
+	BaseCoin                        string
+	CoinsUpdateTime                 int
+	Debug                           bool
+	DbHost                          string
+	DbPort                          string
+	DbName                          string
+	DbUser                          string
+	DbPassword                      string
+	WsLink                          string
+	WsKey                           string
+	NodeApi                         string
+	ApiPort                         int
+	TxChunkSize                     int
+	AddrChunkSize                   int
+	EventsChunkSize                 int
+	StakeChunkSize                  int
+	WrkSaveRewardsCount             int
+	WrkSaveSlashesCount             int
+	WrkSaveTxsCount                 int
+	WrkSaveTxsOutputCount           int
+	WrkSaveInvTxsCount              int
+	WrkSaveAddressesCount           int
+	WrkSaveValidatorTxsCount        int
+	WrkUpdateBalanceCount           int
+	WrkGetBalancesFromNodeCount     int
+	WrkUpdateTxsIndexNumBlocks      int
+	WrkUpdateTxsIndexTime           int
+	RewardAggregateEveryBlocksCount int
+	RewardAggregateTimeInterval     string
+}
 
-	envData := new(models.ExtenderEnvironment)
+func New() *ExtenderEnvironment {
+	txChunkSize, err := strconv.ParseInt(os.Getenv("APP_TX_CHUNK_SIZE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	eventsChunkSize, err := strconv.ParseInt(os.Getenv("APP_EVENTS_CHUNK_SIZE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	stakeChunkSize, err := strconv.ParseInt(os.Getenv("APP_STAKE_CHUNK_SIZE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveTxsCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_TXS"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveTxsOutputCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_TXS_OUTPUT"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveInvalidTxsCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_TXS_INVALID"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveRewardsCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_REWARDS"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveSlashesCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_SLASHES"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveAddressesCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_ADDRESSES"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkSaveValidatorTxsCount, err := strconv.ParseInt(os.Getenv("WRK_SAVE_TXS_VALIDATOR"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addrChunkSize, err := strconv.ParseInt(os.Getenv("APP_ADDRESS_CHUNK_SIZE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkUpdateBalanceCount, err := strconv.ParseInt(os.Getenv("WRK_BALANCE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkGetBalancesFromNodeCount, err := strconv.ParseInt(os.Getenv("WRK_BALANCE_NODE"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	coinsUpdateTime, err := strconv.ParseInt(os.Getenv("APP_COINS_UPDATE_TIME_MINUTES"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkUpdateTxsIndexNumBlocks, err := strconv.ParseInt(os.Getenv("WRK_TXS_INDEX_NUM"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wrkUpdateTxsIndexTime, err := strconv.ParseInt(os.Getenv("WRK_TXS_INDEX_SLEEP_SEC"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rewardAggregateEveryBlocksCount, err := strconv.ParseInt(os.Getenv("APP_REWARDS_AGGREGATE_BLOCKS_COUNT"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	extenderApiPort, err := strconv.ParseInt(os.Getenv("EXTENDER_API_PORT"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	if envData.DbUser == "" {
-		dbUser := os.Getenv("EXPLORER_DB_USER")
-		envData.DbUser = dbUser
-	}
-	if envData.DbName == "" {
-		dbName := os.Getenv("EXPLORER_DB_NAME")
-		envData.DbName = dbName
-	}
-	if envData.DbPassword == "" {
-		dbPassword := os.Getenv("EXPLORER_DB_PASSWORD")
-		envData.DbPassword = dbPassword
-	}
-	if envData.NodeApi == "" {
-		nodeApi := os.Getenv("MINTER_NODE_API")
-		envData.NodeApi = nodeApi
-	}
-
-	if *configFile != "" {
-		config := NewViperConfig(*configFile)
-		wsLink := `http://`
-		if config.GetBool(`wsServer.isSecure`) {
-			wsLink = `https://`
-		}
-		wsLink += config.GetString(`wsServer.link`)
-		if config.GetString(`wsServer.port`) != `` {
-			wsLink += `:` + config.GetString(`wsServer.port`)
-		}
-		nodeApi := "http://"
-		if config.GetBool("minterApi.isSecure") {
-			nodeApi = "https://"
-		}
-		nodeApi += config.GetString("minterApi.link") + ":" + config.GetString("minterApi.port")
-		envData.Debug = config.GetBool("app.debug")
-		envData.DbName = config.GetString("database.name")
-		envData.DbUser = config.GetString("database.user")
-		envData.DbPassword = config.GetString("database.password")
-		envData.DbMinIdleConns = config.GetInt("database.minIdleConns")
-		envData.DbPoolSize = config.GetInt("database.poolSize")
-		envData.NodeApi = nodeApi
-		envData.TxChunkSize = config.GetInt("app.txChunkSize")
-		envData.AddrChunkSize = config.GetInt("app.addrChunkSize")
-		envData.EventsChunkSize = config.GetInt("app.eventsChunkSize")
-		envData.StakeChunkSize = config.GetInt("app.stakeChunkSize")
-		envData.ApiHost = config.GetString("extenderApi.host")
-		envData.ApiPort = config.GetInt("extenderApi.port")
-		envData.WsLink = wsLink
-		envData.WsKey = config.GetString(`wsServer.key`)
-		envData.AppName = config.GetString("name")
-		envData.WrkSaveTxsCount = config.GetInt("workers.saveTxs")
-		envData.WrkSaveTxsOutputCount = config.GetInt("workers.saveTxsOutput")
-		envData.WrkSaveInvTxsCount = config.GetInt("workers.saveInvalidTxs")
-		envData.WrkSaveRewardsCount = config.GetInt("workers.saveRewards")
-		envData.WrkSaveSlashesCount = config.GetInt("workers.saveSlashes")
-		envData.WrkSaveAddressesCount = config.GetInt("workers.saveAddresses")
-		envData.WrkSaveValidatorTxsCount = config.GetInt("workers.saveTxValidator")
-		envData.WrkUpdateBalanceCount = config.GetInt("workers.updateBalance")
-		envData.WrkGetBalancesFromNodeCount = config.GetInt("workers.balancesFromNode")
-		envData.RewardAggregateEveryBlocksCount = config.GetInt("app.rewardsAggregateBlocksCount")
-		envData.RewardAggregateTimeInterval = config.GetString("app.rewardsAggregateTimeInterval")
-		envData.BaseCoin = config.GetString("app.baseCoin")
-		envData.CoinsUpdateTime = config.GetInt("app.coinsUpdateTimeMinutes")
-		envData.WrkUpdateTxsIndexNumBlocks = config.GetInt("workers.updateTxsIndexNumBlocks")
-		envData.WrkUpdateTxsIndexTime = config.GetInt("workers.updateTxsIndexSleepSec")
-	} else {
-		envData.AppName = *appName
-		envData.Debug = *debug
-		envData.DbName = *dbName
-		envData.DbUser = *dbUser
-		envData.DbPassword = *dbPassword
-		envData.DbMinIdleConns = *dbMinIdleConns
-		envData.DbPoolSize = *dbPoolSize
-		envData.NodeApi = *nodeApi
-		envData.TxChunkSize = *txChunkSize
-		envData.EventsChunkSize = *eventsChunkSize
-		envData.StakeChunkSize = *stakeChunkSize
-		envData.ApiHost = *apiHost
-		envData.ApiPort = *apiPort
-		envData.WsLink = *wsLink
-		envData.WsKey = *wsKey
-		envData.WrkSaveTxsCount = *wrkSaveTxsCount
-		envData.WrkSaveTxsOutputCount = *wrkSaveTxsOutputCount
-		envData.WrkSaveInvTxsCount = *wrkSaveInvalidTxsCount
-		envData.WrkSaveRewardsCount = *wrkSaveRewardsCount
-		envData.WrkSaveSlashesCount = *wrkSaveSlashesCount
-		envData.WrkSaveAddressesCount = *wrkSaveAddressesCount
-		envData.WrkSaveValidatorTxsCount = *wrkSaveValidatorTxsCount
-		envData.AddrChunkSize = *addrChunkSize
-		envData.WrkUpdateBalanceCount = *wrkUpdateBalanceCount
-		envData.WrkGetBalancesFromNodeCount = *wrkGetBalancesFromNodeCount
-		envData.BaseCoin = *baseCoin
-		envData.CoinsUpdateTime = *coinsUpdateTime
-		envData.WrkUpdateTxsIndexNumBlocks = *wrkUpdateTxsIndexNumBlocks
-		envData.WrkUpdateTxsIndexTime = *wrkUpdateTxsIndexTime
-		envData.RewardAggregateEveryBlocksCount = *rewardAggregateEveryBlocksCount
-		envData.RewardAggregateTimeInterval = *rewardAggregateTimeInterval
-	}
+	envData := new(ExtenderEnvironment)
+	envData.Debug = os.Getenv("EXTENDER_DEBUG") == "1"
+	envData.BaseCoin = os.Getenv("MINTER_BASE_COIN")
+	envData.DbHost = os.Getenv("DB_HOST")
+	envData.DbPort = os.Getenv("DB_PORT")
+	envData.DbName = os.Getenv("DB_NAME")
+	envData.DbUser = os.Getenv("DB_USER")
+	envData.DbPassword = os.Getenv("DB_PASSWORD")
+	envData.NodeApi = os.Getenv("NODE_API")
+	envData.WsLink = os.Getenv("CENTRIFUGO_LINK")
+	envData.WsKey = os.Getenv("CENTRIFUGO_SECRET")
+	envData.RewardAggregateTimeInterval = os.Getenv("APP_REWARDS_TIME_INTERVAL")
+	envData.TxChunkSize = int(txChunkSize)
+	envData.EventsChunkSize = int(eventsChunkSize)
+	envData.WrkSaveTxsCount = int(wrkSaveTxsCount)
+	envData.WrkSaveTxsOutputCount = int(wrkSaveTxsOutputCount)
+	envData.WrkSaveInvTxsCount = int(wrkSaveInvalidTxsCount)
+	envData.WrkSaveRewardsCount = int(wrkSaveRewardsCount)
+	envData.WrkSaveSlashesCount = int(wrkSaveSlashesCount)
+	envData.WrkSaveAddressesCount = int(wrkSaveAddressesCount)
+	envData.WrkSaveValidatorTxsCount = int(wrkSaveValidatorTxsCount)
+	envData.AddrChunkSize = int(addrChunkSize)
+	envData.WrkUpdateBalanceCount = int(wrkUpdateBalanceCount)
+	envData.WrkGetBalancesFromNodeCount = int(wrkGetBalancesFromNodeCount)
+	envData.CoinsUpdateTime = int(coinsUpdateTime)
+	envData.StakeChunkSize = int(stakeChunkSize)
+	envData.WrkUpdateTxsIndexNumBlocks = int(wrkUpdateTxsIndexNumBlocks)
+	envData.WrkUpdateTxsIndexTime = int(wrkUpdateTxsIndexTime)
+	envData.RewardAggregateEveryBlocksCount = int(rewardAggregateEveryBlocksCount)
+	envData.ApiPort = int(extenderApiPort)
 	return envData
 }

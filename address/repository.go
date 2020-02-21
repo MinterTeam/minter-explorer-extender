@@ -1,8 +1,8 @@
 package address
 
 import (
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/go-pg/pg"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/go-pg/pg/v9"
 	"sync"
 )
 
@@ -112,7 +112,7 @@ func (r *Repository) SaveAllIfNotExist(addresses []string) error {
 	return err
 }
 
-func (r Repository) SaveFromMapIfNotExists(addresses map[string]struct{}) error {
+func (r *Repository) SaveFromMapIfNotExists(addresses map[string]struct{}) error {
 	list := make([]string, len(addresses))
 	i := 0
 	for k := range addresses {

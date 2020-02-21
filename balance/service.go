@@ -1,21 +1,21 @@
 package balance
 
 import (
-	"github.com/MinterTeam/minter-explorer-extender/address"
-	"github.com/MinterTeam/minter-explorer-extender/broadcast"
-	"github.com/MinterTeam/minter-explorer-extender/coin"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-node-go-api"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/MinterTeam/minter-explorer-extender/v2/address"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
+	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
+	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
 )
 
 type Service struct {
-	env                    *models.ExtenderEnvironment
-	nodeApi                *minter_node_go_api.MinterNodeApi
+	env                    *env.ExtenderEnvironment
+	nodeApi                *api.Api
 	repository             *Repository
 	addressRepository      *address.Repository
 	coinRepository         *coin.Repository
@@ -30,7 +30,7 @@ type Service struct {
 type AddressesBalancesContainer struct {
 	Addresses         []string
 	Balances          []*models.Balance
-	nodeApi           *minter_node_go_api.MinterNodeApi
+	nodeApi           *api.Api
 	repository        *Repository
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
@@ -38,7 +38,7 @@ type AddressesBalancesContainer struct {
 	broadcastService  *broadcast.Service
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, nodeApi *minter_node_go_api.MinterNodeApi,
+func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *api.Api,
 	addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry) *Service {
 	return &Service{
@@ -95,7 +95,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `"Mx` + adr + `"`
 		}
-		response, err := s.nodeApi.GetAddresses(addresses, blockAddresses.Height)
+		response, err := s.nodeApi.Addresses(addresses, int(blockAddresses.Height))
 		if err != nil {
 			s.logger.Error(err)
 			continue
@@ -119,15 +119,10 @@ func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 	}
 }
 
-func (s *Service) HandleBalanceResponse(response *responses.BalancesResponse) ([]*models.Balance, error) {
+func (s *Service) HandleBalanceResponse(results []*api.AddressesResult) ([]*models.Balance, error) {
 	var balances []*models.Balance
 
-	if len(response.Result) == 0 {
-		s.logger.Warn("No data in response")
-		return nil, nil
-	}
-
-	for _, item := range response.Result {
+	for _, item := range results {
 		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(item.Address))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{"address": item.Address}).Error(err)

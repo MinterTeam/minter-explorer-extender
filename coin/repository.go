@@ -1,8 +1,8 @@
 package coin
 
 import (
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/go-pg/pg"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/go-pg/pg/v9"
 	"sync"
 )
 
@@ -31,6 +31,7 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	err := r.db.Model(coin).
 		Column("id").
 		Where("symbol = ?", symbol).
+		AllWithDeleted().
 		Select()
 
 	if err != nil {

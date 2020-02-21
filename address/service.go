@@ -1,12 +1,11 @@
 package address
 
 import (
-	"encoding/base64"
-	"errors"
-	"github.com/MinterTeam/minter-explorer-tools/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/models"
-	"github.com/MinterTeam/minter-go-node/core/check"
-	"github.com/MinterTeam/minter-node-go-api/responses"
+	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/minter-go-sdk/transaction"
 	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 )
 
 type Service struct {
-	env                *models.ExtenderEnvironment
+	env                *env.ExtenderEnvironment
 	repository         *Repository
 	chBalanceAddresses chan<- models.BlockAddresses
 	jobSaveAddresses   chan []string
@@ -22,7 +21,7 @@ type Service struct {
 	logger             *logrus.Entry
 }
 
-func NewService(env *models.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                env,
 		repository:         repository,
@@ -48,57 +47,69 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	}
 }
 
-func (s *Service) ExtractAddressesFromTransactions(transactions []responses.Transaction) ([]string, error, map[string]struct{}) {
+func (s *Service) ExtractAddressesFromTransactions(transactions []api.TransactionResult) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
-		if tx.Data == nil {
-			s.logger.Error("empty transaction data")
-			return nil, errors.New("empty transaction data"), nil
-		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
-		if tx.Type == models.TxTypeSend {
-			mapAddresses[helpers.RemovePrefix(tx.IData.(models.SendTxData).To)] = struct{}{}
+
+		if transaction.Type(tx.Type) == transaction.TypeSend {
+			var txData api.SendData
+			err := tx.Data.FillStruct(&txData)
+			if tx.Data == nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				return nil, err, nil
+			}
+			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		}
-		if tx.Type == models.TxTypeMultiSend {
-			for _, receiver := range tx.IData.(models.MultiSendTxData).List {
+
+		if transaction.Type(tx.Type) == transaction.TypeMultisend {
+			var txData api.MultisendData
+			err := tx.Data.FillStruct(&txData)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"Tx": tx.Hash,
+				}).Error(err)
+				return nil, err, nil
+			}
+			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
 		}
-		if tx.Type == models.TxTypeRedeemCheck {
-			decoded, err := base64.StdEncoding.DecodeString(tx.IData.(models.RedeemCheckTxData).RawCheck)
+
+		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
+			txData := new(api.RedeemCheckData)
+			err := tx.Data.FillStruct(txData)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
 				}).Error(err)
-				continue
+				return nil, err, nil
 			}
-			data, err := check.DecodeFromBytes(decoded)
+			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
 				}).Error(err)
-				continue
+				return nil, err, nil
 			}
 			sender, err := data.Sender()
 			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
-				continue
+				s.logger.Error(err)
+				return nil, err, nil
 			}
-			mapAddresses[helpers.RemovePrefix(sender.String())] = struct{}{}
+			mapAddresses[helpers.RemovePrefix(sender)] = struct{}{}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
 	return addresses, nil, mapAddresses
 }
 
-func (s *Service) ExtractAddressesEventsResponse(response *responses.EventsResponse) ([]string, map[string]struct{}) {
+func (s *Service) ExtractAddressesEventsResponse(response *api.EventsResult) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
-	for _, event := range response.Result.Events {
-
-		addressesHash := event.Value.Address
-
+	for _, event := range response.Events {
+		addressesHash := event.Value["address"]
 		if len(addressesHash) > 2 {
 			addressesHash = helpers.RemovePrefix(addressesHash)
 			mapAddresses[addressesHash] = struct{}{}
@@ -110,7 +121,7 @@ func (s *Service) ExtractAddressesEventsResponse(response *responses.EventsRespo
 }
 
 // Find all addresses in block response and save it
-func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, eventsResponse *responses.EventsResponse) error {
+func (s *Service) HandleResponses(blockResponse *api.BlockResult, eventsResponse *api.EventsResult) error {
 	var (
 		err                error
 		height             uint64
@@ -119,20 +130,18 @@ func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, events
 	)
 
 	if blockResponse != nil {
-		height, err = strconv.ParseUint(blockResponse.Result.Height, 10, 64)
+		height, err = strconv.ParseUint(blockResponse.Height, 10, 64)
 		if err != nil {
-			s.logger.Error(err)
 			return err
 		}
 	}
-	if blockResponse != nil && blockResponse.Result.TxCount != "0" {
-		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Result.Transactions)
+	if blockResponse != nil && blockResponse.NumTxs != "0" {
+		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Transactions)
 		if err != nil {
-			s.logger.Error(err)
 			return err
 		}
 	}
-	if eventsResponse != nil && len(eventsResponse.Result.Events) > 0 {
+	if eventsResponse != nil && len(eventsResponse.Events) > 0 {
 		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(eventsResponse)
 	}
 	// Merge maps
@@ -159,7 +168,6 @@ func (s *Service) HandleResponses(blockResponse *responses.BlockResponse, events
 			s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
 		}
 	}
-
 	return nil
 }
 
