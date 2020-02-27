@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -14,7 +13,6 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/MinterTeam/minter-go-sdk/api"
 	"github.com/MinterTeam/minter-go-sdk/transaction"
-	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
 	"math"
 	"strconv"
@@ -304,10 +302,14 @@ func (s *Service) handleValidTransaction(tx api.TransactionResult, blockHeight u
 		return nil, err
 	}
 
-	mapTxTags := structs.Map(tx.Tags)
-	mapTags := make(map[string]string)
-	for k, v := range mapTxTags {
-		mapTags[k] = fmt.Sprintf("%v", v)
+	txTagsJson, err := json.Marshal(tx.Tags)
+	if err != nil {
+		return nil, err
+	}
+	txTags := make(map[string]string)
+	err = json.Unmarshal(txTagsJson, &txTags)
+	if err != nil {
+		return nil, err
 	}
 
 	return &models.Transaction{
@@ -323,7 +325,7 @@ func (s *Service) handleValidTransaction(tx api.TransactionResult, blockHeight u
 		ServiceData:   string(tx.ServiceData),
 		IData:         tx.Data,
 		Data:          txDataJson,
-		Tags:          mapTags,
+		Tags:          txTags,
 		Payload:       tx.Payload,
 		RawTx:         rawTxData[:rawTx],
 	}, nil
