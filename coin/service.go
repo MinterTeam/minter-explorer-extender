@@ -191,7 +191,7 @@ func (s *Service) UpdateCoinsInfo(symbols []string) error {
 }
 
 func (s *Service) GetCoinFromNode(symbol string) (*models.Coin, error) {
-	coinResp, err := s.nodeApi.CoinInfo(symbol, 0)
+	coinResp, err := s.nodeApi.CoinInfo(symbol)
 	if err != nil {
 		s.logger.Error(err)
 		return nil, err

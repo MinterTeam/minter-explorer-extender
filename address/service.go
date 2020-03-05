@@ -87,7 +87,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 				}).Error(err)
 				return nil, err, nil
 			}
-			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
+			data, err := transaction.DecodeCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,

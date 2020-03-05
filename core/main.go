@@ -90,7 +90,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	// Repositories
 	blockRepository := block.NewRepository(db)
-	validatorRepository := validator.NewRepository(db)
+	validatorRepository := validator.NewRepository()
 	transactionRepository := transaction.NewRepository(db)
 	addressRepository := address.NewRepository(db)
 	coinRepository := coin.NewRepository(db)
@@ -155,7 +155,7 @@ func (ext *Extender) Run() {
 		}
 
 		//Pulling events
-		eventsResponse, err := ext.nodeApi.Events(height)
+		eventsResponse, err := ext.nodeApi.EventsAtHeight(height)
 		if err != nil {
 			ext.logger.Error(err)
 		}
@@ -265,7 +265,6 @@ func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
 	// Candidate will be updated in the next iteration
 	if height%120 == 0 {
 		ext.validatorService.GetUpdateStakesJobChannel() <- int(height)
-	} else if height > 1 {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(height)
 	}
 }

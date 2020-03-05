@@ -75,19 +75,19 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 
 	for _, tx := range transactions {
 		if tx.Log == "" {
-			transaction, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
+			txn, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
 				s.logger.Error(err)
 				return err
 			}
-			txList = append(txList, transaction)
+			txList = append(txList, txn)
 		} else {
-			transaction, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
+			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
 				s.logger.Error(err)
 				return err
 			}
-			invalidTxList = append(invalidTxList, transaction)
+			invalidTxList = append(invalidTxList, txn)
 		}
 	}
 
@@ -234,7 +234,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				}).Error(err)
 				continue
 			}
-			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
+			data, err := transaction.DecodeCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
