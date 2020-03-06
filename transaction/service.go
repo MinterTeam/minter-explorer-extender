@@ -75,19 +75,19 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 
 	for _, tx := range transactions {
 		if tx.Log == "" {
-			transaction, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
+			txn, err := s.handleValidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
 				s.logger.Error(err)
 				return err
 			}
-			txList = append(txList, transaction)
+			txList = append(txList, txn)
 		} else {
-			transaction, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
+			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
 				s.logger.Error(err)
 				return err
 			}
-			invalidTxList = append(invalidTxList, transaction)
+			invalidTxList = append(invalidTxList, txn)
 		}
 	}
 
@@ -234,7 +234,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				}).Error(err)
 				continue
 			}
-			data, err := transaction.DecodeIssueCheck(txData.RawCheck)
+			data, err := transaction.DecodeCheck(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
@@ -360,53 +360,53 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		var validatorPk string
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeDeclareCandidacy:
-			var txData transaction.DeclareCandidacyData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.DeclareCandidacyData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeDelegate:
-			var txData transaction.DelegateData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.DelegateData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeUnbond:
-			var txData transaction.UnbondData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.UnbondData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeSetCandidateOnline:
-			var txData transaction.SetCandidateOnData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.SetCandidateOnData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeSetCandidateOffline:
-			var txData transaction.SetCandidateOffData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.SetCandidateOffData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeEditCandidate:
-			var txData transaction.EditCandidateData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.EditCandidateData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		}
 
 		if validatorPk != "" {

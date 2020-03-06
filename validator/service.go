@@ -48,9 +48,9 @@ func (s *Service) GetUpdateStakesJobChannel() chan int {
 
 func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(height, false)
+		resp, err := s.nodeApi.CandidatesAtHeight(height, false)
 		if err != nil {
-			s.logger.Error(err)
+			s.logger.WithField("Block", height).Error(err)
 		}
 
 		if len(resp) > 0 {
@@ -125,9 +125,9 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(height, true)
+		resp, err := s.nodeApi.CandidatesAtHeight(height, true)
 		if err != nil {
-			s.logger.Error(err)
+			s.logger.WithField("Block", height).Error(err)
 		}
 		var (
 			stakes       []*models.Stake

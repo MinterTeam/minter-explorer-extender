@@ -37,8 +37,6 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
 	height, err := strconv.ParseUint(response.Height, 10, 64)
 	helpers.HandleError(err)
-	totalTx, err := strconv.ParseUint(response.TotalTxs, 10, 64)
-	helpers.HandleError(err)
 	numTx, err := strconv.ParseUint(response.NumTxs, 10, 32)
 	helpers.HandleError(err)
 	size, err := strconv.ParseUint(response.Size, 10, 64)
@@ -54,7 +52,6 @@ func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
 
 	block := &models.Block{
 		ID:                  height,
-		TotalTxs:            totalTx,
 		NumTxs:              uint32(numTx),
 		Size:                size,
 		BlockTime:           s.getBlockTime(response.Time),
