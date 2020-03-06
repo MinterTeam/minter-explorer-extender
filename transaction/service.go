@@ -360,53 +360,53 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		var validatorPk string
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeDeclareCandidacy:
-			var txData transaction.DeclareCandidacyData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.DeclareCandidacyData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeDelegate:
-			var txData transaction.DelegateData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.DelegateData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeUnbond:
-			var txData transaction.UnbondData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.UnbondData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeSetCandidateOnline:
-			var txData transaction.SetCandidateOnData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.SetCandidateOnData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeSetCandidateOffline:
-			var txData transaction.SetCandidateOffData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.SetCandidateOffData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		case transaction.TypeEditCandidate:
-			var txData transaction.EditCandidateData
-			err := helpers.ConvertStruct(tx.IData, txData)
+			var txData api.EditCandidateData
+			err := helpers.ConvertStruct(tx.IData, &txData)
 			if tx.Data == nil {
 				s.logger.Error(err)
 				return nil, err
 			}
-			validatorPk = string(txData.PubKey[:])
+			validatorPk = txData.PubKey
 		}
 
 		if validatorPk != "" {
