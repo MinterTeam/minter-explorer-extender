@@ -26,8 +26,10 @@ github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3 h1:0hqzLuvGUn+LWbPyI275LSO
 github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3/go.mod h1:OMgo5DGLbhUlUnU21DF6iJDoMiIOn/BbDG9FOw03Sik=
 github.com/MinterTeam/minter-go-node v1.0.5 h1:26JxaXfplVT2pt99Q70vCDQ1Kx5IinR0k0mLzzfHDfk=
 github.com/MinterTeam/minter-go-node v1.0.5/go.mod h1:juaQ5woUKkGknh4Fj57+uv0AgMAzSv/aChNQT04K+uQ=
-github.com/MinterTeam/minter-go-sdk v1.0.0 h1:4dccuGlk+VD/m3DLjzgltM3wLikOW4Wzf7b97upfOcI=
-github.com/MinterTeam/minter-go-sdk v1.0.0/go.mod h1:IVoupdNnGyzfdprQ32x2ZI9MaA6XpXDirH16H6GqBTY=
+github.com/MinterTeam/minter-go-sdk v1.0.1 h1:ScRbbnCNquKUIUZHbLDnwT8yQPj32bXbx3drGmBuWMc=
+github.com/MinterTeam/minter-go-sdk v1.0.1/go.mod h1:IVoupdNnGyzfdprQ32x2ZI9MaA6XpXDirH16H6GqBTY=
+github.com/MinterTeam/minter-go-sdk v1.0.2 h1:/FDqn1Y6BMd0+oFgFi2AD/1REIkW7Y+lL+JnYkAV25U=
+github.com/MinterTeam/minter-go-sdk v1.0.2/go.mod h1:IVoupdNnGyzfdprQ32x2ZI9MaA6XpXDirH16H6GqBTY=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=

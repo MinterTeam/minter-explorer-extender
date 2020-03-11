@@ -7,7 +7,7 @@ require (
 	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200305175531-54cf007acc9b
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
 	github.com/MinterTeam/minter-go-node v1.0.5 // indirect
-	github.com/MinterTeam/minter-go-sdk v1.0.0
+	github.com/MinterTeam/minter-go-sdk v1.0.2
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/go-pg/pg v8.0.6+incompatible

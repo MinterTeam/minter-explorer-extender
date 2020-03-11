@@ -1,8 +1,10 @@
 package coin
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/go-pg/pg/v9"
+	"os"
 	"sync"
 )
 
@@ -12,7 +14,15 @@ type Repository struct {
 	invCache *sync.Map
 }
 
-func NewRepository(db *pg.DB) *Repository {
+func NewRepository() *Repository {
+	//Init DB
+	db := pg.Connect(&pg.Options{
+		Addr:     fmt.Sprintf("%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Database: os.Getenv("DB_NAME"),
+	})
+
 	return &Repository{
 		db:       db,
 		cache:    new(sync.Map), //TODO: добавить реализацию очистки

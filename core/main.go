@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
@@ -74,12 +73,12 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	})
 
 	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
-	})
+	//db := pg.Connect(&pg.Options{
+	//	Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
+	//	User:     env.DbUser,
+	//	Password: env.DbPassword,
+	//	Database: env.DbName,
+	//})
 
 	//if env.Debug {
 	//	db.AddQueryHook(dbLogger{logger: contextLogger})
@@ -89,13 +88,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	nodeApi := api.NewApi(env.NodeApi)
 
 	// Repositories
-	blockRepository := block.NewRepository(db)
+	blockRepository := block.NewRepository()
 	validatorRepository := validator.NewRepository()
-	transactionRepository := transaction.NewRepository(db)
-	addressRepository := address.NewRepository(db)
-	coinRepository := coin.NewRepository(db)
-	eventsRepository := events.NewRepository(db)
-	balanceRepository := balance.NewRepository(db)
+	transactionRepository := transaction.NewRepository()
+	addressRepository := address.NewRepository()
+	coinRepository := coin.NewRepository()
+	eventsRepository := events.NewRepository()
+	balanceRepository := balance.NewRepository()
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, contextLogger)
