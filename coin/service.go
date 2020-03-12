@@ -125,7 +125,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeSellCoin:
 				var txData api.SellCoinData
-				err := helpers.ConvertStruct(tx.IData, txData)
+				err := helpers.ConvertStruct(tx.IData, &txData)
 				if tx.Data == nil {
 					s.logger.Error(err)
 				}
@@ -133,7 +133,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				coinsMap[txData.CoinToSell] = struct{}{}
 			case transaction.TypeBuyCoin:
 				var txData api.BuyCoinData
-				err := helpers.ConvertStruct(tx.IData, txData)
+				err := helpers.ConvertStruct(tx.IData, &txData)
 				if tx.Data == nil {
 					s.logger.Error(err)
 				}
@@ -141,7 +141,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				coinsMap[txData.CoinToSell] = struct{}{}
 			case transaction.TypeSellAllCoin:
 				var txData api.SellAllCoinData
-				err := helpers.ConvertStruct(tx.IData, txData)
+				err := helpers.ConvertStruct(tx.IData, &txData)
 				if tx.Data == nil {
 					s.logger.Error(err)
 				}
