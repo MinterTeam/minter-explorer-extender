@@ -1,10 +1,40 @@
 version: '3.6'
 
 services:
-  extender:
-    build: ./
-    volumes:
-      - ./:/app
+#  extender:
+#    build: ./
+#    volumes:
+#      - ./:/app
+#    env_file:
+#      - .env
+#    restart: always
+  postgres:
+    image: postgres:alpine
+    restart: always
+    ports:
+      - 5432:5432
     env_file:
       - .env
-    restart: always
+    volumes:
+      - ./tmp/postgresql:/var/lib/postgresql/data
+      - ./database/db.sql:/docker-entrypoint-initdb.d/init.sql
+  centrifugo:
+    image: centrifugo/centrifugo:v2.2.2
+    env_file:
+      - .env
+    command: centrifugo --api_insecure --client_insecure
+  api:
+    image: minterteam/explorer-api:v2.0.0-texas-beta
+    env_file:
+      - .env
+    environment:
+      CENTRIFUGO_LINK: ws://centrifugo:8000/connection/websocket
+      DB_HOST: postgres
+    ports:
+      - 8080:8080
+    links:
+      - centrifugo
+      - postgres
+    depends_on:
+      - postgres
+      - centrifugo

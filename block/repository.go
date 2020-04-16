@@ -19,7 +19,6 @@ func NewRepository() *Repository {
 		Password: os.Getenv("DB_PASSWORD"),
 		Database: os.Getenv("DB_NAME"),
 	})
-
 	return &Repository{
 		db: db,
 	}
@@ -49,6 +48,10 @@ func (r *Repository) LinkWithValidators(links []*models.BlockValidator) error {
 	}
 	err := r.db.Insert(args...)
 	return err
+}
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
 }
 
 func (r *Repository) DeleteLastBlockData() error {

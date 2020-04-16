@@ -60,3 +60,7 @@ func (r Repository) DeleteByCoinId(coinId uint64) error {
 	_, err := r.db.Model(new(models.Balance)).Where("coin_id = ?", coinId).Delete()
 	return err
 }
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}

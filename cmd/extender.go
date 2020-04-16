@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		log.Println(".env file not found")
 	}
-	envData := env.New()
+	envData := env.New("prod")
 	extenderApi := api.New("", envData.ApiPort)
 	go extenderApi.Run()
 	ext := core.NewExtender(envData)

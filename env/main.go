@@ -36,9 +36,20 @@ type ExtenderEnvironment struct {
 	WrkUpdateTxsIndexTime           int
 	RewardAggregateEveryBlocksCount int
 	RewardAggregateTimeInterval     string
+	UpdateStakeBlocks               int
+	UpdateValidatorsBlocks          int
 }
 
-func New() *ExtenderEnvironment {
+func New(stage string) *ExtenderEnvironment {
+	stakeUpd, err := strconv.ParseInt(os.Getenv("APP_STAKE_UPD_BLOCKS"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	validatorUpd, err := strconv.ParseInt(os.Getenv("APP_VALIDATOR_UPD_BLOCKS"), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	txChunkSize, err := strconv.ParseInt(os.Getenv("APP_TX_CHUNK_SIZE"), 10, 64)
 	if err != nil {
 		log.Fatal(err)
@@ -142,5 +153,19 @@ func New() *ExtenderEnvironment {
 	envData.WrkUpdateTxsIndexTime = int(wrkUpdateTxsIndexTime)
 	envData.RewardAggregateEveryBlocksCount = int(rewardAggregateEveryBlocksCount)
 	envData.ApiPort = int(extenderApiPort)
+
+	envData.UpdateStakeBlocks = int(stakeUpd)
+	envData.UpdateValidatorsBlocks = int(validatorUpd)
+
+	if stage == "test" {
+		envData.DbHost = os.Getenv("TEST_DB_HOST")
+		envData.DbPort = os.Getenv("TEST_DB_PORT")
+		envData.DbName = os.Getenv("TEST_DB_NAME")
+		envData.DbUser = os.Getenv("TEST_DB_USER")
+		envData.DbPassword = os.Getenv("TEST_DB_PASSWORD")
+		envData.NodeApi = os.Getenv("TEST_NODE_API")
+		envData.BaseCoin = os.Getenv("TEST_MINTER_BASE_COIN")
+	}
+
 	return envData
 }

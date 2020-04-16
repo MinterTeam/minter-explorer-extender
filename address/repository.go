@@ -132,6 +132,10 @@ func (r *Repository) SaveFromMapIfNotExists(addresses map[string]struct{}) error
 	return r.SaveAllIfNotExist(list)
 }
 
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}
+
 func (r *Repository) addToCache(addresses []*models.Address) {
 	for _, a := range addresses {
 		_, exist := r.cache.Load(a)

@@ -168,3 +168,7 @@ func (r Repository) ResetAllStatuses() error {
 	_, err := r.db.Query(nil, `update validators set status = null;`)
 	return err
 }
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}

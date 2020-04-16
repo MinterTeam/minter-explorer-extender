@@ -95,3 +95,7 @@ ON CONFLICT DO NOTHING;
 	`, txsNumber, txsNumber)
 	return err
 }
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}

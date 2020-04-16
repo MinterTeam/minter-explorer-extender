@@ -72,18 +72,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		"app":     "Minter Explorer Extender",
 	})
 
-	//Init DB
-	//db := pg.Connect(&pg.Options{
-	//	Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-	//	User:     env.DbUser,
-	//	Password: env.DbPassword,
-	//	Database: env.DbName,
-	//})
-
-	//if env.Debug {
-	//	db.AddQueryHook(dbLogger{logger: contextLogger})
-	//}
-
 	//api
 	nodeApi := api.NewApi(env.NodeApi)
 
@@ -119,7 +107,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 }
 
-func (ext *Extender) Run() {
+func (ext *Extender) Run(maxHeight ...int) {
 	//check connections to node
 	_, err := ext.nodeApi.Status()
 	if err == nil {
@@ -144,6 +132,11 @@ func (ext *Extender) Run() {
 	}
 
 	for {
+		if maxHeight[0] != 0 && height > maxHeight[0] {
+			ext.logger.Info("Max height has been reached")
+			return
+		}
+
 		start := time.Now()
 		ext.findOutChasingMode(height)
 		//Pulling block data
@@ -262,9 +255,11 @@ func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
 
 	// No need to update candidate and stakes at the same time
 	// Candidate will be updated in the next iteration
-	if height%120 == 0 {
-		ext.validatorService.GetUpdateStakesJobChannel() <- int(height)
+	if height%uint64(ext.env.UpdateValidatorsBlocks) == 0 {
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(height)
+	}
+	if height%uint64(ext.env.UpdateStakeBlocks) == 0 {
+		ext.validatorService.GetUpdateStakesJobChannel() <- int(height)
 	}
 }
 

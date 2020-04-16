@@ -106,3 +106,7 @@ func (r Repository) DeleteBySymbol(symbol string) error {
 	_, err := r.db.Model(coin).Where("symbol = ?symbol").Delete()
 	return err
 }
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}

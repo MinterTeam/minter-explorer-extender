@@ -82,3 +82,7 @@ func (r *Repository) DropOldRewardsData(saveBlocksCount uint32) error {
 	`, saveBlocksCount)
 	return err
 }
+
+func (r *Repository) CloseDB() error {
+	return r.db.Close()
+}
