@@ -28,6 +28,9 @@ type Service struct {
 type TotalSlashesResponse struct {
 	Result json.Number `json:"result"`
 }
+type TSResponse struct {
+	Result string `json:"result"`
+}
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
 	logger *logrus.Entry) *Service {
@@ -127,7 +130,9 @@ func (s *Service) PublishTotalSlashes() {
 	}
 	data := resp.Result().(*TotalSlashesResponse)
 	channel := `total_slashed`
-	msg, err := json.Marshal(data)
+	msg, err := json.Marshal(TSResponse{
+		Result: data.Result.String(),
+	})
 	if err != nil {
 		s.logger.Error(err)
 	}
