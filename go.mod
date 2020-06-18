@@ -12,6 +12,7 @@ require (
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/go-pg/pg/v9 v9.1.2
+	github.com/go-resty/resty/v2 v2.3.0
 	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/prometheus/client_golang v1.4.1
@@ -19,6 +20,5 @@ require (
 	github.com/spf13/viper v1.6.2 // indirect
 	github.com/tendermint/go-amino v0.15.1 // indirect
 	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
-	golang.org/x/sys v0.0.0-20200212091648-12a6c2dcc1e4 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

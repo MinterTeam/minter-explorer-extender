@@ -164,8 +164,6 @@ func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint6
 		s.logger.Error(err)
 	}
 	helpers.HandleError(err)
-	// 17280 - approximately numbers of blocks per day
-	// TODO: move to config
 
 	blocks := os.Getenv("APP_REWARDS_BLOCK")
 	bc, err := strconv.ParseUint(blocks, 10, 32)

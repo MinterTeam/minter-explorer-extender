@@ -11,16 +11,24 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/centrifugal/gocent"
+	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
 	"log"
 )
 
 type Service struct {
 	client            *gocent.Client
+	httpClient        *resty.Client
 	ctx               context.Context
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
 	logger            *logrus.Entry
+}
+
+type SuccessResponse struct {
+	Jsonrpc string `json:"jsonrpc"`
+	ID      string `json:"id"`
+	Result  int64  `json:"result"`
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -30,8 +38,13 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		Key:  env.WsKey,
 	})
 
+	httpClient := resty.New().
+		SetHostURL("http://195.201.244.41:8841").
+		SetHeader("Accept", "application/json")
+
 	return &Service{
 		client:            wsClient,
+		httpClient:        httpClient,
 		ctx:               context.Background(),
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
@@ -97,6 +110,30 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 		}
 		s.publish(channel, []byte(msg))
 	}
+}
+
+func (s *Service) PublishTotalSlashes() {
+
+	resp, err := s.httpClient.R().
+		SetResult(&SuccessResponse{}).
+		Get("/total_slashed")
+
+	if err != nil {
+		s.logger.Error(err)
+		return
+	}
+
+	if resp.IsError() {
+		s.logger.Error(err)
+		return
+	}
+	data := resp.Error().(*SuccessResponse)
+	channel := `total_slashed`
+	msg, err := json.Marshal(data)
+	if err != nil {
+		s.logger.Error(err)
+	}
+	s.publish(channel, msg)
 }
 
 func (s *Service) publish(ch string, msg []byte) {
