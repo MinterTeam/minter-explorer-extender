@@ -25,10 +25,10 @@ type Service struct {
 	logger            *logrus.Entry
 }
 
-type SuccessResponse struct {
+type TotalSlashesResponse struct {
 	Jsonrpc string `json:"jsonrpc"`
 	ID      string `json:"id"`
-	Result  int64  `json:"result"`
+	Result  string `json:"result"`
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -115,7 +115,7 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 func (s *Service) PublishTotalSlashes() {
 
 	resp, err := s.httpClient.R().
-		SetResult(&SuccessResponse{}).
+		SetResult(&TotalSlashesResponse{}).
 		Get("/total_slashed")
 
 	if err != nil {
@@ -127,7 +127,7 @@ func (s *Service) PublishTotalSlashes() {
 		s.logger.Error(err)
 		return
 	}
-	data := resp.Error().(*SuccessResponse)
+	data := resp.Error().(*TotalSlashesResponse)
 	channel := `total_slashed`
 	msg, err := json.Marshal(data)
 	if err != nil {
