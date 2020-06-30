@@ -64,7 +64,7 @@ func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
 
 	go s.broadcastService.PublishBlock(block)
 
-	go s.broadcastService.PublishTotalSlashes()
+	go s.broadcastService.PublishStatus()
 
 	return s.blockRepository.Save(block)
 }
