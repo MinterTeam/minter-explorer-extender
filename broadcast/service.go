@@ -158,7 +158,7 @@ func (s *Service) PublishStatus() {
 
 	resp, err := s.httpClient.R().
 		SetResult(&NodeStatus{}).
-		Get("/total_slashed")
+		Get("/status")
 
 	if err != nil {
 		s.logger.Error(err)
