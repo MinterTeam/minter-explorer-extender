@@ -22,3 +22,4 @@ media/
 
 config.json
 .env
+*.tmp.yaml

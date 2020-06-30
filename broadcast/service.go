@@ -14,6 +14,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
 	"log"
+	"os"
+	"time"
 )
 
 type Service struct {
@@ -25,11 +27,50 @@ type Service struct {
 	logger            *logrus.Entry
 }
 
-type TotalSlashesResponse struct {
-	Result json.Number `json:"result"`
-}
-type TSResponse struct {
-	Data string `json:"data"`
+type NodeStatus struct {
+	Data struct {
+		Version           string    `json:"version"`
+		LatestBlockHash   string    `json:"latest_block_hash"`
+		LatestAppHash     string    `json:"latest_app_hash"`
+		LatestBlockHeight string    `json:"latest_block_height"`
+		LatestBlockTime   time.Time `json:"latest_block_time"`
+		KeepLastStates    string    `json:"keep_last_states"`
+		TotalSlashed      string    `json:"total_slashed"`
+		TmStatus          struct {
+			NodeInfo struct {
+				ProtocolVersion struct {
+					P2P   string `json:"p2p"`
+					Block string `json:"block"`
+					App   string `json:"app"`
+				} `json:"protocol_version"`
+				ID         string `json:"id"`
+				ListenAddr string `json:"listen_addr"`
+				Network    string `json:"network"`
+				Version    string `json:"version"`
+				Channels   string `json:"channels"`
+				Moniker    string `json:"moniker"`
+				Other      struct {
+					TxIndex    string `json:"tx_index"`
+					RPCAddress string `json:"rpc_address"`
+				} `json:"other"`
+			} `json:"node_info"`
+			SyncInfo struct {
+				LatestBlockHash   string    `json:"latest_block_hash"`
+				LatestAppHash     string    `json:"latest_app_hash"`
+				LatestBlockHeight string    `json:"latest_block_height"`
+				LatestBlockTime   time.Time `json:"latest_block_time"`
+				CatchingUp        bool      `json:"catching_up"`
+			} `json:"sync_info"`
+			ValidatorInfo struct {
+				Address string `json:"address"`
+				PubKey  struct {
+					Type  string `json:"type"`
+					Value string `json:"value"`
+				} `json:"pub_key"`
+				VotingPower string `json:"voting_power"`
+			} `json:"validator_info"`
+		} `json:"tm_status"`
+	} `json:"result"`
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -40,7 +81,7 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	})
 
 	httpClient := resty.New().
-		SetHostURL("http://195.201.244.41:8841").
+		SetHostURL(os.Getenv("NODE_API")).
 		SetHeader("Accept", "application/json")
 
 	return &Service{
@@ -113,10 +154,10 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 	}
 }
 
-func (s *Service) PublishTotalSlashes() {
+func (s *Service) PublishStatus() {
 
 	resp, err := s.httpClient.R().
-		SetResult(&TotalSlashesResponse{}).
+		SetResult(&NodeStatus{}).
 		Get("/total_slashed")
 
 	if err != nil {
@@ -128,11 +169,10 @@ func (s *Service) PublishTotalSlashes() {
 		s.logger.Error(err)
 		return
 	}
-	data := resp.Result().(*TotalSlashesResponse)
-	channel := `total_slashed`
-	msg, err := json.Marshal(TSResponse{
-		Data: data.Result.String(),
-	})
+	data := resp.Result().(*NodeStatus)
+	channel := `status`
+
+	msg, err := json.Marshal(data)
 	if err != nil {
 		s.logger.Error(err)
 	}
