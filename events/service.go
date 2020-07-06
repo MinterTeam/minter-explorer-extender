@@ -11,6 +11,8 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/api"
 	"github.com/sirupsen/logrus"
 	"math"
+	"os"
+	"strconv"
 )
 
 type Service struct {
@@ -162,9 +164,15 @@ func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint6
 		s.logger.Error(err)
 	}
 	helpers.HandleError(err)
-	// 17280 - approximately numbers of blocks per day
-	// TODO: move to config
-	err = s.repository.DropOldRewardsData(17280)
+
+	blocks := os.Getenv("APP_REWARDS_BLOCK")
+	bc, err := strconv.ParseUint(blocks, 10, 32)
+	if err != nil {
+		s.logger.Error(err)
+		return
+	}
+
+	err = s.repository.DropOldRewardsData(uint32(bc))
 	if err != nil {
 		s.logger.Error(err)
 	}
