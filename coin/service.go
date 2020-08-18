@@ -1,21 +1,21 @@
 package coin
 
 import (
-	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
 	"github.com/MinterTeam/minter-go-sdk/api"
-	"github.com/MinterTeam/minter-go-sdk/transaction"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"strconv"
-	"time"
 )
 
 type Service struct {
 	env                   *env.ExtenderEnvironment
-	nodeApi               *api.Api
+	nodeApi               *grpc_client.Client
 	repository            *Repository
 	addressRepository     *address.Repository
 	logger                *logrus.Entry
@@ -23,8 +23,7 @@ type Service struct {
 	jobUpdateCoinsFromMap chan map[string]struct{}
 }
 
-func NewService(env *env.ExtenderEnvironment, nodeApi *api.Api, repository *Repository,
-	addressRepository *address.Repository, logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
@@ -52,13 +51,18 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[string]struct{
 	return s.jobUpdateCoinsFromMap
 }
 
-func (s Service) ExtractCoinsFromTransactions(transactions []api.TransactionResult) ([]*models.Coin, error) {
-	var coins []*models.Coin
+func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.NewCoin, error) {
+	var coins []*models.NewCoin
 	for _, tx := range transactions {
-		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
+
+		txType, err := strconv.ParseUint(tx.Type, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if transaction.Type(txType) == transaction.TypeCreateCoin {
 			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
-				s.logger.Error(err)
 				return nil, err
 			}
 			coins = append(coins, coin)
@@ -67,47 +71,39 @@ func (s Service) ExtractCoinsFromTransactions(transactions []api.TransactionResu
 	return coins, nil
 }
 
-func (s *Service) ExtractFromTx(tx api.TransactionResult) (*models.Coin, error) {
-	if tx.Data == nil {
-		s.logger.Warn("empty transaction data")
-		return nil, errors.New("no data for creating a coin")
-	}
-	var txData = new(api.CreateCoinData)
-	err := tx.Data.FillStruct(txData)
+func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.NewCoin, error) {
+	var txData = new(api_pb.CreateCoinData)
+	err := tx.Data.UnmarshalTo(txData)
 	if err != nil {
-		s.logger.Error(err)
 		return nil, err
 	}
 	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
 	if err != nil {
-		s.logger.Error(err)
 		return nil, err
 	}
 
-	coin := &models.Coin{
-		Crr:            crr,
-		Volume:         txData.InitialAmount,
-		ReserveBalance: txData.InitialReserve,
-		Name:           txData.Name,
-		Symbol:         txData.Symbol,
-		DeletedAt:      nil,
+	coin := &models.NewCoin{
+		Crr:     uint(crr),
+		Volume:  txData.InitialAmount,
+		Reserve: txData.InitialReserve,
+		Name:    txData.Name,
+		Symbol:  txData.Symbol,
+		Version: 0,
 	}
 
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
+
 	if err != nil {
 		s.logger.Error(err)
 	} else {
-		coin.CreationAddressID = &fromId
+		coin.OwnerAddressId = fromId
 	}
 
 	return coin, nil
 }
 
-func (s *Service) CreateNewCoins(coins []*models.Coin) error {
-	err := s.repository.SaveAllIfNotExist(coins)
-	if err != nil {
-		s.logger.Error(err)
-	}
+func (s *Service) CreateNewCoins(coins []*models.NewCoin) error {
+	err := s.repository.SaveAllNewIfNotExist(coins)
 	return err
 }
 
@@ -116,12 +112,13 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 		coinsMap := make(map[string]struct{})
 		// Find coins in transaction for update
 		for _, tx := range transactions {
-			symbol, err := s.repository.FindSymbolById(tx.GasCoinID)
+			symbol, err := s.repository.FindSymbolById(uint(tx.GasCoinID))
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
 			coinsMap[symbol] = struct{}{}
+
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeSellCoin:
 				var txData api.SellCoinData
@@ -156,6 +153,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 func (s Service) UpdateCoinsInfoFromCoinsMap(job <-chan map[string]struct{}) {
 	for coinsMap := range job {
 		delete(coinsMap, s.env.BaseCoin)
+		delete(coinsMap, "")
 		if len(coinsMap) > 0 {
 			coinsForUpdate := make([]string, len(coinsMap))
 			i := 0
@@ -179,7 +177,6 @@ func (s *Service) UpdateCoinsInfo(symbols []string) error {
 		}
 		coin, err := s.GetCoinFromNode(symbol)
 		if err != nil {
-			s.logger.Error(err)
 			continue
 		}
 		coins = append(coins, coin)
@@ -193,29 +190,59 @@ func (s *Service) UpdateCoinsInfo(symbols []string) error {
 func (s *Service) GetCoinFromNode(symbol string) (*models.Coin, error) {
 	coinResp, err := s.nodeApi.CoinInfo(symbol)
 	if err != nil {
-		s.logger.Error(err)
 		return nil, err
 	}
-	now := time.Now()
 	coin := new(models.Coin)
 	id, err := s.repository.FindIdBySymbol(symbol)
 	if err != nil {
-		s.logger.Error(err)
 		return nil, err
 	}
 	coin.ID = id
 
-	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
+	coinId, err := strconv.ParseUint(coinResp.Id, 10, 64)
 	if err != nil {
-		s.logger.Error(err)
 		return nil, err
 	}
+	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	coin.CoinId = uint(coinId)
 	coin.Name = coinResp.Name
 	coin.Symbol = coinResp.Symbol
-	coin.Crr = crr
-	coin.ReserveBalance = coinResp.ReserveBalance
+	coin.Crr = uint(crr)
+	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
-	coin.DeletedAt = nil
-	coin.UpdatedAt = now
 	return coin, nil
+}
+
+func (s *Service) ChangeOwner(symbol, owner string) error {
+	id, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(owner))
+	if err != nil {
+		return err
+	}
+
+	return s.repository.UpdateOwnerBySymbol(symbol, id)
+}
+
+func (s *Service) UpdateNewCoins() error {
+
+	newCoins, err := s.repository.GetNewCoins()
+	if err != nil && err.Error() == "pg: no rows in result set" {
+		return err
+	}
+
+	for _, c := range newCoins {
+		coinData, err := s.GetCoinFromNode(c.Symbol)
+		if err != nil {
+			return err
+		}
+		c.CoinId = coinData.CoinId
+		err = s.repository.Update(&c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }

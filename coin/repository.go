@@ -1,10 +1,8 @@
 package coin
 
 import (
-	"fmt"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v9"
-	"os"
 	"sync"
 )
 
@@ -14,15 +12,7 @@ type Repository struct {
 	invCache *sync.Map
 }
 
-func NewRepository() *Repository {
-	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Database: os.Getenv("DB_NAME"),
-	})
-
+func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db:       db,
 		cache:    new(sync.Map), //TODO: добавить реализацию очистки
@@ -31,15 +21,9 @@ func NewRepository() *Repository {
 }
 
 // Find coin id by symbol
-func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
-	//First look in the cache
-	id, ok := r.cache.Load(symbol)
-	if ok {
-		return id.(uint64), nil
-	}
+func (r *Repository) FindIdBySymbol(symbol string) (uint, error) {
 	coin := new(models.Coin)
 	err := r.db.Model(coin).
-		Column("id").
 		Where("symbol = ?", symbol).
 		AllWithDeleted().
 		Select()
@@ -47,19 +31,39 @@ func (r *Repository) FindIdBySymbol(symbol string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	r.cache.Store(symbol, coin.ID)
 	return coin.ID, nil
 }
 
-func (r *Repository) FindSymbolById(id uint64) (string, error) {
+// Find coin id by symbol
+func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
+	//First look in the cache
+	id, ok := r.cache.Load(symbol)
+	if ok {
+		return id.(uint), nil
+	}
+	coin := new(models.Coin)
+	err := r.db.Model(coin).
+		Column("coin_id").
+		Where("symbol = ?", symbol).
+		AllWithDeleted().
+		Select()
+
+	if err != nil {
+		return 0, err
+	}
+	r.cache.Store(symbol, coin.CoinId)
+	return coin.CoinId, nil
+}
+
+func (r *Repository) FindSymbolById(id uint) (string, error) {
 	//First look in the cache
 	symbol, ok := r.invCache.Load(id)
 	if ok {
 		return symbol.(string), nil
 	}
-	coin := &models.Coin{ID: id}
+	coin := &models.Coin{CoinId: id}
 	err := r.db.Model(coin).
-		Where("id = ?", id).
+		Where("coin_id = ?", id).
 		Limit(1).
 		Select()
 
@@ -79,19 +83,29 @@ func (r *Repository) Save(c *models.Coin) error {
 	if err != nil {
 		return err
 	}
-	r.cache.Store(c.Symbol, c.ID)
+	r.cache.Store(c.Symbol, c.CoinId)
 	return nil
 }
 
+func (r *Repository) Update(c *models.Coin) error {
+	_, err := r.db.Model(c).WherePK().Update()
+	return err
+}
+
 func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
-	_, err := r.db.Model(&coins).OnConflict("(symbol) DO UPDATE").Insert()
+	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
 	if err != nil {
 		return err
 	}
 	for _, coin := range coins {
-		r.cache.Store(coin.Symbol, coin.ID)
-		r.invCache.Store(coin.ID, coin.Symbol)
+		r.cache.Store(coin.Symbol, coin.CoinId)
+		r.invCache.Store(coin.CoinId, coin.Symbol)
 	}
+	return err
+}
+
+func (r Repository) SaveAllNewIfNotExist(coins []*models.NewCoin) error {
+	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
 	return err
 }
 
@@ -105,4 +119,18 @@ func (r Repository) DeleteBySymbol(symbol string) error {
 	coin := &models.Coin{Symbol: symbol}
 	_, err := r.db.Model(coin).Where("symbol = ?symbol").Delete()
 	return err
+}
+
+func (r *Repository) UpdateOwnerBySymbol(symbol string, id uint) error {
+	_, err := r.db.Model().Exec(`
+		UPDATE coins SET owner_address_id = ?
+		WHERE symbol = ?;
+	`, id, symbol)
+	return err
+}
+
+func (r *Repository) GetNewCoins() ([]models.Coin, error) {
+	var coins []models.Coin
+	err := r.db.Model(&coins).Where("coin_id is null").Select()
+	return coins, err
 }

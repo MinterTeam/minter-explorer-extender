@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
@@ -8,11 +9,12 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -25,7 +27,7 @@ const ChasingModDiff = 2
 
 type Extender struct {
 	env                 *env.ExtenderEnvironment
-	nodeApi             *api.Api
+	nodeApi             *grpc_client.Client
 	blockService        *block.Service
 	addressService      *address.Service
 	blockRepository     *block.Repository
@@ -38,16 +40,6 @@ type Extender struct {
 	chasingMode         bool
 	currentNodeHeight   int
 	logger              *logrus.Entry
-}
-
-type dbLogger struct {
-	logger *logrus.Entry
-}
-
-func (d dbLogger) BeforeQuery(q *pg.QueryEvent) {}
-
-func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
-	d.logger.Info(q.FormattedQuery())
 }
 
 func NewExtender(env *env.ExtenderEnvironment) *Extender {
@@ -68,33 +60,33 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "2.2.3",
+		"version": "2.3.0",
 		"app":     "Minter Explorer Extender",
 	})
 
 	//Init DB
-	//db := pg.Connect(&pg.Options{
-	//	Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-	//	User:     env.DbUser,
-	//	Password: env.DbPassword,
-	//	Database: env.DbName,
-	//})
-
-	//if env.Debug {
-	//	db.AddQueryHook(dbLogger{logger: contextLogger})
-	//}
+	db := pg.Connect(&pg.Options{
+		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
+		User:     env.DbUser,
+		Password: env.DbPassword,
+		Database: env.DbName,
+	})
 
 	//api
-	nodeApi := api.NewApi(env.NodeApi)
+	nodeApi, err := grpc_client.New(env.NodeApi)
+
+	if err != nil {
+		panic(err)
+	}
 
 	// Repositories
-	blockRepository := block.NewRepository()
-	validatorRepository := validator.NewRepository()
-	transactionRepository := transaction.NewRepository()
-	addressRepository := address.NewRepository()
-	coinRepository := coin.NewRepository()
-	eventsRepository := events.NewRepository()
-	balanceRepository := balance.NewRepository()
+	blockRepository := block.NewRepository(db)
+	validatorRepository := validator.NewRepository(db, contextLogger)
+	transactionRepository := transaction.NewRepository(db)
+	addressRepository := address.NewRepository(db)
+	coinRepository := coin.NewRepository(db)
+	eventsRepository := events.NewRepository(db)
+	balanceRepository := balance.NewRepository(db)
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, contextLogger)
@@ -154,12 +146,12 @@ func (ext *Extender) Run() {
 		}
 
 		//Pulling events
-		eventsResponse, err := ext.nodeApi.EventsAtHeight(height)
+		eventsResponse, err := ext.nodeApi.Events(height)
 		if err != nil {
-			ext.logger.Error(err)
+			ext.logger.Panic(err)
 		}
-		helpers.HandleError(err)
 
+		ext.coinService.UpdateNewCoins()
 		ext.handleCoinsFromTransactions(blockResponse.Transactions)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
@@ -169,8 +161,8 @@ func (ext *Extender) Run() {
 		}
 		go ext.handleEventResponse(uint64(height), eventsResponse)
 
+		ext.logger.Info("Block: ", height)
 		height++
-
 		elapsed := time.Since(start)
 		ext.logger.Info("Processing time: ", elapsed)
 	}
@@ -224,41 +216,37 @@ func (ext *Extender) runWorkers() {
 	go ext.coinService.UpdateCoinsInfoFromCoinsMap(ext.coinService.GetUpdateCoinsFromCoinsMapJobChannel())
 }
 
-func (ext *Extender) handleAddressesFromResponses(blockResponse *api.BlockResult, eventsResponse *api.EventsResult) {
+func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
 	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 }
 
-func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
+func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	// Save validators if not exist
-	validators, err := ext.validatorService.HandleBlockResponse(response)
+	err := ext.validatorService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 
-	ext.linkBlockValidator(*response)
+	ext.linkBlockValidator(response)
 
 	//first block don't have validators
-	if response.NumTxs != "0" && len(validators) > 0 {
-		ext.handleTransactions(response, validators)
+	if response.TransactionsCount != "0" {
+		ext.handleTransactions(response)
 	}
 
 	height, err := strconv.ParseUint(response.Height, 10, 64)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 
 	// No need to update candidate and stakes at the same time
 	// Candidate will be updated in the next iteration
@@ -268,29 +256,26 @@ func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
 	}
 }
 
-func (ext *Extender) handleCoinsFromTransactions(transactions []api.TransactionResult) {
+func (ext *Extender) handleCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) {
 	if len(transactions) > 0 {
 		coins, err := ext.coinService.ExtractCoinsFromTransactions(transactions)
 		if err != nil {
-			ext.logger.Error(err)
-			helpers.HandleError(err)
+			ext.logger.Fatal(err)
 		}
 		if len(coins) > 0 {
 			err = ext.coinService.CreateNewCoins(coins)
 			if err != nil {
-				ext.logger.Error(err)
-				helpers.HandleError(err)
+				ext.logger.Fatal(err)
 			}
 		}
 	}
 }
 
-func (ext *Extender) handleTransactions(response *api.BlockResult, validators []*models.Validator) {
+func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 	height, err := strconv.ParseUint(response.Height, 10, 64)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 	chunksCount := int(math.Ceil(float64(len(response.Transactions)) / float64(ext.env.TxChunkSize)))
 	for i := 0; i < chunksCount; i++ {
 		start := ext.env.TxChunkSize * i
@@ -298,14 +283,21 @@ func (ext *Extender) handleTransactions(response *api.BlockResult, validators []
 		if end > len(response.Transactions) {
 			end = len(response.Transactions)
 		}
-		ext.saveTransactions(height, response.Time, response.Transactions[start:end])
+
+		layout := "2006-01-02T15:04:05Z"
+		blockTime, err := time.Parse(layout, response.Time)
+		if err != nil {
+			ext.logger.Panic(err)
+		}
+
+		ext.saveTransactions(height, blockTime, response.Transactions[start:end])
 	}
 }
 
-func (ext *Extender) handleEventResponse(blockHeight uint64, response *api.EventsResult) {
+func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.EventsResponse) {
 	if len(response.Events) > 0 {
 		//Save events
-		err := ext.eventService.HandleEventResponse(blockHeight, response)
+		err := ext.eventService.HandleEventResponse(blockHeight, response.Events)
 		if err != nil {
 			ext.logger.Error(err)
 		}
@@ -313,7 +305,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *api.Event
 	}
 }
 
-func (ext *Extender) linkBlockValidator(response api.BlockResult) {
+func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	if response.Height == "1" {
 		return
 	}
@@ -324,13 +316,13 @@ func (ext *Extender) linkBlockValidator(response api.BlockResult) {
 	}
 	helpers.HandleError(err)
 	for _, v := range response.Validators {
-		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PubKey))
+		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PublicKey))
 		if err != nil {
 			ext.logger.Error(err)
 		}
 		helpers.HandleError(err)
 		link := models.BlockValidator{
-			ValidatorID: vId,
+			ValidatorID: uint64(vId),
 			BlockID:     height,
 			Signed:      v.Signed,
 		}
@@ -343,13 +335,12 @@ func (ext *Extender) linkBlockValidator(response api.BlockResult) {
 	helpers.HandleError(err)
 }
 
-func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []api.TransactionResult) {
+func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) {
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Panic(err)
 	}
-	helpers.HandleError(err)
 }
 
 func (ext *Extender) getNodeLastBlockId() (int, error) {

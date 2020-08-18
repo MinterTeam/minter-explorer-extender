@@ -5,10 +5,10 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
@@ -46,49 +46,31 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleEventResponse(blockHeight uint64, response *api.EventsResult) error {
+func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_pb.EventsResponse_Event) error {
 	var (
 		rewards           []*models.Reward
 		slashes           []*models.Slash
 		coinsForUpdateMap = make(map[string]struct{})
 	)
 
-	for _, event := range response.Events {
-		if event.Type == "minter/CoinLiquidationEvent" {
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
-			err = s.balanceRepository.DeleteByCoinId(coinId)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value["coin"],
-				}).Error(err)
-				return err
-			}
-
-			err = s.coinRepository.DeleteBySymbol(event.Value["coin"])
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value["coin"],
-				}).Error(err)
-				return err
-			}
-			continue
-		}
+	for _, event := range responseEvents {
 		if event.Type == "minter/UnbondEvent" {
 			continue
 		}
 
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value["address"]))
+		mapValues := event.Value.AsMap()
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(mapValues["address"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"address": event.Value["address"],
+				"address": mapValues["address"],
 			}).Error(err)
 			return err
 		}
 
-		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value["validator_pub_key"]))
+		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"public_key": event.Value["validator_pub_key"],
+				"public_key": mapValues["validator_pub_key"],
 			}).Error(err)
 			return err
 		}
@@ -97,26 +79,20 @@ func (s *Service) HandleEventResponse(blockHeight uint64, response *api.EventsRe
 		case models.RewardEvent:
 			rewards = append(rewards, &models.Reward{
 				BlockID:     blockHeight,
-				Role:        event.Value["role"],
-				Amount:      event.Value["amount"],
+				Role:        mapValues["role"].(string),
+				Amount:      mapValues["amount"].(string),
 				AddressID:   addressId,
-				ValidatorID: validatorId,
+				ValidatorID: uint64(validatorId),
 			})
 
 		case models.SlashEvent:
-			coinsForUpdateMap[event.Value["coin"]] = struct{}{}
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
-			if err != nil {
-				s.logger.Error(err)
-				return err
-			}
-
+			coinId := mapValues["coin"].(uint)
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
 				CoinID:      coinId,
-				Amount:      event.Value["amount"],
+				Amount:      mapValues["amount"].(string),
 				AddressID:   addressId,
-				ValidatorID: validatorId,
+				ValidatorID: uint64(validatorId),
 			})
 		}
 	}
@@ -165,7 +141,7 @@ func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint6
 	}
 	helpers.HandleError(err)
 
-	blocks := os.Getenv("APP_REWARDS_BLOCK")
+	blocks := os.Getenv("APP_REWARDS_BLOCKS")
 	bc, err := strconv.ParseUint(blocks, 10, 32)
 	if err != nil {
 		s.logger.Error(err)

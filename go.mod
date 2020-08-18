@@ -3,22 +3,18 @@ module github.com/MinterTeam/minter-explorer-extender/v2
 go 1.13
 
 require (
-	github.com/MinterTeam/go-amino v0.14.1 // indirect
-	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200305175531-54cf007acc9b
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
-	github.com/MinterTeam/minter-go-node v1.0.5 // indirect
-	github.com/MinterTeam/minter-go-sdk v1.0.2
+	github.com/MinterTeam/minter-go-sdk v1.1.6
+	github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200813123951-ea1a0d716bc2
+	github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200812133203-3a59608e4fa5
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/centrifugal/gocent v2.0.2+incompatible
-	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/go-pg/pg/v9 v9.1.2
 	github.com/go-resty/resty/v2 v2.3.0
-	github.com/golang/protobuf v1.3.3 // indirect
+	github.com/golang/protobuf v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/prometheus/client_golang v1.4.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/viper v1.6.2 // indirect
-	github.com/tendermint/go-amino v0.15.1 // indirect
 	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	google.golang.org/protobuf v1.25.0
 )
