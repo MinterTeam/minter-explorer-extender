@@ -242,7 +242,7 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	ext.linkBlockValidator(response)
 
 	//first block don't have validators
-	if response.TransactionsCount != "0" {
+	if response.TransactionCount != "0" {
 		ext.handleTransactions(response)
 	}
 

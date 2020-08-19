@@ -103,17 +103,18 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 					s.logger.Error(err)
 					continue
 				}
-				//ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
-				//if err != nil {
-				//	s.logger.Error(err)
-				//	continue
-				//}
+				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
+				if err != nil {
+					s.logger.Error(err)
+					continue
+				}
 				validators = append(validators, &models.Validator{
 					ID:              id,
 					Status:          &status,
 					TotalStake:      &totalStake,
 					UpdateAt:        &updateAt,
 					Commission:      &commission,
+					OwnerAddressID:  &ownerAddressID,
 					RewardAddressID: &rewardAddressID,
 				})
 			}
@@ -146,7 +147,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		for _, vlr := range resp.Candidates {
 			validatorsPkMap[helpers.RemovePrefix(vlr.PublicKey)] = struct{}{}
 			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
-			//addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{} //todo change
+			addressesMap[helpers.RemovePrefix(vlr.OwnerAddress)] = struct{}{}
 			for _, stake := range vlr.Stakes {
 				addressesMap[helpers.RemovePrefix(stake.Owner)] = struct{}{}
 			}
@@ -239,11 +240,11 @@ func (s *Service) HandleCandidateResponse(response *api_pb.CandidateResponse) (*
 	}
 	validator.Commission = &commission
 
-	//ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.OwnerAddress))
-	//if err != nil {
-	//	return nil, nil, err
-	//}
-	//validator.OwnerAddressID = &ownerAddressID
+	ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.OwnerAddress))
+	if err != nil {
+		return nil, nil, err
+	}
+	validator.OwnerAddressID = &ownerAddressID
 	rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.RewardAddress))
 	if err != nil {
 		return nil, nil, err

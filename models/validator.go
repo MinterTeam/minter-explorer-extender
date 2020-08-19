@@ -7,7 +7,7 @@ import (
 type Validator struct {
 	ID                   uint                  `json:"id" pg:",pk"`
 	RewardAddressID      *uint                 `json:"reward_address_id"`
-	OwnerAddressID       *uint64               `json:"owner_address_id"`
+	OwnerAddressID       *uint                 `json:"owner_address_id"`
 	CreatedAtBlockID     *uint64               `json:"created_at_block_id"`
 	Status               *uint8                `json:"status"`
 	Commission           *uint64               `json:"commission"`

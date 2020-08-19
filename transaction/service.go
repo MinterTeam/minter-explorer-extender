@@ -264,7 +264,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeChangeOwner {
-			txData := new(api_pb.ChangeOwnerData)
+			txData := new(api_pb.ChangeCoinOwnerData)
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
 			}
@@ -632,7 +632,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		}
 		return txDataJson, nil
 	case transaction.TypeChangeOwner:
-		txData := new(api_pb.ChangeOwnerData)
+		txData := new(api_pb.ChangeCoinOwnerData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
