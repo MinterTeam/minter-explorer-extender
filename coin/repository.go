@@ -24,7 +24,7 @@ func NewRepository(db *pg.DB) *Repository {
 func (r *Repository) FindIdBySymbol(symbol string) (uint, error) {
 	coin := new(models.Coin)
 	err := r.db.Model(coin).
-		Where("symbol = ?", symbol).
+		Where("symbol = ? and version = ?", symbol, 0).
 		AllWithDeleted().
 		Select()
 
@@ -92,6 +92,11 @@ func (r *Repository) Update(c *models.Coin) error {
 	return err
 }
 
+func (r *Repository) Add(c *models.NewCoin) error {
+	_, err := r.db.Model(c).Insert()
+	return err
+}
+
 func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
 	if err != nil {
@@ -133,4 +138,18 @@ func (r *Repository) GetNewCoins() ([]models.Coin, error) {
 	var coins []models.Coin
 	err := r.db.Model(&coins).Where("coin_id is null").Select()
 	return coins, err
+}
+
+func (r *Repository) GetCoinBySymbol(symbol string) ([]models.Coin, error) {
+	var coins []models.Coin
+	err := r.db.Model(&coins).Where("symbol = ?", symbol).Select()
+	return coins, err
+}
+
+func (r *Repository) RemoveFromCacheBySymbol(symbol string) {
+	id, ok := r.cache.Load(symbol)
+	if ok {
+		r.cache.Delete(symbol)
+		r.invCache.Delete(id)
+	}
 }

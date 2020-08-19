@@ -296,6 +296,11 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
 			}
+
+			err := s.coinService.RecreateCoin(txData)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

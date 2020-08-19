@@ -187,8 +187,8 @@ func (s *Service) UpdateCoinsInfo(symbols []string) error {
 	return nil
 }
 
-func (s *Service) GetCoinFromNode(symbol string) (*models.Coin, error) {
-	coinResp, err := s.nodeApi.CoinInfo(symbol)
+func (s *Service) GetCoinFromNode(symbol string, optionalHeight ...int) (*models.Coin, error) {
+	coinResp, err := s.nodeApi.CoinInfo(symbol, optionalHeight...)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 	return s.repository.UpdateOwnerBySymbol(symbol, id)
 }
 
-func (s *Service) UpdateNewCoins() error {
+func (s *Service) UpdateNewCoins(height int) error {
 
 	newCoins, err := s.repository.GetNewCoins()
 	if err != nil && err.Error() == "pg: no rows in result set" {
@@ -233,7 +233,7 @@ func (s *Service) UpdateNewCoins() error {
 	}
 
 	for _, c := range newCoins {
-		coinData, err := s.GetCoinFromNode(c.Symbol)
+		coinData, err := s.GetCoinFromNode(c.Symbol, height)
 		if err != nil {
 			return err
 		}
@@ -244,5 +244,38 @@ func (s *Service) UpdateNewCoins() error {
 		}
 	}
 
+	return err
+}
+
+func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
+	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
+	crr, err := strconv.ParseUint(data.ConstantReserveRatio, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	newCoin := &models.NewCoin{
+		Crr:       uint(crr),
+		Volume:    data.InitialAmount,
+		Reserve:   data.InitialReserve,
+		Symbol:    data.Symbol,
+		MaxSupply: data.MaxSupply,
+		Version:   0,
+	}
+
+	for _, c := range coins {
+		if c.Version == 0 {
+			c.Version = uint(len(coins))
+			err = s.repository.Update(&c)
+			if err != nil {
+				return err
+			}
+			newCoin.Name = c.Name
+			newCoin.OwnerAddressId = c.OwnerAddressId
+			break
+		}
+	}
+	s.repository.RemoveFromCacheBySymbol(data.Symbol)
+	err = s.repository.Add(newCoin)
 	return err
 }
