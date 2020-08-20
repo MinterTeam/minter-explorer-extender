@@ -302,9 +302,8 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.Ev
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response.Events)
 		if err != nil {
-			ext.logger.Error(err)
+			ext.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 	}
 }
 

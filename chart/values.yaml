@@ -1,0 +1,60 @@
+replicaCount: 1
+
+image:
+  repository: registry.minter.network/minter-explorer-extender
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: registry.minter.network
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  debug: "1"
+  pgDbName: "explorer"
+  pgUser: "minter"
+  pgPassword: "6nuwsdadwsJqmI57iwBnI5vACB2313"
+  pgHost: "postgres-explorer"
+  pgPort: "5432"
+  nodeApi: "68.183.211.176:8842"
+  сentrifugoSecret: "7798e768-12ca-4e21-ab63-e3d027fe7a52"
+  сentrifugoLink: "http://centrifugo:8000"
+  minterBaseCoin: "MNT"
+  coinsUpdateTime: "1"
+  txChunkSize: "50"
+  addressChunkSize: "50"
+  eventChunkSize: "50"
+  stakeChunkSize: "500"
+  rewardsAggregareBlocksCount: "60"
+  rewardsTimeInterval: "day"
+  stakeUpdateBlocks: "1"
+  validatorUpdateBlocks: "1"
+  rewardsBlocks: "51840"
+  saveTxsWorkers: "10"
+  saveTxsOutputWorkers: "10"
+  saveInvalidTxsWorkers: "2"
+  saveValidatorTxsWorkers: "2"
+  saveRewardsWorkers: "10"
+  saveSlashesWorkers: "2"
+  saveAddressesWorkers: "5"
+  saveBalancesWorkers: "5"
+  updateBalancesWorkers: "5"
+  txsIndexCount: "96"
+  txsIndexPeriod: "60"
+  extenderApiPort: "8011"

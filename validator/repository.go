@@ -8,15 +8,17 @@ import (
 )
 
 type Repository struct {
-	db    *pg.DB
-	cache *sync.Map
-	log   *logrus.Entry
+	db      *pg.DB
+	cache   *sync.Map
+	pkCache *sync.Map
+	log     *logrus.Entry
 }
 
 func NewRepository(db *pg.DB, logger *logrus.Entry) *Repository {
 	return &Repository{
-		db:    db,
-		cache: new(sync.Map), //TODO: добавить реализацию очистки
+		db:      db,
+		cache:   new(sync.Map), //TODO: добавить реализацию очистки
+		pkCache: new(sync.Map), //TODO: добавить реализацию очистки
 		log: logger.WithFields(logrus.Fields{
 			"service": "Validator repository",
 		}),
@@ -33,6 +35,7 @@ func (r *Repository) AddPk(id uint, pk string) error {
 		return err
 	}
 	r.cache.Store(vpk.Key, vpk.ValidatorId)
+	r.pkCache.Store(vpk.Key, vpk.ID)
 	return err
 }
 
@@ -49,8 +52,8 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	r.cache.Store(pk, validator.ID)
-	return validator.ID, nil
+	r.cache.Store(pk, validator.ValidatorId)
+	return validator.ValidatorId, nil
 }
 
 //Find validator with public key or create if not exist.
@@ -89,23 +92,6 @@ func (r *Repository) SaveAllIfNotExist(validators map[string]struct{}) error {
 	}
 	return nil
 }
-
-// Find validators by PK
-// Update cache
-// Return slice of validators
-//func (r *Repository) FindAllByPK(validators []*models.Validator) ([]*models.Validator, error) {
-//	var pkList []string
-//	var vList []*models.Validator
-//	for _, v := range validators {
-//		pkList = append(pkList, v.PublicKey)
-//	}
-//	err := r.db.Model(&vList).Where("public_key in (?)", pg.In(pkList)).Select()
-//	if err != nil {
-//		return nil, err
-//	}
-//	r.addToCache(vList)
-//	return vList, err
-//}
 
 func (r *Repository) UpdateAll(validators []*models.Validator) error {
 	_, err := r.db.Model(&validators).
@@ -146,27 +132,26 @@ func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
 	return err
 }
 
-//func (r *Repository) addToCache(validators []*models.Validator) {
-//	for _, v := range validators {
-//		_, exist := r.cache.Load(v.PublicKey)
-//		if !exist {
-//			r.cache.Store(v.PublicKey, v.ID)
-//		}
-//	}
-//}
-
-//func (r *Repository) isAllAddressesInCache(validators []*models.Validator) bool {
-//	// look PK in cache
-//	for _, v := range validators {
-//		_, exist := r.cache.Load(v.PublicKey)
-//		if !exist {
-//			return false
-//		}
-//	}
-//	return true
-//}
-
 func (r Repository) ResetAllStatuses() error {
 	_, err := r.db.Query(nil, `update validators set status = null;`)
 	return err
+}
+
+func (r *Repository) FindPkId(pk string) (uint, error) {
+	//First look in the cache
+	id, ok := r.pkCache.Load(pk)
+	if ok {
+		return id.(uint), nil
+	}
+	validator := new(models.ValidatorPublicKeys)
+	err := r.db.Model(validator).Where("key = ?", pk).Select()
+	if err != nil {
+		return 0, err
+	}
+	r.pkCache.Store(pk, validator.ID)
+	return validator.ID, nil
+}
+
+func (r *Repository) AddToWaitList(sk *models.StakeKick) error {
+	return r.db.Insert(sk)
 }

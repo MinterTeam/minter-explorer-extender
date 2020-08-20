@@ -214,3 +214,14 @@ CREATE TABLE stakes
 CREATE INDEX stakes_coin_id_index ON stakes USING btree (coin_id);
 CREATE INDEX stakes_owner_address_id_index ON stakes USING btree (owner_address_id);
 CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
+
+CREATE TABLE wait_list
+(
+    address_id      bigint         NOT NULL references addresses (id),
+    coin_id         integer        NOT NULL references coins (coin_id),
+    validator_pk_id integer        NOT NULL references validator_public_keys (id),
+    value           numeric(70, 0) NOT NULL
+);
+CREATE INDEX wait_list_address_id_index ON wait_list USING btree (address_id);
+CREATE INDEX wait_list_coin_id_index ON wait_list USING btree (coin_id);
+CREATE INDEX wait_list_validator_id_index ON wait_list USING btree (validator_pk_id);

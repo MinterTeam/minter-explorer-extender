@@ -58,6 +58,36 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			continue
 		}
 
+		if event.Type == "minter/StakeKick" {
+			mapValues := event.Value.AsMap()
+
+			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			vpkId, err := s.validatorRepository.FindPkId(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			sk := &models.StakeKick{
+				AddressId:     addressId,
+				CoinId:        mapValues["coin"].(uint),
+				ValidatorPkId: vpkId,
+				Amount:        mapValues["amount"].(string),
+			}
+
+			err = s.validatorRepository.AddToWaitList(sk)
+			if err != nil {
+				s.logger.Error(err)
+			}
+
+			continue
+		}
+
 		mapValues := event.Value.AsMap()
 		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(mapValues["address"].(string)))
 		if err != nil {

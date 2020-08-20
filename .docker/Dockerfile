@@ -1,7 +1,7 @@
 FROM golang:1.13.7-alpine as builder
 
 WORKDIR /app
-COPY ./ /app
+COPY . /app
 RUN apk add --no-cache make gcc musl-dev linux-headers
 RUN go mod download
 RUN go build -o ./builds/linux/extender ./cmd/extender.go

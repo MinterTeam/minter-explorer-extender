@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+  {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+  {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+    {{- include "chart.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "chart.serviceAccountName" . }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: EXTENDER_DEBUG
+              value: {{ .Values.env.debug | quote }}
+            - name: DB_NAME
+              value: {{ .Values.env.pgDbName | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.pgUser | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.env.pgPassword | quote }}
+            - name: DB_HOST
+              value: {{ .Values.env.pgHost | quote }}
+            - name: DB_PORT
+              value: {{ .Values.env.pgPort | quote }}
+            - name: NODE_API
+              value: {{ .Values.env.nodeApi | quote }}
+            - name: CENTRIFUGO_SECRET
+              value: {{ .Values.env.сentrifugoSecret | quote }}
+            - name: CENTRIFUGO_LINK
+              value: {{ .Values.env.сentrifugoLink | quote }}
+            - name: MINTER_BASE_COIN
+              value: {{ .Values.env.minterBaseCoin | quote }}
+            - name: APP_COINS_UPDATE_TIME_MINUTES
+              value: {{ .Values.env.coinsUpdateTime | quote }}
+            - name: APP_TX_CHUNK_SIZE
+              value: {{ .Values.env.txChunkSize | quote }}
+            - name: APP_ADDRESS_CHUNK_SIZE
+              value: {{ .Values.env.addressChunkSize | quote }}
+            - name: APP_EVENTS_CHUNK_SIZE
+              value: {{ .Values.env.eventChunkSize | quote }}
+            - name: APP_STAKE_CHUNK_SIZE
+              value: {{ .Values.env.stakeChunkSize | quote }}
+            - name: APP_REWARDS_AGGREGATE_BLOCKS_COUNT
+              value: {{ .Values.env.rewardsAggregareBlocksCount | quote }}
+            - name: APP_REWARDS_TIME_INTERVAL
+              value: {{ .Values.env.rewardsTimeInterval | quote }}
+            - name: APP_STAKE_UPD_BLOCKS
+              value: {{ .Values.env.stakeUpdateBlocks | quote }}
+            - name: APP_VALIDATOR_UPD_BLOCKS
+              value: {{ .Values.env.validatorUpdateBlocks | quote }}
+            - name: APP_REWARDS_BLOCKS
+              value: {{ .Values.env.rewardsBlocks | quote }}
+            - name: WRK_SAVE_TXS
+              value: {{ .Values.env.saveTxsWorkers | quote }}
+            - name: WRK_SAVE_TXS_OUTPUT
+              value: {{ .Values.env.saveTxsOutputWorkers | quote }}
+            - name: WRK_SAVE_TXS_INVALID
+              value: {{ .Values.env.saveInvalidTxsWorkers | quote }}
+            - name: WRK_SAVE_TXS_VALIDATOR
+              value: {{ .Values.env.saveValidatorTxsWorkers | quote }}
+            - name: WRK_SAVE_REWARDS
+              value: {{ .Values.env.saveRewardsWorkers | quote }}
+            - name: WRK_SAVE_SLASHES
+              value: {{ .Values.env.saveSlashesWorkers | quote }}
+            - name: WRK_SAVE_ADDRESSES
+              value: {{ .Values.env.saveAddressesWorkers | quote }}
+            - name: WRK_BALANCE
+              value: {{ .Values.env.saveBalancesWorkers | quote }}
+            - name: WRK_BALANCE_NODE
+              value: {{ .Values.env.updateBalancesWorkers | quote }}
+            - name: WRK_TXS_INDEX_NUM
+              value: {{ .Values.env.txsIndexCount | quote }}
+            - name: WRK_TXS_INDEX_SLEEP_SEC
+              value: {{ .Values.env.txsIndexPeriod | quote }}
+            - name: EXTENDER_API_PORT
+              value: {{ .Values.env.extenderApiPort | quote }}
+          resources:
+      {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+  {{- toYaml . | nindent 8 }}
+  {{- end }}
