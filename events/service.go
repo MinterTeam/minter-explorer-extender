@@ -74,10 +74,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			}
 
 			sk := &models.StakeKick{
-				AddressId:     addressId,
-				CoinId:        mapValues["coin"].(uint),
-				ValidatorPkId: vId,
-				Amount:        mapValues["amount"].(string),
+				AddressId:   addressId,
+				CoinId:      mapValues["coin"].(uint),
+				ValidatorId: vId,
+				Amount:      mapValues["amount"].(string),
 			}
 
 			err = s.validatorRepository.AddToWaitList(sk)

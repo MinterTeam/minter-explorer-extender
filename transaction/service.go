@@ -189,7 +189,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		idsList = append(idsList, tx.ID)
 
 		if transaction.Type(tx.Type) != transaction.TypeSend && transaction.Type(tx.Type) != transaction.TypeMultisend &&
-			transaction.Type(tx.Type) != transaction.TypeRedeemCheck && transaction.Type(tx.Type) != transaction.TypeChangeOwner &&
+			transaction.Type(tx.Type) != transaction.TypeRedeemCheck && transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
 			transaction.Type(tx.Type) != transaction.TypeEditCandidate &&
 			transaction.Type(tx.Type) != transaction.TypeRecreateCoin {
 			continue
@@ -263,7 +263,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			})
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeChangeOwner {
+		if transaction.Type(tx.Type) == transaction.TypeChangeCoinOwner {
 			txData := new(api_pb.ChangeCoinOwnerData)
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
@@ -642,7 +642,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeChangeOwner:
+	case transaction.TypeChangeCoinOwner:
 		txData := new(api_pb.ChangeCoinOwnerData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
@@ -652,7 +652,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeEditMultisigOwner:
+	case transaction.TypeEditMultisigOwners:
 		txData := new(api_pb.EditMultisigOwnersData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err

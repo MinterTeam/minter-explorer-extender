@@ -3,7 +3,7 @@ module github.com/MinterTeam/minter-explorer-extender/v2
 go 1.13
 
 require (
-	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200824091026-125bd02ad8b1
+	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200824121237-4e1fff866521
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
 	github.com/MinterTeam/minter-go-sdk v1.1.6
 	github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200819130319-4badcf25041e
