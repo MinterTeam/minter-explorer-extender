@@ -64,7 +64,6 @@ CREATE INDEX block_validator_validator_id_index ON block_validator USING btree (
 CREATE TABLE coins
 (
     id                      serial primary key,
-    coin_id                 integer unique,
     name                    character varying(255),
     symbol                  character varying(20) NOT NULL,
     volume                  numeric(70, 0),
@@ -80,13 +79,12 @@ CREATE TABLE coins
     UNIQUE (symbol, version)
 );
 CREATE INDEX coins_symbol_index ON coins USING btree (symbol);
-CREATE INDEX coins_coin_id_index ON coins USING btree (coin_id);
 
 CREATE TABLE balances
 (
     id         bigserial      NOT NULL,
     address_id bigint         NOT NULL REFERENCES addresses (id),
-    coin_id    integer        NOT NULL REFERENCES coins (coin_id),
+    coin_id    integer        NOT NULL REFERENCES coins (id),
     value      numeric(70, 0) NOT NULL,
     UNIQUE (address_id, coin_id)
 );
@@ -101,7 +99,7 @@ CREATE TABLE transactions
     gas_price       bigint                   NOT NULL,
     gas             bigint                   NOT NULL,
     block_id        integer                  NOT NULL references blocks (id),
-    gas_coin_id     integer                  NOT NULL references coins (coin_id),
+    gas_coin_id     integer                  NOT NULL references coins (id),
     created_at      timestamp with time zone NOT NULL,
     type            smallint                 NOT NULL,
     hash            character varying(64)    NOT NULL,
@@ -134,7 +132,7 @@ CREATE TABLE transaction_outputs
     id             bigserial primary key,
     transaction_id bigint         NOT NULL references transactions (id),
     to_address_id  bigint         NOT NULL references addresses (id),
-    coin_id        integer        NOT NULL references coins (coin_id),
+    coin_id        integer        NOT NULL references coins (id),
     value          numeric(70, 0) NOT NULL
 );
 CREATE INDEX transaction_outputs_coin_id_index ON transaction_outputs USING btree (coin_id);
@@ -194,7 +192,7 @@ CREATE TABLE slashes
     address_id   bigint         NOT NULL references addresses (id),
     block_id     integer        NOT NULL references blocks (id),
     validator_id integer        NOT NULL references validators (id),
-    coin_id      integer        NOT NULL references coins (coin_id),
+    coin_id      integer        NOT NULL references coins (id),
     amount       numeric(70, 0) NOT NULL
 );
 CREATE INDEX slashes_address_id_index ON slashes USING btree (address_id);
@@ -207,7 +205,7 @@ CREATE TABLE stakes
     id               serial         NOT NULL,
     owner_address_id bigint         NOT NULL references addresses (id),
     validator_id     integer        NOT NULL references validators (id),
-    coin_id          integer        NOT NULL references coins (coin_id),
+    coin_id          integer        NOT NULL references coins (id),
     value            numeric(70, 0) NOT NULL,
     bip_value        numeric(70, 0) NOT NULL
 );
@@ -217,11 +215,11 @@ CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
 
 CREATE TABLE wait_list
 (
-    address_id      bigint         NOT NULL references addresses (id),
-    coin_id         integer        NOT NULL references coins (coin_id),
-    validator_pk_id integer        NOT NULL references validator_public_keys (id),
-    value           numeric(70, 0) NOT NULL
+    address_id   bigint         NOT NULL references addresses (id),
+    coin_id      integer        NOT NULL references coins (id),
+    validator_id integer        NOT NULL references validators (id),
+    value        numeric(70, 0) NOT NULL
 );
 CREATE INDEX wait_list_address_id_index ON wait_list USING btree (address_id);
 CREATE INDEX wait_list_coin_id_index ON wait_list USING btree (coin_id);
-CREATE INDEX wait_list_validator_id_index ON wait_list USING btree (validator_pk_id);
+CREATE INDEX wait_list_validator_id_index ON wait_list USING btree (validator_id);
