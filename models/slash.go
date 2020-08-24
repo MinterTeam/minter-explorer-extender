@@ -9,7 +9,7 @@ type Slash struct {
 	AddressID   uint       `json:"address_id"`
 	ValidatorID uint64     `json:"validator_id"`
 	Amount      string     `json:"amount"        pg:"type:numeric(70)"`
-	Coin        *Coin      `pg:"fk:coin_id"` //Relation has one to Coins
+	Coin        *Coin      `pg:"fk:id"` //Relation has one to Coins
 	Block       *Block     //Relation has one to Blocks
 	Address     *Address   //Relation has one to Addresses
 	Validator   *Validator //Relation has one to Validators
