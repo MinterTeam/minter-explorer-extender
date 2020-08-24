@@ -25,6 +25,15 @@ func NewRepository(db *pg.DB, logger *logrus.Entry) *Repository {
 	}
 }
 
+func (r *Repository) GetById(id uint) (*models.Validator, error) {
+	validator := new(models.Validator)
+	err := r.db.Model(validator).
+		Where("id = ?", id).
+		Select()
+
+	return validator, err
+}
+
 func (r *Repository) AddPk(id uint, pk string) error {
 	vpk := &models.ValidatorPublicKeys{
 		ValidatorId: id,

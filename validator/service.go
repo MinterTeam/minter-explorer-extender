@@ -240,6 +240,8 @@ func (s *Service) HandleCandidateResponse(response *api_pb.CandidateResponse) (*
 	}
 	validator.Commission = &commission
 
+	validator.PublicKey = helpers.RemovePrefix(response.PublicKey)
+
 	ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.OwnerAddress))
 	if err != nil {
 		return nil, nil, err

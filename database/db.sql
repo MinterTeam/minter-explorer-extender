@@ -16,6 +16,7 @@ CREATE TABLE validators
     id                       serial primary key,
     reward_address_id        bigint references addresses (id),
     owner_address_id         bigint references addresses (id),
+    public_key               character varying(64) NOT NULL unique,
     created_at_block_id      integer,
     status                   integer,
     commission               integer,

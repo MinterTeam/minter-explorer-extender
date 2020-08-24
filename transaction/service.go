@@ -286,7 +286,18 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 
+			v, err := s.validatorRepository.GetById(vId)
+			if err != nil {
+				return err
+			}
+
 			err = s.validatorRepository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey.Value))
+			if err != nil {
+				return err
+			}
+
+			v.PublicKey = helpers.RemovePrefix(txData.NewPubKey.Value)
+			err = s.validatorRepository.Update(v)
 			if err != nil {
 				return err
 			}
