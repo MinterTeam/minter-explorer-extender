@@ -67,7 +67,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				continue
 			}
 
-			vpkId, err := s.validatorRepository.FindPkId(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
+			vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -76,7 +76,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			sk := &models.StakeKick{
 				AddressId:     addressId,
 				CoinId:        mapValues["coin"].(uint),
-				ValidatorPkId: vpkId,
+				ValidatorPkId: vId,
 				Amount:        mapValues["amount"].(string),
 			}
 
