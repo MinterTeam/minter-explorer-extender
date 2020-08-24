@@ -151,10 +151,6 @@ func (ext *Extender) Run() {
 			ext.logger.Panic(err)
 		}
 
-		err = ext.coinService.UpdateNewCoins(height)
-		if err != nil {
-			ext.logger.Error(err)
-		}
 		ext.handleCoinsFromTransactions(blockResponse.Transactions)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)

@@ -51,8 +51,8 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[string]struct{
 	return s.jobUpdateCoinsFromMap
 }
 
-func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.NewCoin, error) {
-	var coins []*models.NewCoin
+func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.Coin, error) {
+	var coins []*models.Coin
 	for _, tx := range transactions {
 
 		txType, err := strconv.ParseUint(tx.Type, 10, 64)
@@ -71,7 +71,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 	return coins, nil
 }
 
-func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.NewCoin, error) {
+func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.Coin, error) {
 	var txData = new(api_pb.CreateCoinData)
 	err := tx.Data.UnmarshalTo(txData)
 	if err != nil {
@@ -82,7 +82,13 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.N
 		return nil, err
 	}
 
-	coin := &models.NewCoin{
+	coinId, err := s.repository.GetLastCoinId()
+	if err != nil {
+		return nil, err
+	}
+
+	coin := &models.Coin{
+		ID:      coinId + 1,
 		Crr:     uint(crr),
 		Volume:  txData.InitialAmount,
 		Reserve: txData.InitialReserve,
@@ -102,7 +108,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.N
 	return coin, nil
 }
 
-func (s *Service) CreateNewCoins(coins []*models.NewCoin) error {
+func (s *Service) CreateNewCoins(coins []*models.Coin) error {
 	err := s.repository.SaveAllNewIfNotExist(coins)
 	return err
 }
@@ -193,21 +199,16 @@ func (s *Service) GetCoinFromNode(symbol string, optionalHeight ...int) (*models
 		return nil, err
 	}
 	coin := new(models.Coin)
-	id, err := s.repository.FindIdBySymbol(symbol)
-	if err != nil {
-		return nil, err
-	}
-	coin.ID = id
-
 	coinId, err := strconv.ParseUint(coinResp.Id, 10, 64)
 	if err != nil {
 		return nil, err
 	}
+	coin.ID = uint(coinId)
+
 	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
 	if err != nil {
 		return nil, err
 	}
-	coin.CoinId = uint(coinId)
 	coin.Name = coinResp.Name
 	coin.Symbol = coinResp.Symbol
 	coin.Crr = uint(crr)
@@ -225,28 +226,6 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 	return s.repository.UpdateOwnerBySymbol(symbol, id)
 }
 
-func (s *Service) UpdateNewCoins(height int) error {
-
-	newCoins, err := s.repository.GetNewCoins()
-	if err != nil && err.Error() == "pg: no rows in result set" {
-		return err
-	}
-
-	for _, c := range newCoins {
-		coinData, err := s.GetCoinFromNode(c.Symbol, height)
-		if err != nil {
-			return err
-		}
-		c.CoinId = coinData.CoinId
-		err = s.repository.Update(&c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
 func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
 	crr, err := strconv.ParseUint(data.ConstantReserveRatio, 10, 64)
@@ -254,7 +233,13 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 		return err
 	}
 
-	newCoin := &models.NewCoin{
+	coinId, err := s.repository.GetLastCoinId()
+	if err != nil {
+		return err
+	}
+
+	newCoin := &models.Coin{
+		ID:        coinId + 1,
 		Crr:       uint(crr),
 		Volume:    data.InitialAmount,
 		Reserve:   data.InitialReserve,

@@ -21,18 +21,18 @@ func NewRepository(db *pg.DB) *Repository {
 }
 
 // Find coin id by symbol
-func (r *Repository) FindIdBySymbol(symbol string) (uint, error) {
-	coin := new(models.Coin)
-	err := r.db.Model(coin).
-		Where("symbol = ? and version = ?", symbol, 0).
-		AllWithDeleted().
-		Select()
-
-	if err != nil {
-		return 0, err
-	}
-	return coin.ID, nil
-}
+//func (r *Repository) FindIdBySymbol(symbol string) (uint, error) {
+//	coin := new(models.Coin)
+//	err := r.db.Model(coin).
+//		Where("symbol = ? and version = ?", symbol, 0).
+//		AllWithDeleted().
+//		Select()
+//
+//	if err != nil {
+//		return 0, err
+//	}
+//	return coin.ID, nil
+//}
 
 // Find coin id by symbol
 func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
@@ -51,8 +51,8 @@ func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	r.cache.Store(symbol, coin.CoinId)
-	return coin.CoinId, nil
+	r.cache.Store(symbol, coin.ID)
+	return coin.ID, nil
 }
 
 func (r *Repository) FindSymbolById(id uint) (string, error) {
@@ -61,7 +61,7 @@ func (r *Repository) FindSymbolById(id uint) (string, error) {
 	if ok {
 		return symbol.(string), nil
 	}
-	coin := &models.Coin{CoinId: id}
+	coin := &models.Coin{ID: id}
 	err := r.db.Model(coin).
 		Where("coin_id = ?", id).
 		Limit(1).
@@ -83,7 +83,7 @@ func (r *Repository) Save(c *models.Coin) error {
 	if err != nil {
 		return err
 	}
-	r.cache.Store(c.Symbol, c.CoinId)
+	r.cache.Store(c.Symbol, c.ID)
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (r *Repository) Update(c *models.Coin) error {
 	return err
 }
 
-func (r *Repository) Add(c *models.NewCoin) error {
+func (r *Repository) Add(c *models.Coin) error {
 	_, err := r.db.Model(c).Insert()
 	return err
 }
@@ -103,13 +103,13 @@ func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 		return err
 	}
 	for _, coin := range coins {
-		r.cache.Store(coin.Symbol, coin.CoinId)
-		r.invCache.Store(coin.CoinId, coin.Symbol)
+		r.cache.Store(coin.Symbol, coin.ID)
+		r.invCache.Store(coin.ID, coin.Symbol)
 	}
 	return err
 }
 
-func (r Repository) SaveAllNewIfNotExist(coins []*models.NewCoin) error {
+func (r Repository) SaveAllNewIfNotExist(coins []*models.Coin) error {
 	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
 	return err
 }
@@ -152,4 +152,15 @@ func (r *Repository) RemoveFromCacheBySymbol(symbol string) {
 		r.cache.Delete(symbol)
 		r.invCache.Delete(id)
 	}
+}
+
+func (r *Repository) GetLastCoinId() (uint, error) {
+	coin := new(models.Coin)
+
+	err := r.db.Model(coin).
+		Order("id desc").
+		Limit(1).
+		Select()
+
+	return coin.ID, err
 }
