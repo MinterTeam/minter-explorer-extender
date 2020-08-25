@@ -38,12 +38,10 @@ func (s *Service) GetSaveAddressesJobChannel() chan []string {
 func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	for addresses := range jobs {
 		err := s.repository.SaveAllIfNotExist(addresses)
-		if err != nil {
-			s.logger.Error(err)
-		}
-		helpers.HandleError(err)
-
 		s.wgAddresses.Done()
+		if err != nil {
+			s.logger.Fatal(err)
+		}
 	}
 }
 
@@ -153,13 +151,13 @@ func (s *Service) HandleResponses(blockResponse *api.BlockResult, eventsResponse
 
 	if len(addresses) > 0 {
 		chunksCount := int(math.Ceil(float64(len(addresses)) / float64(s.env.TxChunkSize)))
+		s.wgAddresses.Add(chunksCount)
 		for i := 0; i < chunksCount; i++ {
 			start := s.env.TxChunkSize * i
 			end := start + s.env.TxChunkSize
 			if end > len(addresses) {
 				end = len(addresses)
 			}
-			s.wgAddresses.Add(1)
 			s.GetSaveAddressesJobChannel() <- addresses[start:end]
 		}
 		s.wgAddresses.Wait()

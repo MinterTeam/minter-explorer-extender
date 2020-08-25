@@ -156,9 +156,8 @@ func (ext *Extender) Run() {
 		//Pulling events
 		eventsResponse, err := ext.nodeApi.EventsAtHeight(height)
 		if err != nil {
-			ext.logger.Error(err)
+			ext.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 
 		ext.handleCoinsFromTransactions(blockResponse.Transactions)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
@@ -168,7 +167,7 @@ func (ext *Extender) Run() {
 			go ext.eventService.AggregateRewards(ext.env.RewardAggregateTimeInterval, uint64(height))
 		}
 		go ext.handleEventResponse(uint64(height), eventsResponse)
-
+		ext.logger.Info("Block: ", height)
 		height++
 
 		elapsed := time.Since(start)
@@ -227,25 +226,22 @@ func (ext *Extender) runWorkers() {
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api.BlockResult, eventsResponse *api.EventsResult) {
 	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 }
 
 func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
 	// Save validators if not exist
 	validators, err := ext.validatorService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 
-	// Save block
+	//Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 
 	ext.linkBlockValidator(*response)
 
@@ -256,9 +252,8 @@ func (ext *Extender) handleBlockResponse(response *api.BlockResult) {
 
 	height, err := strconv.ParseUint(response.Height, 10, 64)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 
 	// No need to update candidate and stakes at the same time
 	// Candidate will be updated in the next iteration

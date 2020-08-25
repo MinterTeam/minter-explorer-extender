@@ -96,6 +96,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 			addresses[i] = `"Mx` + adr + `"`
 		}
 		response, err := s.nodeApi.Addresses(addresses, int(blockAddresses.Height))
+		s.wgBalances.Done()
 		if err != nil {
 			s.logger.Error(err)
 			continue
@@ -145,8 +146,6 @@ func (s *Service) HandleBalanceResponse(results []*api.AddressesResult) ([]*mode
 }
 
 func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Balance) error {
-	defer s.wgBalances.Done()
-
 	dbBalances, err := s.repository.FindAllByAddress(addresses)
 	if err != nil {
 		s.logger.Error(err)

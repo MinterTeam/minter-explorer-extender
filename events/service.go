@@ -165,7 +165,7 @@ func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint6
 	}
 	helpers.HandleError(err)
 
-	blocks := os.Getenv("APP_REWARDS_BLOCK")
+	blocks := os.Getenv("APP_REWARDS_BLOCKS")
 	bc, err := strconv.ParseUint(blocks, 10, 32)
 	if err != nil {
 		s.logger.Error(err)

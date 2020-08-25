@@ -216,10 +216,6 @@ func (s *Service) HandleBlockResponse(response *api.BlockResult) ([]*models.Vali
 		validators = append(validators, &models.Validator{PublicKey: helpers.RemovePrefix(v.PubKey)})
 	}
 	err := s.repository.SaveAllIfNotExist(validators)
-	if err != nil {
-		s.logger.Error(err)
-		return nil, err
-	}
 	return validators, err
 }
 
