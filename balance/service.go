@@ -107,7 +107,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 			s.logger.Error(err)
 		} else {
 			result <- AddressesBalancesContainer{Addresses: blockAddresses.Addresses, Balances: balances}
-			//go s.broadcastService.PublishBalances(balances)
+			go s.broadcastService.PublishBalances(balances)
 		}
 	}
 }
