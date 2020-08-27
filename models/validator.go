@@ -11,6 +11,7 @@ type Validator struct {
 	ID                   uint                  `json:"id" pg:",pk"`
 	RewardAddressID      *uint                 `json:"reward_address_id"`
 	OwnerAddressID       *uint                 `json:"owner_address_id"`
+	ControlAddressID     *uint                 `json:"control_address_id"`
 	CreatedAtBlockID     *uint64               `json:"created_at_block_id"`
 	PublicKey            string                `json:"public_key"  pg:"type:varchar(64)"`
 	Status               *uint8                `json:"status"`
@@ -22,6 +23,7 @@ type Validator struct {
 	Description          *string               `json:"description"`
 	MetaUpdatedAtBlockID *uint64               `json:"meta_updated_at_block_id"`
 	UpdateAt             *time.Time            `json:"update_at"`
+	ControlAddress       *Address              `json:"control_address" pg:"fk:control_address_id"`
 	RewardAddress        *Address              `json:"reward_address" pg:"fk:reward_address_id"`
 	OwnerAddress         *Address              `json:"owner_address"  pg:"fk:owner_address_id"`
 	Stakes               []*Stake              `json:"stakes"`
