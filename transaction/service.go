@@ -530,7 +530,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		}
 		return txDataJson, nil
 	case transaction.TypeBuyCoin:
-		txData := new(api_pb.BuyCoin)
+		txData := new(api_pb.BuyCoinData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
