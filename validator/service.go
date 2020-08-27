@@ -7,8 +7,10 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"strconv"
 	"time"
@@ -22,6 +24,7 @@ type Service struct {
 	coinRepository      *coin.Repository
 	jobUpdateValidators chan int
 	jobUpdateStakes     chan int
+	jobUpdateWaitList   chan *models.Transaction
 	logger              *logrus.Entry
 }
 
@@ -35,6 +38,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		logger:              logger,
 		jobUpdateValidators: make(chan int, 1),
 		jobUpdateStakes:     make(chan int, 1),
+		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 	}
 }
 
@@ -44,6 +48,43 @@ func (s *Service) GetUpdateValidatorsJobChannel() chan int {
 
 func (s *Service) GetUpdateStakesJobChannel() chan int {
 	return s.jobUpdateStakes
+}
+func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
+	return s.jobUpdateWaitList
+}
+
+func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
+	for tx := range data {
+
+		var adr, pk string
+
+		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		if transaction.Type(tx.Type) == transaction.TypeUnbond {
+			txData := new(api_pb.UnbondData)
+			if err = tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			pk = txData.PubKey
+		}
+		if transaction.Type(tx.Type) == transaction.TypeDelegate {
+			txData := new(api_pb.DelegateData)
+			if err = tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			pk = txData.PubKey
+		}
+
+		if err = s.UpdateWaitList(adr, pk); err != nil {
+			s.logger.Error(err)
+		}
+	}
 }
 
 func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
@@ -296,4 +337,51 @@ func (s *Service) GetStakesFromCandidateResponse(response *api_pb.CandidateRespo
 		})
 	}
 	return stakes, nil
+}
+
+func (s *Service) UpdateWaitList(adr, pk string) error {
+	data, err := s.nodeApi.WaitList(adr, pk)
+	if err != nil {
+		return err
+	}
+
+	addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(adr))
+	if err != nil {
+		return err
+	}
+
+	vId, err := s.repository.FindIdByPk(helpers.RemovePrefix(pk))
+	if err != nil {
+		return err
+	}
+
+	if len(data.List) == 0 {
+		return s.repository.RemoveFromWaitList(addressId, vId)
+	}
+
+	var existCoins []uint64
+
+	for _, item := range data.List {
+		coinId, err := strconv.ParseUint(item.Coin.Id, 10, 64)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		existCoins = append(existCoins, coinId)
+		sk := &models.StakeKick{
+			AddressId:   addressId,
+			CoinId:      uint(coinId),
+			ValidatorId: vId,
+			Amount:      item.Value,
+		}
+
+		err = s.repository.UpdateWaitList(sk)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+	}
+
+	return s.repository.DeleteFromWaitList(addressId, vId, existCoins)
 }

@@ -33,12 +33,13 @@ type Service struct {
 	jobSaveTxsOutput    chan []*models.Transaction
 	jobSaveValidatorTxs chan []*models.TransactionValidator
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
+	jobUpdateWaitList   chan *models.Transaction
 	logger              *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	broadcastService *broadcast.Service, logger *logrus.Entry) *Service {
+	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction) *Service {
 	return &Service{
 		env:                 env,
 		txRepository:        repository,
@@ -51,6 +52,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRep
 		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
 		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
 		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
+		jobUpdateWaitList:   jobUpdateWaitList,
 		logger:              logger,
 	}
 }
@@ -195,6 +197,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
 			transaction.Type(tx.Type) != transaction.TypeEditCandidate &&
 			transaction.Type(tx.Type) != transaction.TypeUnbond &&
+			transaction.Type(tx.Type) != transaction.TypeDelegate &&
 			transaction.Type(tx.Type) != transaction.TypeRecreateCoin {
 			continue
 		}
@@ -316,6 +319,9 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if err != nil {
 				return err
 			}
+		}
+		if transaction.Type(tx.Type) == transaction.TypeUnbond || transaction.Type(tx.Type) == transaction.TypeDelegate {
+			s.jobUpdateWaitList <- tx
 		}
 	}
 

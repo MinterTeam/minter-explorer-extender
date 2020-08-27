@@ -37,6 +37,8 @@ CREATE TABLE validator_public_keys
     created_at   timestamp with time zone DEFAULT current_timestamp,
     update_at    timestamp with time zone DEFAULT null
 );
+CREATE INDEX validator_public_keys_validator_id_index ON validator_public_keys USING btree (validator_id);
+CREATE INDEX validator_public_keys_key_index ON validator_public_keys USING btree (key);
 
 CREATE TABLE blocks
 (
@@ -219,7 +221,8 @@ CREATE TABLE wait_list
     address_id   bigint         NOT NULL references addresses (id),
     coin_id      integer        NOT NULL references coins (id),
     validator_id integer        NOT NULL references validators (id),
-    value        numeric(70, 0) NOT NULL
+    value        numeric(70, 0) NOT NULL,
+    UNIQUE (address_id, coin_id, validator_id)
 );
 CREATE INDEX wait_list_address_id_index ON wait_list USING btree (address_id);
 CREATE INDEX wait_list_coin_id_index ON wait_list USING btree (coin_id);
