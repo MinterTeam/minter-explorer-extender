@@ -293,6 +293,13 @@ func (s *Service) HandleCandidateResponse(response *api_pb.CandidateResponse) (*
 		return nil, nil, err
 	}
 	validator.RewardAddressID = &rewardAddressID
+
+	//controlAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(response.ControlAddress))
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//validator.ControlAddressID = &controlAddressID
+
 	validatorID, err := s.repository.FindIdByPk(helpers.RemovePrefix(response.PublicKey))
 	if err != nil {
 		return nil, nil, err
