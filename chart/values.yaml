@@ -26,16 +26,16 @@ tolerations: []
 affinity: {}
 
 env:
-  debug: "1"
-  pgDbName: "explorer"
-  pgUser: "minter"
-  pgPassword: "6nuwsdadwsJqmI57iwBnI5vACB2313"
-  pgHost: "postgres-explorer"
-  pgPort: "5432"
-  nodeApi: "68.183.211.176:8842"
-  сentrifugoSecret: "7798e768-12ca-4e21-ab63-e3d027fe7a52"
-  сentrifugoLink: "http://centrifugo:8000"
-  minterBaseCoin: "MNT"
+  debug: {DEBUG}
+  pgDbName: {DB_NAME}
+  pgUser: {DB_USER}
+  pgPassword: {DB_PASSWORD}
+  pgHost: {DB_HOST}
+  pgPort: { DB_PORT }
+  nodeApi: {NODE_API}
+  сentrifugoSecret: {CENTRIFUGO_SECRET}
+  сentrifugoLink: {CENTRIFUGO_LINK}
+  minterBaseCoin: {MINTER_BASE_COIN}
   coinsUpdateTime: "1"
   txChunkSize: "50"
   addressChunkSize: "50"
