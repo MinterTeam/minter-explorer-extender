@@ -77,7 +77,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				AddressId:   addressId,
 				CoinId:      mapValues["coin"].(uint),
 				ValidatorId: vId,
-				Amount:      mapValues["amount"].(string),
+				Value:       mapValues["amount"].(string),
 			}
 
 			err = s.validatorRepository.AddToWaitList(sk)

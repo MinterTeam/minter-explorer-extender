@@ -25,6 +25,10 @@ func NewRepository(db *pg.DB, logger *logrus.Entry) *Repository {
 	}
 }
 
+func (r *Repository) AddUnbond(unbond *models.Unbond) error {
+	return r.db.Insert(unbond)
+}
+
 func (r *Repository) GetById(id uint) (*models.Validator, error) {
 	validator := new(models.Validator)
 	err := r.db.Model(validator).

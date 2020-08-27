@@ -25,6 +25,7 @@ type Service struct {
 	jobUpdateValidators chan int
 	jobUpdateStakes     chan int
 	jobUpdateWaitList   chan *models.Transaction
+	jobUnbondSaver      chan *models.Transaction
 	logger              *logrus.Entry
 }
 
@@ -39,6 +40,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		jobUpdateValidators: make(chan int, 1),
 		jobUpdateStakes:     make(chan int, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
+		jobUnbondSaver:      make(chan *models.Transaction, 1),
 	}
 }
 
@@ -51,6 +53,41 @@ func (s *Service) GetUpdateStakesJobChannel() chan int {
 }
 func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
 	return s.jobUpdateWaitList
+}
+func (s *Service) GetUnbondSaverJobChannel() chan *models.Transaction {
+	return s.jobUnbondSaver
+}
+
+func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
+	for tx := range data {
+		txData := new(api_pb.UnbondData)
+		if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		vId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.PubKey))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		coinId, err := strconv.ParseUint(txData.Coin.Id, 10, 64)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		unbond := &models.Unbond{
+			AddressId:   uint(tx.FromAddressID),
+			CoinId:      uint(coinId),
+			ValidatorId: vId,
+			Value:       txData.Value,
+		}
+
+		err = s.repository.AddUnbond(unbond)
+
+	}
 }
 
 func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
@@ -380,7 +417,7 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 			AddressId:   addressId,
 			CoinId:      uint(coinId),
 			ValidatorId: vId,
-			Amount:      item.Value,
+			Value:       item.Value,
 		}
 
 		err = s.repository.UpdateWaitList(sk)

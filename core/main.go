@@ -60,7 +60,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "2.3.6",
+		"version": "2.3.7",
 		"app":     "Minter Explorer Extender",
 	})
 
@@ -101,7 +101,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, balanceRepository, contextLogger),
 		blockRepository:     blockRepository,
 		validatorService:    validatorService,
-		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel()),
+		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel()),
 		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
@@ -217,6 +217,9 @@ func (ext *Extender) runWorkers() {
 
 	//Wait List
 	go ext.validatorService.UpdateWaitListWorker(ext.validatorService.GetUpdateWaitListJobChannel())
+
+	//Unbonds
+	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
