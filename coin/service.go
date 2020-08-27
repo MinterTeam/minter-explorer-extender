@@ -135,7 +135,7 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				coinsMap[txData.CoinToBuy.Symbol] = struct{}{}
 				coinsMap[txData.CoinToSell.Symbol] = struct{}{}
 			case transaction.TypeBuyCoin:
-				txData := new(api_pb.BuyCoin)
+				txData := new(api_pb.BuyCoinData)
 				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
 					continue
