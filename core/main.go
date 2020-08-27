@@ -60,7 +60,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "2.3.5",
+		"version": "2.3.6",
 		"app":     "Minter Explorer Extender",
 	})
 

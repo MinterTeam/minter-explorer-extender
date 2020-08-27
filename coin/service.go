@@ -5,11 +5,11 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-go-sdk/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/anypb"
 	"strconv"
 )
 
@@ -127,29 +127,29 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeSellCoin:
-				var txData api.SellCoinData
-				err := helpers.ConvertStruct(tx.IData, &txData)
-				if tx.Data == nil {
+				txData := new(api_pb.SellCoinData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[txData.CoinToBuy.Symbol] = struct{}{}
+				coinsMap[txData.CoinToSell.Symbol] = struct{}{}
 			case transaction.TypeBuyCoin:
-				var txData api.BuyCoinData
-				err := helpers.ConvertStruct(tx.IData, &txData)
-				if tx.Data == nil {
+				txData := new(api_pb.BuyCoin)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[txData.CoinToBuy.Symbol] = struct{}{}
+				coinsMap[txData.CoinToSell.Symbol] = struct{}{}
 			case transaction.TypeSellAllCoin:
-				var txData api.SellAllCoinData
-				err := helpers.ConvertStruct(tx.IData, &txData)
-				if tx.Data == nil {
+				txData := new(api_pb.SellAllCoinData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
+					continue
 				}
-				coinsMap[txData.CoinToBuy] = struct{}{}
-				coinsMap[txData.CoinToSell] = struct{}{}
+				coinsMap[txData.CoinToBuy.Symbol] = struct{}{}
+				coinsMap[txData.CoinToSell.Symbol] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap

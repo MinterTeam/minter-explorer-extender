@@ -108,12 +108,13 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 	for transactions := range jobs {
 		err := s.txRepository.SaveAll(transactions)
 		if err != nil {
-			s.logger.Error(err)
+			s.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 
 		links, err := s.getLinksTxValidator(transactions)
-		helpers.HandleError(err)
+		if err != nil {
+			s.logger.Fatal(err)
+		}
 		if len(links) > 0 {
 			chunksCount := int(math.Ceil(float64(len(links)) / float64(s.env.TxChunkSize)))
 			for i := 0; i < chunksCount; i++ {
@@ -188,9 +189,12 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 
 		idsList = append(idsList, tx.ID)
 
-		if transaction.Type(tx.Type) != transaction.TypeSend && transaction.Type(tx.Type) != transaction.TypeMultisend &&
-			transaction.Type(tx.Type) != transaction.TypeRedeemCheck && transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
+		if transaction.Type(tx.Type) != transaction.TypeSend &&
+			transaction.Type(tx.Type) != transaction.TypeMultisend &&
+			transaction.Type(tx.Type) != transaction.TypeRedeemCheck &&
+			transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
 			transaction.Type(tx.Type) != transaction.TypeEditCandidate &&
+			transaction.Type(tx.Type) != transaction.TypeUnbond &&
 			transaction.Type(tx.Type) != transaction.TypeRecreateCoin {
 			continue
 		}
