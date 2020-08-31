@@ -88,13 +88,14 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.C
 	}
 
 	coin := &models.Coin{
-		ID:      coinId + 1,
-		Crr:     uint(crr),
-		Volume:  txData.InitialAmount,
-		Reserve: txData.InitialReserve,
-		Name:    txData.Name,
-		Symbol:  txData.Symbol,
-		Version: 0,
+		ID:        coinId + 1,
+		Crr:       uint(crr),
+		Volume:    txData.InitialAmount,
+		Reserve:   txData.InitialReserve,
+		MaxSupply: txData.MaxSupply,
+		Name:      txData.Name,
+		Symbol:    txData.Symbol,
+		Version:   0,
 	}
 
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
@@ -214,6 +215,8 @@ func (s *Service) GetCoinFromNode(symbol string, optionalHeight ...int) (*models
 	coin.Crr = uint(crr)
 	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
+	coin.MaxSupply = coinResp.MaxSupply
+
 	return coin, nil
 }
 
