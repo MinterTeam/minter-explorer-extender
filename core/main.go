@@ -25,6 +25,10 @@ import (
 
 const ChasingModDiff = 2
 
+var (
+	Version = "2.3.9"
+)
+
 type Extender struct {
 	env                 *env.ExtenderEnvironment
 	nodeApi             *grpc_client.Client
@@ -60,7 +64,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"version": "2.3.8",
+		"version": Version,
 		"app":     "Minter Explorer Extender",
 	})
 
@@ -110,6 +114,10 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		currentNodeHeight:   0,
 		logger:              contextLogger,
 	}
+}
+
+func (ext *Extender) GetInfo() {
+	fmt.Printf("%s v%s\n", "Minter Explorer Extender", Version)
 }
 
 func (ext *Extender) Run() {
