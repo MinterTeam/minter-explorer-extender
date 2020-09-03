@@ -74,7 +74,9 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 	id, _ := r.FindIdByPk(pk)
 	if id == 0 {
-		validator := &models.Validator{}
+		validator := &models.Validator{
+			PublicKey: pk,
+		}
 		err := r.db.Insert(validator)
 		if err != nil {
 			return 0, err

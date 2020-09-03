@@ -133,13 +133,7 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		}
 
 		s.GetSaveTxsOutputJobChannel() <- transactions
-
-		//no need to publish all of transaction
-		if len(transactions) > 10 {
-			go s.broadcastService.PublishTransactions(transactions[:10])
-		} else {
-			go s.broadcastService.PublishTransactions(transactions)
-		}
+		go s.broadcastService.PublishTransactions(transactions)
 	}
 }
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {

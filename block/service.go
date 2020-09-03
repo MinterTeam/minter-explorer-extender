@@ -67,7 +67,7 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 
 	//todo
 	go s.broadcastService.PublishBlock(block)
-	//go s.broadcastService.PublishStatus()
+	go s.broadcastService.PublishStatus()
 
 	return s.blockRepository.Save(block)
 }
