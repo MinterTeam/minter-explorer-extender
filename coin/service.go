@@ -236,14 +236,18 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 		return err
 	}
 
+	//ownerAddressId, err := s.addressRepository.FindIdOrCreate(data.OwnerAddress)
+
 	coinId, err := s.repository.GetLastCoinId()
 	if err != nil {
 		return err
 	}
 
 	newCoin := &models.Coin{
-		ID:        coinId + 1,
-		Crr:       uint(crr),
+		ID:   coinId + 1,
+		Crr:  uint(crr),
+		Name: data.Name,
+		//OwnerAddressId: ownerAddressId,
 		Volume:    data.InitialAmount,
 		Reserve:   data.InitialReserve,
 		Symbol:    data.Symbol,
