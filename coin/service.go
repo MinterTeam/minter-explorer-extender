@@ -206,6 +206,11 @@ func (s *Service) GetCoinFromNode(symbol string, optionalHeight ...int) (*models
 	}
 	coin.ID = uint(coinId)
 
+	ownerAddressId := uint(0)
+	if coinResp.OwnerAddress != nil {
+		ownerAddressId, err = s.addressRepository.FindIdOrCreate(coinResp.OwnerAddress.Value)
+	}
+
 	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
 	if err != nil {
 		return nil, err
@@ -216,6 +221,7 @@ func (s *Service) GetCoinFromNode(symbol string, optionalHeight ...int) (*models
 	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
 	coin.MaxSupply = coinResp.MaxSupply
+	coin.OwnerAddressId = ownerAddressId
 
 	return coin, nil
 }
@@ -236,18 +242,15 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 		return err
 	}
 
-	//ownerAddressId, err := s.addressRepository.FindIdOrCreate(data.OwnerAddress)
-
 	coinId, err := s.repository.GetLastCoinId()
 	if err != nil {
 		return err
 	}
 
 	newCoin := &models.Coin{
-		ID:   coinId + 1,
-		Crr:  uint(crr),
-		Name: data.Name,
-		//OwnerAddressId: ownerAddressId,
+		ID:        coinId + 1,
+		Crr:       uint(crr),
+		Name:      data.Name,
 		Volume:    data.InitialAmount,
 		Reserve:   data.InitialReserve,
 		Symbol:    data.Symbol,
