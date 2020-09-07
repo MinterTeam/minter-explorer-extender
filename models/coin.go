@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"time"
+	"fmt"
+)
 
 type Coin struct {
 	ID             uint       `json:"id" pg:",use_zero"`
