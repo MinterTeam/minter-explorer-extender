@@ -82,10 +82,11 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.BlockR
 				return nil, err, nil
 			}
 
-			data, err := transaction.DecodeCheck(txData.RawCheck)
+			data, err := transaction.DecodeCheckBase64(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
+					"RawCheck": txData.RawCheck,
+					"Tx":       tx.Hash,
 				}).Error(err)
 				return nil, err, nil
 			}
