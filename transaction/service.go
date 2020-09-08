@@ -239,7 +239,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
 			}
-			data, err := transaction.DecodeCheck(txData.RawCheck)
+			data, err := transaction.DecodeCheckBase64(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"Tx": tx.Hash,
