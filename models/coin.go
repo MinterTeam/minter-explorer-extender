@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"time"
+	"fmt"
+)
 
 type Coin struct {
 	ID             uint       `json:"id" pg:",use_zero"`
@@ -16,4 +19,13 @@ type Coin struct {
 	UpdatedAt      *time.Time `json:"updated_at"`
 	DeletedAt      *time.Time `pg:",soft_delete"`
 	OwnerAddress   Address    `pg:"fk:id"`
+}
+
+// Return coin with version
+func (c *Coin) GetSymbol() string {
+	if c.Version == 0 {
+		return c.Symbol
+	}
+	
+	return fmt.Sprintf("%s-%d", c.Symbol, c.Version)
 }
