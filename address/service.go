@@ -171,7 +171,11 @@ func addressesMapToSlice(mapAddresses map[string]struct{}) []string {
 	addresses := make([]string, len(mapAddresses))
 	i := 0
 	for a := range mapAddresses {
-		addresses[i] = a
+		if len(a) > 40 {
+			addresses[i] = helpers.RemovePrefix(a)
+		} else {
+			addresses[i] = a
+		}
 		i++
 	}
 	return addresses

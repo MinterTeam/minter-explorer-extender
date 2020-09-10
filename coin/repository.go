@@ -43,7 +43,7 @@ func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
 	}
 	coin := new(models.Coin)
 	err := r.db.Model(coin).
-		Column("coin_id").
+		Column("id").
 		Where("symbol = ?", symbol).
 		AllWithDeleted().
 		Select()
@@ -78,7 +78,7 @@ func (r *Repository) FindSymbolById(id uint) (string, error) {
 func (r *Repository) Save(c *models.Coin) error {
 	_, err := r.db.Model(c).
 		Where("symbol = ?symbol").
-		OnConflict("DO NOTHING"). //TODO: change to DO UPDATE
+		OnConflict("(symbol, version) DO UPDATE").
 		SelectOrInsert()
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (r *Repository) Add(c *models.Coin) error {
 }
 
 func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
-	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
+	_, err := r.db.Model(&coins).OnConflict("(symbol, version) DO UPDATE").Insert()
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 }
 
 func (r Repository) SaveAllNewIfNotExist(coins []*models.Coin) error {
-	_, err := r.db.Model(&coins).OnConflict("DO NOTHING").Insert()
+	_, err := r.db.Model(&coins).OnConflict("(symbol, version) DO UPDATE").Insert()
 	return err
 }
 
@@ -132,12 +132,6 @@ func (r *Repository) UpdateOwnerBySymbol(symbol string, id uint) error {
 		WHERE symbol = ?;
 	`, id, symbol)
 	return err
-}
-
-func (r *Repository) GetNewCoins() ([]models.Coin, error) {
-	var coins []models.Coin
-	err := r.db.Model(&coins).Where("coin_id is null").Select()
-	return coins, err
 }
 
 func (r *Repository) GetCoinBySymbol(symbol string) ([]models.Coin, error) {
@@ -163,4 +157,9 @@ func (r *Repository) GetLastCoinId() (uint, error) {
 		Select()
 
 	return coin.ID, err
+}
+
+func (r *Repository) UpdateAll(coins []*models.Coin) error {
+	_, err := r.db.Model(&coins).Update()
+	return err
 }

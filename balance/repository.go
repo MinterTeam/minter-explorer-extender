@@ -47,6 +47,6 @@ func (r *Repository) DeleteAll(balances []*models.Balance) error {
 }
 
 func (r Repository) DeleteByCoinId(coinId uint) error {
-	_, err := r.db.Model(new(models.Balance)).Where("coin_id = ?", coinId).Delete()
+	_, err := r.db.Model(new(models.Balance)).Where("id = ?", coinId).Delete()
 	return err
 }

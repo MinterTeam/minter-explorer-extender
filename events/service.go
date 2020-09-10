@@ -50,7 +50,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 	var (
 		rewards           []*models.Reward
 		slashes           []*models.Slash
-		coinsForUpdateMap = make(map[string]struct{})
+		coinsForUpdateMap = make(map[uint64]struct{})
 	)
 
 	for _, event := range responseEvents {
@@ -72,6 +72,8 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				s.logger.Error(err)
 				continue
 			}
+
+			coinsForUpdateMap[mapValues["coin"].(uint64)] = struct{}{}
 
 			sk := &models.StakeKick{
 				AddressId:   addressId,
@@ -117,6 +119,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 
 		case models.SlashEvent:
 			coinId := mapValues["coin"].(uint)
+			coinsForUpdateMap[uint64(coinId)] = struct{}{}
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
 				CoinID:      coinId,
