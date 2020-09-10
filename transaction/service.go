@@ -194,8 +194,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
 			transaction.Type(tx.Type) != transaction.TypeEditCandidate &&
 			transaction.Type(tx.Type) != transaction.TypeUnbond &&
-			transaction.Type(tx.Type) != transaction.TypeDelegate &&
-			transaction.Type(tx.Type) != transaction.TypeRecreateCoin {
+			transaction.Type(tx.Type) != transaction.TypeDelegate {
 			continue
 		}
 
@@ -302,17 +301,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 
 			v.PublicKey = helpers.RemovePrefix(txData.NewPubKey.Value)
 			err = s.validatorRepository.Update(v)
-			if err != nil {
-				return err
-			}
-		}
-		if transaction.Type(tx.Type) == transaction.TypeRecreateCoin {
-			txData := new(api_pb.RecreateCoinData)
-			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-				return err
-			}
-
-			err := s.coinService.RecreateCoin(txData)
 			if err != nil {
 				return err
 			}

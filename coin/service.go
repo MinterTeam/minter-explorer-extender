@@ -67,6 +67,19 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 			}
 			coins = append(coins, coin)
 		}
+		if transaction.Type(txType) == transaction.TypeRecreateCoin {
+			txData := new(api_pb.RecreateCoinData)
+			tx.GetData()
+
+			if err := tx.GetData().UnmarshalTo(txData); err != nil {
+				s.logger.Fatal()
+			}
+
+			err := s.RecreateCoin(txData)
+			if err != nil {
+				s.logger.Fatal()
+			}
+		}
 	}
 	return coins, nil
 }
@@ -265,7 +278,6 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 			if err != nil {
 				return err
 			}
-			newCoin.Name = c.Name
 			newCoin.OwnerAddressId = c.OwnerAddressId
 			break
 		}

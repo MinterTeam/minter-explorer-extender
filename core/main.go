@@ -25,9 +25,7 @@ import (
 
 const ChasingModDiff = 2
 
-var (
-	Version = "2.3.9"
-)
+var Version string
 
 type Extender struct {
 	env                 *env.ExtenderEnvironment
