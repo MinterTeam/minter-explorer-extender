@@ -1,11 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: registry.minter.network/minter-explorer-extender
+  repository: minterteam/explorer-extender
   pullPolicy: IfNotPresent
-
-imagePullSecrets:
-  - name: registry.minter.network
+  tag: latest
 
 nameOverride: ""
 fullnameOverride: ""

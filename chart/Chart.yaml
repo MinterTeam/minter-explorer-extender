@@ -5,7 +5,7 @@ name: minter-explorer-extender
 icon: https://explorer.minter.network/img/minter-logo-circle.svg
 description: A Helm chart for Minter Explorer Extender
 
-appVersion: v2.3.5
+appVersion: latest
 
 home: https://github.com/MinterTeam/minter-explorer-extender
 keywords:
