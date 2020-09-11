@@ -211,7 +211,8 @@ CREATE TABLE stakes
     validator_id     integer        NOT NULL references validators (id),
     coin_id          integer        NOT NULL references coins (id),
     value            numeric(70, 0) NOT NULL,
-    bip_value        numeric(70, 0) NOT NULL
+    bip_value        numeric(70, 0) NOT NULL,
+    UNIQUE (owner_address_id, validator_id, coin_id)
 );
 CREATE INDEX stakes_coin_id_index ON stakes USING btree (coin_id);
 CREATE INDEX stakes_owner_address_id_index ON stakes USING btree (owner_address_id);

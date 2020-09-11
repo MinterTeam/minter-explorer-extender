@@ -142,7 +142,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 			for _, vlr := range resp.Candidates {
 				validatorsPkMap[helpers.RemovePrefix(vlr.PublicKey)] = struct{}{}
 				addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
-				//addressesMap[helpers.RemovePrefix(vlr.)] = struct{}{}
+				addressesMap[helpers.RemovePrefix(vlr.ControlAddress)] = struct{}{}
 			}
 
 			err = s.repository.SaveAllIfNotExist(validatorsPkMap)
@@ -210,7 +210,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(false, height)
+		resp, err := s.nodeApi.Candidates(true, height)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
@@ -242,7 +242,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		}
 
 		for i, vlr := range resp.Candidates {
-			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(vlr.PublicKey))
+			id, err := s.repository.FindIdByPk(helpers.RemovePrefix(vlr.PublicKey))
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -278,8 +278,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 			}
 			err = s.repository.SaveAllStakes(stakes[start:end])
 			if err != nil {
-				s.logger.Error(err)
-				panic(err)
+				s.logger.Fatal(err)
 			}
 		}
 
