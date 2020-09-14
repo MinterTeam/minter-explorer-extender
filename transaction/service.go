@@ -267,7 +267,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeChangeCoinOwner {
-			txData := new(api_pb.ChangeCoinOwnerData)
+			txData := new(api_pb.EditCoinOwnerData)
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
 			}
@@ -294,17 +294,57 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 
-			err = s.validatorRepository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey.Value))
+			newOwnerAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.OwnerAddress))
+			if err != nil {
+				return err
+			}
+			newControlAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.ControlAddress))
+			if err != nil {
+				return err
+			}
+			newRewardAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.RewardAddress))
 			if err != nil {
 				return err
 			}
 
-			v.PublicKey = helpers.RemovePrefix(txData.NewPubKey.Value)
+			v.OwnerAddressID = &newOwnerAddressId
+			v.ControlAddressID = &newControlAddressId
+			v.RewardAddressID = &newRewardAddressId
+
 			err = s.validatorRepository.Update(v)
 			if err != nil {
 				return err
 			}
 		}
+
+		//if transaction.Type(tx.Type) == transaction.TypeEditCandidatePublicKey {
+		//	txData := new(api_pb.EditCandidatePublicKeyData)
+		//	if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+		//		return err
+		//	}
+		//
+		//	vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(txData.PubKey))
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	v, err := s.validatorRepository.GetById(vId)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	err = s.validatorRepository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey))
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	v.PublicKey = helpers.RemovePrefix(txData.NewPubKey)
+		//	err = s.validatorRepository.Update(v)
+		//	if err != nil {
+		//		return err
+		//	}
+		//}
+
 		if transaction.Type(tx.Type) == transaction.TypeUnbond {
 			s.jobUnbondSaver <- tx
 			s.jobUpdateWaitList <- tx
@@ -642,7 +682,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		}
 		return txDataJson, nil
 	case transaction.TypeChangeCoinOwner:
-		txData := new(api_pb.ChangeCoinOwnerData)
+		txData := new(api_pb.EditCoinOwnerData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
