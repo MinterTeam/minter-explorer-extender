@@ -191,8 +191,9 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		if transaction.Type(tx.Type) != transaction.TypeSend &&
 			transaction.Type(tx.Type) != transaction.TypeMultisend &&
 			transaction.Type(tx.Type) != transaction.TypeRedeemCheck &&
-			transaction.Type(tx.Type) != transaction.TypeChangeCoinOwner &&
+			transaction.Type(tx.Type) != transaction.TypeEditCoinOwner &&
 			transaction.Type(tx.Type) != transaction.TypeEditCandidate &&
+			transaction.Type(tx.Type) != transaction.TypeEditCandidatePublicKey &&
 			transaction.Type(tx.Type) != transaction.TypeUnbond &&
 			transaction.Type(tx.Type) != transaction.TypeDelegate {
 			continue
@@ -266,7 +267,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			})
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeChangeCoinOwner {
+		if transaction.Type(tx.Type) == transaction.TypeEditCoinOwner {
 			txData := new(api_pb.EditCoinOwnerData)
 			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 				return err
@@ -317,33 +318,33 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			}
 		}
 
-		//if transaction.Type(tx.Type) == transaction.TypeEditCandidatePublicKey {
-		//	txData := new(api_pb.EditCandidatePublicKeyData)
-		//	if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-		//		return err
-		//	}
-		//
-		//	vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(txData.PubKey))
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	v, err := s.validatorRepository.GetById(vId)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	err = s.validatorRepository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey))
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	v.PublicKey = helpers.RemovePrefix(txData.NewPubKey)
-		//	err = s.validatorRepository.Update(v)
-		//	if err != nil {
-		//		return err
-		//	}
-		//}
+		if transaction.Type(tx.Type) == transaction.TypeEditCandidatePublicKey {
+			txData := new(api_pb.EditCandidatePublicKeyData)
+			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				return err
+			}
+
+			vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(txData.PubKey))
+			if err != nil {
+				return err
+			}
+
+			v, err := s.validatorRepository.GetById(vId)
+			if err != nil {
+				return err
+			}
+
+			err = s.validatorRepository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey))
+			if err != nil {
+				return err
+			}
+
+			v.PublicKey = helpers.RemovePrefix(txData.NewPubKey)
+			err = s.validatorRepository.Update(v)
+			if err != nil {
+				return err
+			}
+		}
 
 		if transaction.Type(tx.Type) == transaction.TypeUnbond {
 			s.jobUnbondSaver <- tx
@@ -681,7 +682,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeChangeCoinOwner:
+	case transaction.TypeEditCoinOwner:
 		txData := new(api_pb.EditCoinOwnerData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
