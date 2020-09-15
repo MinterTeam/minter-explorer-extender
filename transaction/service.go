@@ -712,6 +712,16 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
+	case transaction.TypeEditCandidatePublicKey:
+		txData := new(api_pb.EditCandidatePublicKeyData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := json.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
 	}
 
 	return nil, errors.New("unknown tx type")
