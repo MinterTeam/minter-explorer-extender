@@ -70,6 +70,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 		}
 
 		if transaction.Type(txType) == transaction.TypeCreateCoin {
+			s.UpdateCoinIdCache()
 			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
 				return nil, err
@@ -309,4 +310,12 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 	s.repository.RemoveFromCacheBySymbol(data.Symbol)
 	err = s.repository.Add(newCoin)
 	return err
+}
+
+func (s *Service) UpdateCoinIdCache() {
+	coinId, err := s.repository.GetLastCoinId()
+	if err != nil {
+		s.logger.Fatal(err)
+	}
+	s.lastCoinId = coinId
 }
