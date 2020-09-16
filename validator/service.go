@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -383,12 +385,27 @@ func (s *Service) GetStakesFromCandidateResponse(response *api_pb.CandidateRespo
 }
 
 func (s *Service) UpdateWaitList(adr, pk string) error {
-	data, err := s.nodeApi.WaitList(adr, pk)
+	var err error
+	var addressId uint
+	var data *api_pb.WaitListResponse
+
+	strRune := []rune(adr)
+	prefix := string(strRune[0:2])
+
+	if strings.ToLower(prefix) == "mx" {
+		data, err = s.nodeApi.WaitList(pk, adr)
+	} else {
+		data, err = s.nodeApi.WaitList(pk, fmt.Sprintf("Mx%s", adr))
+	}
 	if err != nil {
 		return err
 	}
 
-	addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(adr))
+	if strings.ToLower(prefix) == "mx" {
+		addressId, err = s.addressRepository.FindId(helpers.RemovePrefix(adr))
+	} else {
+		addressId, err = s.addressRepository.FindId(adr)
+	}
 	if err != nil {
 		return err
 	}
