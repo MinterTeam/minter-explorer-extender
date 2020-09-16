@@ -61,7 +61,7 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 
 func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.Coin, error) {
 	var coins []*models.Coin
-
+	s.UpdateCoinIdCache()
 	for _, tx := range transactions {
 
 		txType, err := strconv.ParseUint(tx.Type, 10, 64)
@@ -70,7 +70,6 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 		}
 
 		if transaction.Type(txType) == transaction.TypeCreateCoin {
-			s.UpdateCoinIdCache()
 			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
 				return nil, err
