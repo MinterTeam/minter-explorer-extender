@@ -21,9 +21,16 @@ type Service struct {
 	logger                *logrus.Entry
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
+	lastCoinId            uint
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
+
+	coinId, err := repository.GetLastCoinId()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
@@ -32,6 +39,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		logger:                logger,
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
+		lastCoinId:            coinId,
 	}
 }
 
@@ -53,6 +61,7 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 
 func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.Coin, error) {
 	var coins []*models.Coin
+
 	for _, tx := range transactions {
 
 		txType, err := strconv.ParseUint(tx.Type, 10, 64)
@@ -95,13 +104,10 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.C
 		return nil, err
 	}
 
-	coinId, err := s.repository.GetLastCoinId()
-	if err != nil {
-		return nil, err
-	}
+	s.lastCoinId += 1
 
 	coin := &models.Coin{
-		ID:        coinId + 1,
+		ID:        s.lastCoinId,
 		Crr:       uint(crr),
 		Volume:    txData.InitialAmount,
 		Reserve:   txData.InitialReserve,
