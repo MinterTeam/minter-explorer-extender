@@ -124,9 +124,8 @@ func (ext *Extender) Run() {
 	if err == nil {
 		err = ext.blockRepository.DeleteLastBlockData()
 	} else {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 
 	var height int
 

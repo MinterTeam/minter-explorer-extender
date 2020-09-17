@@ -36,10 +36,14 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 //Handle response and save block to DB
 func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 	height, err := strconv.ParseUint(response.Height, 10, 64)
-	helpers.HandleError(err)
-	size, err := strconv.ParseUint(response.Size, 10, 64)
-	helpers.HandleError(err)
+	if err != nil {
+		return err
+	}
 
+	size, err := strconv.ParseUint(response.Size, 10, 64)
+	if err != nil {
+		return err
+	}
 	var proposerId uint
 	if response.Proposer != "" {
 		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Proposer))
@@ -51,7 +55,12 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 	layout := "2006-01-02T15:04:05Z"
 	blockTime, err := time.Parse(layout, response.Time)
 	if err != nil {
-		panic(err)
+		return err
+	}
+
+	numTxs, err := strconv.ParseUint(response.TransactionCount, 10, 64)
+	if err != nil {
+		return err
 	}
 
 	block := &models.Block{
@@ -61,6 +70,7 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 		CreatedAt:           blockTime,
 		BlockReward:         response.BlockReward,
 		ProposerValidatorID: uint64(proposerId),
+		NumTxs:              uint32(numTxs),
 		Hash:                response.Hash,
 	}
 	s.SetBlockCache(block)
