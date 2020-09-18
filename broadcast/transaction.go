@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-api/helpers"
 	"github.com/MinterTeam/minter-explorer-api/resource"
@@ -9,6 +10,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
+	"github.com/golang/protobuf/ptypes/any"
+	"math/big"
 	"reflect"
 	"strconv"
 	"time"
@@ -27,7 +30,27 @@ type TransactionResource struct {
 	Payload   string                 `json:"payload"`
 	From      string                 `json:"from"`
 	Data      resource.ItemInterface `json:"data"`
+	RawTx     string                 `json:"raw_tx"`
 }
+
+//func (TransactionResource) Transform(model resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
+//	tx := model.(models.Transaction)
+//
+//	return TransactionResource{
+//		Txn:       tx.ID,
+//		Hash:      tx.GetHash(),
+//		Nonce:     tx.Nonce,
+//		Block:     tx.BlockID,
+//		Timestamp: tx.CreatedAt.Format(time.RFC3339),
+//		Gas:       strconv.FormatUint(tx.Gas, 10),
+//		GasPrice:  tx.GasPrice,
+//		Fee:       helpers.Fee2Bip(tx.GetFee()),
+//		Type:      tx.Type,
+//		Payload:   base64.StdEncoding.EncodeToString(tx.Payload[:]),
+//		From:      tx.FromAddress.GetAddress(),
+//		Data:      TransformTxData(tx),
+//	}
+//}
 
 func (TransactionResource) Transform(model resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
 	tx := model.(models.Transaction)
@@ -41,10 +64,12 @@ func (TransactionResource) Transform(model resource.ItemInterface, params ...res
 		Gas:       strconv.FormatUint(tx.Gas, 10),
 		GasPrice:  tx.GasPrice,
 		Fee:       helpers.Fee2Bip(tx.GetFee()),
-		Type:      tx.Type,
-		Payload:   base64.StdEncoding.EncodeToString(tx.Payload[:]),
-		From:      tx.FromAddress.GetAddress(),
-		Data:      TransformTxData(tx),
+		//GasCoin:   new(coins.IdResource).Transform(*tx.GasCoin),
+		Type:    tx.Type,
+		Payload: base64.StdEncoding.EncodeToString(tx.Payload[:]),
+		From:    tx.FromAddress.GetAddress(),
+		Data:    TransformTxData(tx),
+		RawTx:   hex.EncodeToString(tx.RawTx),
 	}
 }
 
@@ -62,7 +87,6 @@ var transformConfig = map[uint8]TransformTxConfig{
 	uint8(transaction.TypeDeclareCandidacy):       {Model: new(api_pb.DeclareCandidacyData), Resource: data_resources.DeclareCandidacy{}},
 	uint8(transaction.TypeDelegate):               {Model: new(api_pb.DelegateData), Resource: data_resources.Delegate{}},
 	uint8(transaction.TypeUnbond):                 {Model: new(api_pb.UnbondData), Resource: data_resources.Unbond{}},
-	uint8(transaction.TypeRedeemCheck):            {Model: new(api_pb.RedeemCheckData), Resource: data_resources.RedeemCheck{}},
 	uint8(transaction.TypeCreateMultisig):         {Model: new(api_pb.CreateMultisigData), Resource: data_resources.CreateMultisig{}},
 	uint8(transaction.TypeMultisend):              {Model: new(api_pb.MultiSendData), Resource: data_resources.Multisend{}},
 	uint8(transaction.TypeEditCandidate):          {Model: new(api_pb.EditCandidateData), Resource: data_resources.EditCandidate{}},
@@ -74,6 +98,7 @@ var transformConfig = map[uint8]TransformTxConfig{
 	uint8(transaction.TypeEditMultisig):           {Model: new(api_pb.EditMultisigData), Resource: data_resources.EditMultisigData{}},
 	uint8(transaction.TypeEditCandidatePublicKey): {Model: new(api_pb.EditCandidatePublicKeyData), Resource: data_resources.EditCandidatePublicKey{}},
 	uint8(transaction.TypePriceVote):              {Model: new(api_pb.PriceVoteData), Resource: data_resources.PriceVote{}},
+	uint8(transaction.TypeRedeemCheck):            {Model: new(api_pb.RedeemCheckData), Resource: RedeemCheck{}},
 }
 
 func TransformTxData(tx models.Transaction) resource.Interface {
@@ -85,4 +110,54 @@ func TransformTxData(tx models.Transaction) resource.Interface {
 	helpers.CheckErr(err)
 
 	return config.Resource.Transform(val, tx)
+}
+
+type Check struct {
+	RawCheck string
+	Proof    string
+	Check    CheckData
+}
+
+type CheckData struct {
+	Coin     models.Coin
+	GasCoin  models.Coin
+	Nonce    []byte
+	Value    *big.Int
+	Sender   string
+	DueBlock uint64
+}
+
+type RedeemCheck struct {
+	RawCheck string    `json:"raw_check"`
+	Proof    string    `json:"proof"`
+	Check    CheckData `json:"check"`
+}
+
+func (RedeemCheck) Transform(txData resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
+	tx := params[0].(models.Transaction)
+	dataTx := new(api_pb.RedeemCheckData)
+	if err := tx.IData.(*any.Any).UnmarshalTo(dataTx); err != nil {
+		panic(err)
+	}
+
+	data, err := transaction.DecodeCheckBase64(dataTx.RawCheck)
+	if err != nil {
+		panic(err)
+	}
+
+	sender, err := data.Sender()
+	if err != nil {
+		panic(err)
+	}
+
+	return RedeemCheck{
+		RawCheck: dataTx.RawCheck,
+		Proof:    dataTx.Proof,
+		Check: CheckData{
+			Nonce:    data.Nonce,
+			Value:    data.Value,
+			Sender:   sender,
+			DueBlock: data.DueBlock,
+		},
+	}
 }
