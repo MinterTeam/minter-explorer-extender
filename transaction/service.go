@@ -254,15 +254,14 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			// We are put a creator of a check into "to" field
 			// because "from" field use for a person who created a transaction
 			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender))
-			helpers.HandleError(err)
-
-			coinID, err := s.coinRepository.FindCoinIdBySymbol(data.Coin.String())
-			helpers.HandleError(err)
+			if err != nil {
+				s.logger.Fatal(err)
+			}
 
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   uint64(toId),
-				CoinID:        coinID,
+				CoinID:        uint(data.Coin),
 				Value:         data.Value.String(),
 			})
 		}
@@ -692,8 +691,8 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeEditMultisigOwners:
-		txData := new(api_pb.EditMultisigOwnersData)
+	case transaction.TypeEditMultisig:
+		txData := new(api_pb.EditMultisigData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
