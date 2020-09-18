@@ -33,25 +33,6 @@ type TransactionResource struct {
 	RawTx     string                 `json:"raw_tx"`
 }
 
-//func (TransactionResource) Transform(model resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
-//	tx := model.(models.Transaction)
-//
-//	return TransactionResource{
-//		Txn:       tx.ID,
-//		Hash:      tx.GetHash(),
-//		Nonce:     tx.Nonce,
-//		Block:     tx.BlockID,
-//		Timestamp: tx.CreatedAt.Format(time.RFC3339),
-//		Gas:       strconv.FormatUint(tx.Gas, 10),
-//		GasPrice:  tx.GasPrice,
-//		Fee:       helpers.Fee2Bip(tx.GetFee()),
-//		Type:      tx.Type,
-//		Payload:   base64.StdEncoding.EncodeToString(tx.Payload[:]),
-//		From:      tx.FromAddress.GetAddress(),
-//		Data:      TransformTxData(tx),
-//	}
-//}
-
 func (TransactionResource) Transform(model resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
 	tx := model.(models.Transaction)
 
