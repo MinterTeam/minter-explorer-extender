@@ -7,32 +7,18 @@ import (
 )
 
 type Repository struct {
-	db       *pg.DB
-	cache    *sync.Map
-	invCache *sync.Map
+	db        *pg.DB
+	cache     *sync.Map
+	coinCache *sync.Map
 }
 
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
-		db:       db,
-		cache:    new(sync.Map), //TODO: добавить реализацию очистки
-		invCache: new(sync.Map), //TODO: добавить реализацию очистки
+		db:        db,
+		cache:     new(sync.Map), //TODO: добавить реализацию очистки
+		coinCache: new(sync.Map), //TODO: добавить реализацию очистки
 	}
 }
-
-// Find coin id by symbol
-//func (r *Repository) FindIdBySymbol(symbol string) (uint, error) {
-//	coin := new(models.Coin)
-//	err := r.db.Model(coin).
-//		Where("symbol = ? and version = ?", symbol, 0).
-//		AllWithDeleted().
-//		Select()
-//
-//	if err != nil {
-//		return 0, err
-//	}
-//	return coin.ID, nil
-//}
 
 // Find coin id by symbol
 func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
@@ -57,9 +43,9 @@ func (r *Repository) FindCoinIdBySymbol(symbol string) (uint, error) {
 
 func (r *Repository) FindSymbolById(id uint) (string, error) {
 	//First look in the cache
-	symbol, ok := r.invCache.Load(id)
+	data, ok := r.coinCache.Load(id)
 	if ok {
-		return symbol.(string), nil
+		return data.(*models.Coin).Symbol, nil
 	}
 	coin := &models.Coin{ID: id}
 	err := r.db.Model(coin).
@@ -71,8 +57,30 @@ func (r *Repository) FindSymbolById(id uint) (string, error) {
 		return "", err
 	}
 	r.cache.Store(coin.Symbol, id)
-	r.invCache.Store(id, coin.Symbol)
+	r.coinCache.Store(id, coin)
 	return coin.Symbol, nil
+}
+
+func (r *Repository) GetById(id uint) (*models.Coin, error) {
+	//First look in the cache
+	data, ok := r.coinCache.Load(id)
+	if ok {
+		return data.(*models.Coin), nil
+	}
+
+	coin := &models.Coin{ID: id}
+	err := r.db.Model(coin).
+		Where("id = ?", id).
+		Limit(1).
+		Select()
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.cache.Store(coin.Symbol, id)
+	r.coinCache.Store(id, coin)
+	return coin, nil
 }
 
 func (r *Repository) Save(c *models.Coin) error {
@@ -104,7 +112,7 @@ func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 	}
 	for _, coin := range coins {
 		r.cache.Store(coin.Symbol, coin.ID)
-		r.invCache.Store(coin.ID, coin.Symbol)
+		r.coinCache.Store(coin.ID, coin)
 	}
 	return err
 }
@@ -144,7 +152,7 @@ func (r *Repository) RemoveFromCacheBySymbol(symbol string) {
 	id, ok := r.cache.Load(symbol)
 	if ok {
 		r.cache.Delete(symbol)
-		r.invCache.Delete(id)
+		r.coinCache.Delete(id)
 	}
 }
 

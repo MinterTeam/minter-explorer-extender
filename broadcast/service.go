@@ -69,7 +69,7 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 	var mapBalances = make(map[uint][]interface{})
 
 	for _, item := range balances {
-		symbol, err := s.coinRepository.FindSymbolById(uint(item.CoinID))
+		c, err := s.coinRepository.GetById(item.CoinID)
 		if err != nil {
 			s.logger.Error(err)
 			continue
@@ -79,9 +79,10 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 			s.logger.Error(err)
 			continue
 		}
+
 		mBalance := *item
 		mBalance.Address = &models.Address{Address: adr}
-		mBalance.Coin = &models.Coin{Symbol: symbol}
+		mBalance.Coin = c
 		res := new(balance.Resource).Transform(mBalance)
 		mapBalances[item.AddressID] = append(mapBalances[item.AddressID], res)
 	}
