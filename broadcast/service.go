@@ -22,6 +22,7 @@ type Service struct {
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
 	logger            *logrus.Entry
+	chasingMode       bool
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -38,7 +39,12 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
 		logger:            logger,
+		chasingMode:       false,
 	}
+}
+
+func (s *Service) SetChasingMode(chasingMode bool) {
+	s.chasingMode = chasingMode
 }
 
 func (s *Service) PublishBlock(b *models.Block) {
@@ -65,6 +71,10 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
+
+	if s.chasingMode {
+		return
+	}
 
 	var mapBalances = make(map[uint][]interface{})
 
@@ -103,6 +113,10 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 }
 
 func (s *Service) PublishStatus() {
+
+	if s.chasingMode {
+		return
+	}
 
 	status, err := s.nodeClient.Status()
 

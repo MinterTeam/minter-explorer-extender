@@ -39,6 +39,7 @@ type Extender struct {
 	eventService        *events.Service
 	balanceService      *balance.Service
 	coinService         *coin.Service
+	broadcastService    *broadcast.Service
 	chasingMode         bool
 	currentNodeHeight   int
 	logger              *logrus.Entry
@@ -108,6 +109,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
 		coinService:         coinService,
+		broadcastService:    broadcastService,
 		chasingMode:         true,
 		currentNodeHeight:   0,
 		logger:              contextLogger,
@@ -372,17 +374,17 @@ func (ext *Extender) findOutChasingMode(height int) {
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Error(err)
+			ext.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 	}
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Error(err)
+			ext.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
+
+	ext.broadcastService.SetChasingMode(isChasingMode)
 }
