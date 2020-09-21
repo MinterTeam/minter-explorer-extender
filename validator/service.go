@@ -81,6 +81,7 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		}
 
 		unbond := &models.Unbond{
+			BlockId:     uint(tx.BlockID),
 			AddressId:   uint(tx.FromAddressID),
 			CoinId:      uint(coinId),
 			ValidatorId: vId,
@@ -429,14 +430,16 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 		}
 
 		existCoins = append(existCoins, coinId)
-		sk := &models.StakeKick{
-			AddressId:   addressId,
-			CoinId:      uint(coinId),
-			ValidatorId: vId,
-			Value:       item.Value,
+
+		stk := &models.Stake{
+			OwnerAddressID: addressId,
+			CoinID:         uint(coinId),
+			ValidatorID:    vId,
+			Value:          item.Value,
+			IsKicked:       true,
 		}
 
-		err = s.repository.UpdateWaitList(sk)
+		err = s.repository.UpdateStake(stk)
 		if err != nil {
 			s.logger.Error(err)
 			continue

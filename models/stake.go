@@ -7,6 +7,7 @@ type Stake struct {
 	CoinID         uint       `json:"coin_id"          pg:",use_zero"`
 	Value          string     `json:"value"            pg:"type:numeric(70)"`
 	BipValue       string     `json:"bip_value"        pg:"type:numeric(70)"`
+	IsKicked       bool       `json:"is_kicked"`
 	Coin           *Coin      `json:"coins"`                                  //Relation has one to Coins
 	OwnerAddress   *Address   `json:"owner_address" pg:"fk:owner_address_id"` //Relation has one to Addresses
 	Validator      *Validator `json:"validator"`                              //Relation has one to Validators

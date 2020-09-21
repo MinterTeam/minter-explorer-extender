@@ -167,18 +167,14 @@ func (r *Repository) FindPkId(pk string) (uint, error) {
 	return validator.ID, nil
 }
 
-func (r *Repository) AddToWaitList(sk *models.StakeKick) error {
-	return r.db.Insert(sk)
-}
-
-func (r *Repository) UpdateWaitList(sk *models.StakeKick) error {
-	_, err := r.db.Model(sk).OnConflict("(address_id, coin_id, validator_id) DO UPDATE").Insert()
+func (r *Repository) UpdateStake(s *models.Stake) error {
+	_, err := r.db.Model(s).OnConflict("(address_id, coin_id, validator_id) DO UPDATE").Insert()
 	return err
 }
 
 func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uint64) error {
 	_, err := r.db.Model().Exec(`
-		DELETE FROM wait_list
+		UPDATE stakes SET is_kicked = false
 		WHERE address_id = ? AND validator_id = ? AND coin_id NOT IN (?);
 	`, addressId, validatorId, pg.In(coins))
 	return err
@@ -186,7 +182,7 @@ func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uin
 
 func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	_, err := r.db.Model().Exec(`
-		DELETE FROM wait_list
+		UPDATE stakes SET is_kicked = false
 		WHERE address_id = ? AND validator_id = ?;
 	`, addressId, validatorId)
 	return err

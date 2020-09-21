@@ -75,14 +75,15 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 
 			coinsForUpdateMap[mapValues["coin"].(uint64)] = struct{}{}
 
-			sk := &models.StakeKick{
-				AddressId:   addressId,
-				CoinId:      mapValues["coin"].(uint),
-				ValidatorId: vId,
-				Value:       mapValues["amount"].(string),
+			stk := &models.Stake{
+				OwnerAddressID: addressId,
+				CoinID:         mapValues["coin"].(uint),
+				ValidatorID:    vId,
+				Value:          mapValues["amount"].(string),
+				IsKicked:       true,
 			}
 
-			err = s.validatorRepository.AddToWaitList(sk)
+			err = s.validatorRepository.UpdateStake(stk)
 			if err != nil {
 				s.logger.Error(err)
 			}
