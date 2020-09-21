@@ -5,8 +5,8 @@ go 1.13
 require (
 	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200918104534-e02c006e0c51
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
-	github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200918125558-1777ce1e61e8
-	github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200917115953-484c5d19df4d
+	github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200920180942-a75383c270a2
+	github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200920180544-2bc88646bf02
 	github.com/centrifugal/gocent v2.1.0+incompatible
 	github.com/go-pg/pg/v9 v9.1.2
 	github.com/golang/protobuf v1.4.2
