@@ -6,6 +6,6 @@ type Unbond struct {
 	ValidatorId uint       `json:"validator_id"`
 	Value       string     `json:"value"`
 	Coin        *Coin      `json:"coin"      pg:"fk:coin_id"`
-	Address     *Address   `json:"address"   pg:"fk:adddress_id"`
+	Address     *Address   `json:"address"   pg:"fk:address_id"`
 	Validator   *Validator `json:"validator" pg:"fk:validator_id"`
 }
