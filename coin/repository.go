@@ -168,6 +168,14 @@ func (r *Repository) GetLastCoinId() (uint, error) {
 }
 
 func (r *Repository) UpdateAll(coins []*models.Coin) error {
-	_, err := r.db.Model(&coins).WherePK().Update()
-	return err
+
+	for _, c := range coins {
+		_, err := r.db.Model(c).WherePK().Update()
+		if err != nil {
+			return err
+		}
+	}
+
+	//_, err := r.db.Model(&coins).Where("symbol = ?symbol and version = ?version ").Update()
+	return nil
 }

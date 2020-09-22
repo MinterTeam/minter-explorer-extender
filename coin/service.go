@@ -225,6 +225,7 @@ func (s *Service) UpdateCoinsInfo(coinIds []uint64) error {
 	for _, coinId := range coinIds {
 		coin, err := s.GetCoinFromNode(coinId)
 		if err != nil {
+			s.logger.Error(err)
 			continue
 		}
 		coins = append(coins, coin)
