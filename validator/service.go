@@ -403,9 +403,9 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	if strings.ToLower(prefix) == "mx" {
-		addressId, err = s.addressRepository.FindId(helpers.RemovePrefix(adr))
+		addressId, err = s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(adr))
 	} else {
-		addressId, err = s.addressRepository.FindId(adr)
+		addressId, err = s.addressRepository.FindIdOrCreate(adr)
 	}
 	if err != nil {
 		return err
