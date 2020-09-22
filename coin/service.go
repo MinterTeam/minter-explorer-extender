@@ -81,12 +81,12 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 			tx.GetData()
 
 			if err := tx.GetData().UnmarshalTo(txData); err != nil {
-				s.logger.Fatal()
+				s.logger.Fatal(err)
 			}
 
 			err := s.RecreateCoin(txData)
 			if err != nil {
-				s.logger.Fatal()
+				s.logger.Fatal(err)
 			}
 		}
 	}

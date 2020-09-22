@@ -175,7 +175,5 @@ func (r *Repository) UpdateAll(coins []*models.Coin) error {
 			return err
 		}
 	}
-
-	//_, err := r.db.Model(&coins).Where("symbol = ?symbol and version = ?version ").Update()
 	return nil
 }

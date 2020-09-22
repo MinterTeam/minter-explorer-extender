@@ -247,7 +247,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		for i, vlr := range resp.Candidates {
 			id, err := s.repository.FindIdByPk(helpers.RemovePrefix(vlr.PublicKey))
 			if err != nil {
-				s.logger.Error(err)
+				s.logger.WithField("pk", vlr.PublicKey).Error(err)
 				continue
 			}
 			validatorIds[i] = uint64(id)

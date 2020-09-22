@@ -119,7 +119,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			})
 
 		case models.SlashEvent:
-			coinId := mapValues["coin"].(uint)
+			coinId := uint(mapValues["coin"].(float64))
 			coinsForUpdateMap[uint64(coinId)] = struct{}{}
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
