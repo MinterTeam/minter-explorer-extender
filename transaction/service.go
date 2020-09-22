@@ -502,6 +502,12 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 				return nil, err
 			}
 			validatorPk = txData.PubKey
+		case transaction.TypeEditCandidatePublicKey:
+			txData := new(api_pb.EditCandidatePublicKeyData)
+			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				return nil, err
+			}
+			validatorPk = txData.PubKey
 		}
 
 		if validatorPk != "" {

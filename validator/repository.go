@@ -72,13 +72,17 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 //Find validator with public key or create if not exist.
 //Return Validator ID
 func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
-	id, _ := r.FindIdByPk(pk)
+	id, err := r.FindIdByPk(pk)
+	if err != nil {
+		r.log.WithField("pk", pk).Error(err)
+	}
 	if id == 0 {
 		validator := &models.Validator{
 			PublicKey: pk,
 		}
 		err := r.db.Insert(validator)
 		if err != nil {
+			r.log.WithField("pk", pk).Error(err)
 			return 0, err
 		}
 
@@ -88,6 +92,7 @@ func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 		}
 		err = r.db.Insert(vpk)
 		if err != nil {
+			r.log.WithField("pk", pk).Error(err)
 			return 0, err
 		}
 
