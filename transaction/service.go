@@ -140,9 +140,8 @@ func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction
 	for transactions := range jobs {
 		err := s.SaveAllTxOutputs(transactions)
 		if err != nil {
-			s.logger.Error(err)
+			s.logger.Fatal(err)
 		}
-		helpers.HandleError(err)
 	}
 }
 func (s *Service) SaveInvalidTransactionsWorker(jobs <-chan []*models.InvalidTransaction) {
@@ -205,9 +204,13 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 			toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
-			helpers.HandleError(err)
+			if err != nil {
+				return err
+			}
 			coinID, err := strconv.ParseUint(txData.Coin.Id, 10, 64)
-			helpers.HandleError(err)
+			if err != nil {
+				return err
+			}
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   uint64(toId),
@@ -222,9 +225,13 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			}
 			for _, receiver := range txData.List {
 				toId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(receiver.To))
-				helpers.HandleError(err)
+				if err != nil {
+					return err
+				}
 				coinID, err := strconv.ParseUint(receiver.Coin.Id, 10, 64)
-				helpers.HandleError(err)
+				if err != nil {
+					return err
+				}
 				list = append(list, &models.TransactionOutput{
 					TransactionID: tx.ID,
 					ToAddressID:   uint64(toId),
@@ -256,6 +263,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			toId, err := s.addressRepository.FindId(helpers.RemovePrefix(sender))
 			if err != nil {
 				s.logger.Fatal(err)
+				return err
 			}
 
 			list = append(list, &models.TransactionOutput{
@@ -356,11 +364,15 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 
 	if len(list) > 0 {
 		err := s.txRepository.SaveAllTxOutputs(list)
-		helpers.HandleError(err)
+		if err != nil {
+			return err
+		}
 	}
 	if len(idsList) > 0 {
 		err := s.txRepository.IndexTxAddress(idsList)
-		helpers.HandleError(err)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -53,10 +53,16 @@ spec:
               value: {{ .Values.env.txChunkSize | quote }}
             - name: APP_ADDRESS_CHUNK_SIZE
               value: {{ .Values.env.addressChunkSize | quote }}
+            - name: APP_COINS_CHUNK_SIZE
+              value: {{ .Values.env.coinsChunkSize | quote }}
             - name: APP_EVENTS_CHUNK_SIZE
               value: {{ .Values.env.eventChunkSize | quote }}
             - name: APP_STAKE_CHUNK_SIZE
               value: {{ .Values.env.stakeChunkSize | quote }}
+            - name: APP_BALANCES_CHUNK_SIZE
+              value: {{ .Values.env.balanceChunkSize | quote }}
+            - name: APP_VALIDATORS_CHUNK_SIZE
+              value: {{ .Values.env.validatorChunkSize | quote }}
             - name: APP_REWARDS_AGGREGATE_BLOCKS_COUNT
               value: {{ .Values.env.rewardsAggregareBlocksCount | quote }}
             - name: APP_REWARDS_TIME_INTERVAL

@@ -39,6 +39,8 @@ env:
   addressChunkSize: "50"
   eventChunkSize: "50"
   stakeChunkSize: "500"
+  balanceChunkSize: "500"
+  validatorChunkSize: "500"
   rewardsAggregareBlocksCount: "60"
   rewardsTimeInterval: "day"
   stakeUpdateBlocks: "1"

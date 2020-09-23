@@ -73,8 +73,8 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 //Return Validator ID
 func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 	id, err := r.FindIdByPk(pk)
-	if err != nil {
-		r.log.WithField("pk", pk).Error(err)
+	if err != nil && err.Error() != "pg: no rows in result set" {
+		return 0, err
 	}
 	if id == 0 {
 		validator := &models.Validator{
