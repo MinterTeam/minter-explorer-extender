@@ -107,7 +107,7 @@ func (r *Repository) SaveAllIfNotExist(validators map[string]struct{}) error {
 	for pk, _ := range validators {
 		_, err := r.FindIdByPkOrCreate(pk)
 		if err != nil {
-			r.log.Error(err)
+			return err
 		}
 	}
 	return nil

@@ -304,7 +304,60 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 		validatorsPkMap[helpers.RemovePrefix(v.PublicKey)] = struct{}{}
 	}
 
-	return s.repository.SaveAllIfNotExist(validatorsPkMap)
+	err := s.repository.SaveAllIfNotExist(validatorsPkMap)
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range response.Transactions {
+
+		txType, err := strconv.ParseUint(tx.Type, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		if transaction.Type(txType) == transaction.TypeDeclareCandidacy {
+			txData := new(api_pb.DeclareCandidacyData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				return err
+			}
+
+			_, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(txData.PubKey))
+			if err != nil {
+				return err
+			}
+		}
+
+		if transaction.Type(txType) == transaction.TypeEditCandidatePublicKey {
+			txData := new(api_pb.EditCandidatePublicKeyData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				return err
+			}
+
+			vId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.PubKey))
+			if err != nil {
+				return err
+			}
+
+			v, err := s.repository.GetById(vId)
+			if err != nil {
+				return err
+			}
+
+			err = s.repository.AddPk(vId, helpers.RemovePrefix(txData.NewPubKey))
+			if err != nil {
+				return err
+			}
+
+			v.PublicKey = helpers.RemovePrefix(txData.NewPubKey)
+			err = s.repository.Update(v)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) HandleCandidateResponse(response *api_pb.CandidateResponse) (*models.Validator, []*models.Stake, error) {
