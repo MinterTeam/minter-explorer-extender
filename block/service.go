@@ -6,7 +6,6 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
-	"strconv"
 	"time"
 )
 
@@ -35,16 +34,8 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 
 //Handle response and save block to DB
 func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
-	height, err := strconv.ParseUint(response.Height, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	size, err := strconv.ParseUint(response.Size, 10, 64)
-	if err != nil {
-		return err
-	}
 	var proposerId uint
+	var err error
 	if response.Proposer != "" {
 		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Proposer))
 		helpers.HandleError(err)
@@ -58,24 +49,18 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 		return err
 	}
 
-	numTxs, err := strconv.ParseUint(response.TransactionCount, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	block := &models.Block{
-		ID:                  height,
-		Size:                size,
+		ID:                  response.Height,
+		Size:                response.Size,
 		BlockTime:           s.getBlockTime(blockTime),
 		CreatedAt:           blockTime,
 		BlockReward:         response.BlockReward,
 		ProposerValidatorID: uint64(proposerId),
-		NumTxs:              uint32(numTxs),
+		NumTxs:              uint32(response.TransactionCount),
 		Hash:                response.Hash,
 	}
 	s.SetBlockCache(block)
 
-	//todo
 	go s.broadcastService.PublishBlock(block)
 	go s.broadcastService.PublishStatus()
 

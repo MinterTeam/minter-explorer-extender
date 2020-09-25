@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -74,16 +73,10 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 			continue
 		}
 
-		coinId, err := strconv.ParseUint(txData.Coin.Id, 10, 64)
-		if err != nil {
-			s.logger.Error(err)
-			continue
-		}
-
 		unbond := &models.Unbond{
 			BlockId:     uint(tx.BlockID),
 			AddressId:   uint(tx.FromAddressID),
-			CoinId:      uint(coinId),
+			CoinId:      uint(txData.Coin.Id),
 			ValidatorId: vId,
 			Value:       txData.Value,
 		}
@@ -129,7 +122,7 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 
 func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(false, height)
+		resp, err := s.nodeApi.Candidates(false, uint64(height))
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
@@ -161,20 +154,10 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 			for _, validator := range resp.Candidates {
 				updateAt := time.Now()
 				totalStake := validator.TotalStake
-
-				sts, err := strconv.ParseUint(validator.Status, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				status := uint8(sts)
+				status := uint8(validator.Status)
+				commission := validator.Commission
 
 				id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PublicKey))
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				commission, err := strconv.ParseUint(validator.Commission, 10, 64)
 				if err != nil {
 					s.logger.Error(err)
 					continue
@@ -213,7 +196,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(true, height)
+		resp, err := s.nodeApi.Candidates(true, uint64(height))
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
@@ -257,15 +240,10 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 					s.logger.Error(err)
 					continue
 				}
-				coinID, err := strconv.ParseUint(stake.Coin.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
 				stakes = append(stakes, &models.Stake{
 					ValidatorID:    id,
 					OwnerAddressID: ownerAddressID,
-					CoinID:         uint(coinID),
+					CoinID:         uint(stake.Coin.Id),
 					Value:          stake.Value,
 					BipValue:       stake.BipValue,
 				})
@@ -310,13 +288,7 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 	}
 
 	for _, tx := range response.Transactions {
-
-		txType, err := strconv.ParseUint(tx.Type, 10, 64)
-		if err != nil {
-			return err
-		}
-
-		if transaction.Type(txType) == transaction.TypeDeclareCandidacy {
+		if transaction.Type(tx.Type) == transaction.TypeDeclareCandidacy {
 			txData := new(api_pb.DeclareCandidacyData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return err
@@ -328,7 +300,7 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 			}
 		}
 
-		if transaction.Type(txType) == transaction.TypeEditCandidatePublicKey {
+		if transaction.Type(tx.Type) == transaction.TypeEditCandidatePublicKey {
 			txData := new(api_pb.EditCandidatePublicKeyData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return err
@@ -362,15 +334,10 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 
 func (s *Service) HandleCandidateResponse(response *api_pb.CandidateResponse) (*models.Validator, []*models.Stake, error) {
 	validator := new(models.Validator)
-	sts, err := strconv.ParseUint(response.Status, 10, 64)
-	status := uint8(sts)
+	status := uint8(response.Status)
 	validator.Status = &status
 	validator.TotalStake = &response.TotalStake
-	commission, err := strconv.ParseUint(response.Commission, 10, 64)
-	if err != nil {
-		s.logger.Error(err)
-		return nil, nil, err
-	}
+	commission := response.Commission
 	validator.Commission = &commission
 
 	validator.PublicKey = helpers.RemovePrefix(response.PublicKey)
@@ -422,13 +389,8 @@ func (s *Service) GetStakesFromCandidateResponse(response *api_pb.CandidateRespo
 			s.logger.Error(err)
 			return nil, err
 		}
-		coinID, err := strconv.ParseUint(stake.Coin.Id, 10, 64)
-		if err != nil {
-			s.logger.Error(err)
-			return nil, err
-		}
 		stakes = append(stakes, &models.Stake{
-			CoinID:         uint(coinID),
+			CoinID:         uint(stake.Coin.Id),
 			Value:          stake.Value,
 			ValidatorID:    validatorID,
 			BipValue:       stake.BipValue,
@@ -476,17 +438,11 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	var existCoins []uint64
 
 	for _, item := range data.List {
-		coinId, err := strconv.ParseUint(item.Coin.Id, 10, 64)
-		if err != nil {
-			s.logger.Error(err)
-			continue
-		}
-
-		existCoins = append(existCoins, coinId)
+		existCoins = append(existCoins, item.Coin.Id)
 
 		stk := &models.Stake{
 			OwnerAddressID: addressId,
-			CoinID:         uint(coinId),
+			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    vId,
 			Value:          item.Value,
 			IsKicked:       true,

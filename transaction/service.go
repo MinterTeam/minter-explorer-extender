@@ -17,7 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
-	"strconv"
 	"time"
 )
 
@@ -206,14 +205,10 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			if err != nil {
 				return err
 			}
-			coinID, err := strconv.ParseUint(txData.Coin.Id, 10, 64)
-			if err != nil {
-				return err
-			}
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   uint64(toId),
-				CoinID:        uint(coinID),
+				CoinID:        uint(txData.Coin.Id),
 				Value:         txData.Value,
 			})
 		}
@@ -227,14 +222,10 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				if err != nil {
 					return err
 				}
-				coinID, err := strconv.ParseUint(receiver.Coin.Id, 10, 64)
-				if err != nil {
-					return err
-				}
 				list = append(list, &models.TransactionOutput{
 					TransactionID: tx.ID,
 					ToAddressID:   uint64(toId),
-					CoinID:        uint(coinID),
+					CoinID:        uint(receiver.Coin.Id),
 					Value:         receiver.Value,
 				})
 			}
@@ -354,44 +345,25 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := strconv.ParseUint(tx.Nonce, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	gas, err := strconv.ParseUint(tx.Gas, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	gasCoin, err := strconv.ParseUint(tx.GasCoin, 10, 64)
-	if err != nil {
-		return nil, err
-	}
+
 	rawTxData := make([]byte, hex.DecodedLen(len(tx.RawTx)))
 	rawTx, err := hex.Decode(rawTxData, []byte(tx.RawTx))
 	if err != nil {
 		return nil, err
 	}
+
 	txTagsJson, err := json.Marshal(tx.Tags)
 	if err != nil {
 		return nil, err
 	}
+
 	txTags := make(map[string]string)
 	err = json.Unmarshal(txTagsJson, &txTags)
 	if err != nil {
 		return nil, err
 	}
 
-	txGasPrice, err := strconv.ParseUint(tx.GasPrice, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	txType, err := strconv.ParseUint(tx.Type, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	txDataJson, err := txDataJson(txType, tx.Data)
+	txDataJson, err := txDataJson(tx.Type, tx.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -399,12 +371,12 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 	return &models.Transaction{
 		FromAddressID: uint64(fromId),
 		BlockID:       blockHeight,
-		Nonce:         nonce,
-		GasPrice:      txGasPrice,
-		Gas:           gas,
-		GasCoinID:     gasCoin,
+		Nonce:         tx.Nonce,
+		GasPrice:      tx.GasPrice,
+		Gas:           tx.Gas,
+		GasCoinID:     tx.GasCoin.Id,
 		CreatedAt:     blockCreatedAt,
-		Type:          uint8(txType),
+		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		ServiceData:   string(tx.ServiceData),
 		IData:         tx.Data,
@@ -420,12 +392,8 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.BlockResponse_Transaction,
 	if err != nil {
 		return nil, err
 	}
-	txType, err := strconv.ParseUint(tx.Type, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 
-	txDataJson, err := txDataJson(txType, tx.Data)
+	txDataJson, err := txDataJson(tx.Type, tx.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +402,7 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.BlockResponse_Transaction,
 		FromAddressID: uint64(fromId),
 		BlockID:       blockHeight,
 		CreatedAt:     blockCreatedAt,
-		Type:          uint8(txType),
+		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(txDataJson),
 	}, nil

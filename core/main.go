@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/MinterTeam/minter-explorer-api/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
@@ -19,7 +20,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -41,7 +41,7 @@ type Extender struct {
 	coinService         *coin.Service
 	broadcastService    *broadcast.Service
 	chasingMode         bool
-	currentNodeHeight   int
+	currentNodeHeight   uint64
 	logger              *logrus.Entry
 }
 
@@ -91,6 +91,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	eventsRepository := events.NewRepository(db)
 	balanceRepository := balance.NewRepository(db)
 
+	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
+
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
@@ -129,7 +131,7 @@ func (ext *Extender) Run() {
 		ext.logger.Fatal(err)
 	}
 
-	var height int
+	var height uint64
 
 	// ----- Workers -----
 	ext.runWorkers()
@@ -137,7 +139,7 @@ func (ext *Extender) Run() {
 	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
 
 	if lastExplorerBlock != nil {
-		height = int(lastExplorerBlock.ID) + 1
+		height = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
 		height = 1
@@ -252,20 +254,15 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	ext.linkBlockValidator(response)
 
 	//first block don't have validators
-	if response.TransactionCount != "0" {
+	if response.TransactionCount > 0 {
 		ext.handleTransactions(response)
-	}
-
-	height, err := strconv.ParseUint(response.Height, 10, 64)
-	if err != nil {
-		ext.logger.Panic(err)
 	}
 
 	// No need to update candidate and stakes at the same time
 	// Candidate will be updated in the next iteration
-	if height%120 == 0 {
-		ext.validatorService.GetUpdateStakesJobChannel() <- int(height)
-		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(height)
+	if response.Height%120 == 0 {
+		ext.validatorService.GetUpdateStakesJobChannel() <- int(response.Height)
+		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(response.Height)
 	}
 }
 
@@ -285,10 +282,6 @@ func (ext *Extender) handleCoinsFromTransactions(transactions []*api_pb.BlockRes
 }
 
 func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
-	height, err := strconv.ParseUint(response.Height, 10, 64)
-	if err != nil {
-		ext.logger.Panic(err)
-	}
 	chunksCount := int(math.Ceil(float64(len(response.Transactions)) / float64(ext.env.TxChunkSize)))
 	for i := 0; i < chunksCount; i++ {
 		start := ext.env.TxChunkSize * i
@@ -303,7 +296,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 			ext.logger.Panic(err)
 		}
 
-		ext.saveTransactions(height, blockTime, response.Transactions[start:end])
+		ext.saveTransactions(response.Height, blockTime, response.Transactions[start:end])
 	}
 }
 
@@ -318,15 +311,10 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.Ev
 }
 
 func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
-	if response.Height == "1" {
+	if response.Height == 1 {
 		return
 	}
 	var links []*models.BlockValidator
-	height, err := strconv.ParseUint(response.Height, 10, 64)
-	if err != nil {
-		ext.logger.Error(err)
-	}
-	helpers.HandleError(err)
 	for _, v := range response.Validators {
 		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PublicKey))
 		if err != nil {
@@ -335,16 +323,15 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 		helpers.HandleError(err)
 		link := models.BlockValidator{
 			ValidatorID: uint64(vId),
-			BlockID:     height,
+			BlockID:     response.Height,
 			Signed:      v.Signed,
 		}
 		links = append(links, &link)
 	}
-	err = ext.blockRepository.LinkWithValidators(links)
+	err := ext.blockRepository.LinkWithValidators(links)
 	if err != nil {
-		ext.logger.Error(err)
+		ext.logger.Fatal(err)
 	}
-	helpers.HandleError(err)
 }
 
 func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) {
@@ -355,21 +342,16 @@ func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Ti
 	}
 }
 
-func (ext *Extender) getNodeLastBlockId() (int, error) {
+func (ext *Extender) getNodeLastBlockId() (uint64, error) {
 	statusResponse, err := ext.nodeApi.Status()
 	if err != nil {
 		ext.logger.Error(err)
 		return 0, err
 	}
-	height, err := strconv.ParseInt(statusResponse.LatestBlockHeight, 10, 64)
-	if err != nil {
-		ext.logger.Error(err)
-		return 0, err
-	}
-	return int(height), err
+	return statusResponse.LatestBlockHeight, err
 }
 
-func (ext *Extender) findOutChasingMode(height int) {
+func (ext *Extender) findOutChasingMode(height uint64) {
 	var err error
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()

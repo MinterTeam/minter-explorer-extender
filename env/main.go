@@ -34,7 +34,7 @@ type ExtenderEnvironment struct {
 	WrkGetBalancesFromNodeCount     int
 	WrkUpdateTxsIndexNumBlocks      int
 	WrkUpdateTxsIndexTime           int
-	RewardAggregateEveryBlocksCount int
+	RewardAggregateEveryBlocksCount uint64
 	RewardAggregateTimeInterval     string
 }
 
@@ -146,7 +146,7 @@ func New() *ExtenderEnvironment {
 	envData.StakeChunkSize = int(stakeChunkSize)
 	envData.WrkUpdateTxsIndexNumBlocks = int(wrkUpdateTxsIndexNumBlocks)
 	envData.WrkUpdateTxsIndexTime = int(wrkUpdateTxsIndexTime)
-	envData.RewardAggregateEveryBlocksCount = int(rewardAggregateEveryBlocksCount)
+	envData.RewardAggregateEveryBlocksCount = uint64(rewardAggregateEveryBlocksCount)
 	envData.ApiPort = int(extenderApiPort)
 	return envData
 }

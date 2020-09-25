@@ -8,7 +8,6 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
-	"strconv"
 	"sync"
 )
 
@@ -51,12 +50,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.BlockR
 	for _, tx := range transactions {
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 
-		t, err := strconv.ParseUint(tx.Type, 10, 64)
-		if err != nil {
-			return nil, err, nil
-		}
-
-		txType := transaction.Type(t)
+		txType := transaction.Type(tx.Type)
 
 		if txType == transaction.TypeSend {
 			txData := new(api_pb.SendData)
@@ -126,10 +120,7 @@ func (s *Service) HandleResponses(blockResponse *api_pb.BlockResponse, eventsRes
 	)
 
 	if blockResponse != nil {
-		height, err = strconv.ParseUint(blockResponse.Height, 10, 64)
-		if err != nil {
-			return err
-		}
+		height = blockResponse.Height
 	}
 	if blockResponse != nil && len(blockResponse.Transactions) > 0 {
 		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Transactions)

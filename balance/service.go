@@ -11,7 +11,6 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
-	"strconv"
 	"sync"
 )
 
@@ -95,7 +94,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `Mx` + adr
 		}
-		response, err := s.nodeApi.Addresses(addresses, int(blockAddresses.Height))
+		response, err := s.nodeApi.Addresses(addresses, blockAddresses.Height)
 		s.wgBalances.Done()
 		if err != nil {
 			s.logger.Error(err)
@@ -131,16 +130,10 @@ func (s *Service) HandleBalanceResponse(results *api_pb.AddressesResponse) ([]*m
 			s.logger.WithFields(logrus.Fields{"address": adr}).Error(err)
 			continue
 		}
-		for c, val := range item.Balance {
-			coinId, err := strconv.ParseUint(val.Coin.Id, 10, 64)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{"coin": c}).Error(err)
-				continue
-			}
-
+		for _, val := range item.Balance {
 			balances = append(balances, &models.Balance{
 				AddressID: addressId,
-				CoinID:    uint(coinId),
+				CoinID:    uint(val.Coin.Id),
 				Value:     val.Value,
 			})
 		}

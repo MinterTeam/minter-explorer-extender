@@ -10,7 +10,6 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
-	"strconv"
 )
 
 type Service struct {
@@ -64,19 +63,14 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 	s.UpdateCoinIdCache()
 	for _, tx := range transactions {
 
-		txType, err := strconv.ParseUint(tx.Type, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		if transaction.Type(txType) == transaction.TypeCreateCoin {
+		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
 			coin, err := s.ExtractFromTx(tx)
 			if err != nil {
 				return nil, err
 			}
 			coins = append(coins, coin)
 		}
-		if transaction.Type(txType) == transaction.TypeRecreateCoin {
+		if transaction.Type(tx.Type) == transaction.TypeRecreateCoin {
 			txData := new(api_pb.RecreateCoinData)
 			tx.GetData()
 
@@ -99,16 +93,12 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.C
 	if err != nil {
 		return nil, err
 	}
-	crr, err := strconv.ParseUint(txData.ConstantReserveRatio, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 
 	s.lastCoinId += 1
 
 	coin := &models.Coin{
 		ID:        s.lastCoinId,
-		Crr:       uint(crr),
+		Crr:       uint(txData.ConstantReserveRatio),
 		Volume:    txData.InitialAmount,
 		Reserve:   txData.InitialReserve,
 		MaxSupply: txData.MaxSupply,
@@ -148,54 +138,24 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 					s.logger.Error(err)
 					continue
 				}
-				coinToBuyId, err := strconv.ParseUint(txData.CoinToBuy.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinToSellId, err := strconv.ParseUint(txData.CoinToSell.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[coinToBuyId] = struct{}{}
-				coinsMap[coinToSellId] = struct{}{}
+				coinsMap[txData.CoinToBuy.Id] = struct{}{}
+				coinsMap[txData.CoinToSell.Id] = struct{}{}
 			case transaction.TypeBuyCoin:
 				txData := new(api_pb.BuyCoinData)
 				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
 					continue
 				}
-				coinToBuyId, err := strconv.ParseUint(txData.CoinToBuy.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinToSellId, err := strconv.ParseUint(txData.CoinToSell.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[coinToBuyId] = struct{}{}
-				coinsMap[coinToSellId] = struct{}{}
+				coinsMap[txData.CoinToBuy.Id] = struct{}{}
+				coinsMap[txData.CoinToSell.Id] = struct{}{}
 			case transaction.TypeSellAllCoin:
 				txData := new(api_pb.SellAllCoinData)
 				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
 					s.logger.Error(err)
 					continue
 				}
-				coinToBuyId, err := strconv.ParseUint(txData.CoinToBuy.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinToSellId, err := strconv.ParseUint(txData.CoinToSell.Id, 10, 64)
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[coinToBuyId] = struct{}{}
-				coinsMap[coinToSellId] = struct{}{}
+				coinsMap[txData.CoinToBuy.Id] = struct{}{}
+				coinsMap[txData.CoinToSell.Id] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap
@@ -236,8 +196,8 @@ func (s *Service) UpdateCoinsInfo(coinIds []uint64) error {
 	return nil
 }
 
-func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...int) (*models.Coin, error) {
-	coinResp, err := s.nodeApi.CoinInfoByID(uint32(coinId), optionalHeight...)
+func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*models.Coin, error) {
+	coinResp, err := s.nodeApi.CoinInfoByID(coinId, optionalHeight...)
 	if err != nil {
 		return nil, err
 	}
@@ -249,13 +209,9 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...int) (*models
 		ownerAddressId, err = s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(coinResp.OwnerAddress.Value))
 	}
 
-	crr, err := strconv.ParseUint(coinResp.Crr, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	coin.Name = coinResp.Name
 	coin.Symbol = coinResp.Symbol
-	coin.Crr = uint(crr)
+	coin.Crr = uint(coinResp.Crr)
 	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
 	coin.MaxSupply = coinResp.MaxSupply
@@ -275,10 +231,6 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 
 func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
-	crr, err := strconv.ParseUint(data.ConstantReserveRatio, 10, 64)
-	if err != nil {
-		return err
-	}
 
 	coinId, err := s.repository.GetLastCoinId()
 	if err != nil {
@@ -287,7 +239,7 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
 
 	newCoin := &models.Coin{
 		ID:        coinId + 1,
-		Crr:       uint(crr),
+		Crr:       uint(data.ConstantReserveRatio),
 		Name:      data.Name,
 		Volume:    data.InitialAmount,
 		Reserve:   data.InitialReserve,
