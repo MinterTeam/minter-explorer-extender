@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
@@ -74,6 +75,12 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		Password: env.DbPassword,
 		Database: env.DbName,
 	})
+
+	uploader := genesisUploader.New()
+	err := uploader.Do()
+	if err != nil {
+		logger.Warn(err)
+	}
 
 	//api
 	nodeApi, err := grpc_client.New(env.NodeApi)

@@ -24,7 +24,6 @@ type Service struct {
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
-
 	coinId, err := repository.GetLastCoinId()
 	if err != nil {
 		logger.Fatal(err)
