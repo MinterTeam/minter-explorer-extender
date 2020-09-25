@@ -446,6 +446,7 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 			ValidatorID:    vId,
 			Value:          item.Value,
 			IsKicked:       true,
+			BipValue:       "0",
 		}
 
 		err = s.repository.UpdateStake(stk)

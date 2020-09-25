@@ -36,6 +36,8 @@ github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925102116-a34e65c0
 github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925102116-a34e65c06fd1/go.mod h1:Rvsx/6QFd5OZWP2mxoPDQHm2LztCAIq6H6QA3SkdDN4=
 github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925103615-8477a3e5fca8 h1:kv/1ebWIGbQvurKQXulRf3iwkv6OUdtelYytm6gWf3U=
 github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925103615-8477a3e5fca8/go.mod h1:Rvsx/6QFd5OZWP2mxoPDQHm2LztCAIq6H6QA3SkdDN4=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925122130-bda3c8b360b1 h1:AwbevM6qMCaILpy9nMc0mpKumRepxZ3/Nw2aBRUvm5E=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20200925122130-bda3c8b360b1/go.mod h1:Rvsx/6QFd5OZWP2mxoPDQHm2LztCAIq6H6QA3SkdDN4=
 github.com/MinterTeam/go-amino v0.14.1 h1:RJZh+Rn2MpSnCroAL/HA8CdnibeYPSsiLvQWacFCVKc=
 github.com/MinterTeam/go-amino v0.14.1/go.mod h1:2sqs1fcf3DcQpvIJarkzVCjALWc11WDwc5oFHCrG5R4=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200824121237-4e1fff866521 h1:fESN8yqH2SsNa+z+zCghWF2p5bPNwFVUkvMcbkFYcVY=
