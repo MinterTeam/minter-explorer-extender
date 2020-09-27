@@ -77,6 +77,7 @@ CREATE TABLE coins
     version                 integer,
     owner_address_id        bigint REFERENCES addresses (id),
     creation_transaction_id bigint,
+    created_at_block_id     bigint,
     created_at              timestamp with time zone DEFAULT current_timestamp,
     updated_at              timestamp with time zone DEFAULT NULL,
     deleted_at              timestamp with time zone DEFAULT NULL,

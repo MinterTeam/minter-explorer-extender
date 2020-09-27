@@ -55,6 +55,7 @@ func (r *Repository) DeleteLastBlockData() error {
 	_, err = tx.Query(nil, `delete from transactions where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from rewards where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from slashes where block_id = (select id from blocks order by id desc limit 1);`)
+	_, err = tx.Query(nil, `delete from coins where created_at_block_id >= (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from block_validator where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from blocks where id = (select id from blocks order by id desc limit 1);`)
 	return tx.Commit()

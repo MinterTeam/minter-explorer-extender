@@ -57,13 +57,13 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 	return s.jobUpdateCoinsFromMap
 }
 
-func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]*models.Coin, error) {
+func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*models.Coin, error) {
 	var coins []*models.Coin
 	s.UpdateCoinIdCache()
-	for _, tx := range transactions {
+	for _, tx := range block.Transactions {
 
 		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
-			coin, err := s.ExtractFromTx(tx)
+			coin, err := s.ExtractFromTx(tx, block.Height)
 			if err != nil {
 				return nil, err
 			}
@@ -77,7 +77,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 				s.logger.Fatal(err)
 			}
 
-			err := s.RecreateCoin(txData)
+			err := s.RecreateCoin(txData, block.Height)
 			if err != nil {
 				s.logger.Fatal(err)
 			}
@@ -86,7 +86,7 @@ func (s Service) ExtractCoinsFromTransactions(transactions []*api_pb.BlockRespon
 	return coins, nil
 }
 
-func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.Coin, error) {
+func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction, blockId uint64) (*models.Coin, error) {
 	var txData = new(api_pb.CreateCoinData)
 	err := tx.Data.UnmarshalTo(txData)
 	if err != nil {
@@ -96,14 +96,15 @@ func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction) (*models.C
 	s.lastCoinId += 1
 
 	coin := &models.Coin{
-		ID:        s.lastCoinId,
-		Crr:       uint(txData.ConstantReserveRatio),
-		Volume:    txData.InitialAmount,
-		Reserve:   txData.InitialReserve,
-		MaxSupply: txData.MaxSupply,
-		Name:      txData.Name,
-		Symbol:    txData.Symbol,
-		Version:   0,
+		ID:               s.lastCoinId,
+		Crr:              uint(txData.ConstantReserveRatio),
+		Volume:           txData.InitialAmount,
+		Reserve:          txData.InitialReserve,
+		MaxSupply:        txData.MaxSupply,
+		Name:             txData.Name,
+		Symbol:           txData.Symbol,
+		CreatedAtBlockId: uint(blockId),
+		Version:          0,
 	}
 
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
@@ -200,8 +201,11 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*mod
 	if err != nil {
 		return nil, err
 	}
-	coin := new(models.Coin)
-	coin.ID = uint(coinId)
+
+	coin, err := s.repository.GetById(uint(coinId))
+	if err != nil && err.Error() != "pg: no rows in result set" {
+		return nil, err
+	}
 
 	ownerAddressId := uint(0)
 	if coinResp.OwnerAddress != nil {
@@ -228,23 +232,19 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 	return s.repository.UpdateOwnerBySymbol(symbol, id)
 }
 
-func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData) error {
+func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, height uint64) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
-
-	coinId, err := s.repository.GetLastCoinId()
-	if err != nil {
-		return err
-	}
-
+	s.lastCoinId += 1
 	newCoin := &models.Coin{
-		ID:        coinId + 1,
-		Crr:       uint(data.ConstantReserveRatio),
-		Name:      data.Name,
-		Volume:    data.InitialAmount,
-		Reserve:   data.InitialReserve,
-		Symbol:    data.Symbol,
-		MaxSupply: data.MaxSupply,
-		Version:   0,
+		ID:               s.lastCoinId,
+		Crr:              uint(data.ConstantReserveRatio),
+		Name:             data.Name,
+		Volume:           data.InitialAmount,
+		Reserve:          data.InitialReserve,
+		Symbol:           data.Symbol,
+		MaxSupply:        data.MaxSupply,
+		CreatedAtBlockId: uint(height),
+		Version:          0,
 	}
 
 	for _, c := range coins {

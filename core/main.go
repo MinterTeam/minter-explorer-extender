@@ -168,7 +168,7 @@ func (ext *Extender) Run() {
 			ext.logger.Panic(err)
 		}
 
-		ext.handleCoinsFromTransactions(blockResponse.Transactions)
+		ext.handleCoinsFromTransactions(blockResponse)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
 
@@ -273,9 +273,9 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	}
 }
 
-func (ext *Extender) handleCoinsFromTransactions(transactions []*api_pb.BlockResponse_Transaction) {
-	if len(transactions) > 0 {
-		coins, err := ext.coinService.ExtractCoinsFromTransactions(transactions)
+func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
+	if len(block.Transactions) > 0 {
+		coins, err := ext.coinService.ExtractCoinsFromTransactions(block)
 		if err != nil {
 			ext.logger.Fatal(err)
 		}
