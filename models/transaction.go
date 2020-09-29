@@ -33,7 +33,7 @@ type Transaction struct {
 	Hash          string               `json:"hash"`
 	ServiceData   string               `json:"service_data"`
 	Data          json.RawMessage      `json:"data"`
-	IData         interface{}          `json:"-" pg:"-" sql:"-"`
+	IData         interface{}          `json:"-" pg:"-"`
 	Tags          map[string]string    `json:"tags"`
 	Payload       []byte               `json:"payload"`
 	RawTx         []byte               `json:"raw_tx"`
@@ -46,7 +46,7 @@ type Transaction struct {
 }
 
 type TransactionValidator struct {
-	tableName     struct{} `pg:"transaction_validator" sql:"transaction_validator"`
+	tableName     struct{} `pg:"transaction_validator"`
 	TransactionID uint64
 	ValidatorID   uint64
 }

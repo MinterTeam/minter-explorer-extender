@@ -1,7 +1,7 @@
 package models
 
 type BlockValidator struct {
-	tableName   struct{}  `pg:"block_validator" sql:"block_validator"`
+	tableName   struct{}  `pg:"block_validator"`
 	BlockID     uint64    `json:"block_id"`
 	ValidatorID uint64    `json:"validator_id"`
 	Signed      bool      `json:"signed"`
