@@ -18,7 +18,9 @@ func NewRepository(db *pg.DB) *Repository {
 func (r *Repository) FindAllByAddress(addresses []string) ([]*models.Balance, error) {
 	var balances []*models.Balance
 	err := r.db.Model(&balances).
-		Column("balance.*", "Address", "Coin").
+		Column("balance.*").
+		Relation("Address").
+		Relation("Coin").
 		Where("address.address in (?)", pg.In(addresses)).
 		Select()
 	return balances, err
