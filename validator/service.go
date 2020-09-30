@@ -199,6 +199,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		resp, err := s.nodeApi.Candidates(true, uint64(height))
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
+			return
 		}
 		var (
 			stakes       []*models.Stake
