@@ -58,7 +58,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			continue
 		}
 
-		if event.Type == "minter/StakeKick" {
+		if event.Type == "minter/StakeKickEvent" {
 			mapValues := event.Value.AsMap()
 
 			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
