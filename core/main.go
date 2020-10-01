@@ -175,7 +175,7 @@ func (ext *Extender) Run() {
 		if height%ext.env.RewardAggregateEveryBlocksCount == 0 {
 			go ext.eventService.AggregateRewards(ext.env.RewardAggregateTimeInterval, uint64(height))
 		}
-		go ext.handleEventResponse(uint64(height), eventsResponse)
+		go ext.handleEventResponse(height, eventsResponse)
 
 		ext.logger.Info("Block: ", height)
 		height++

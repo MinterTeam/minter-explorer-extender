@@ -72,12 +72,11 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				s.logger.Error(err)
 				continue
 			}
-
-			coinsForUpdateMap[mapValues["coin"].(uint64)] = struct{}{}
-
+			cid := uint(mapValues["coin"].(float64))
+			coinsForUpdateMap[uint64(cid)] = struct{}{}
 			stk := &models.Stake{
 				OwnerAddressID: addressId,
-				CoinID:         mapValues["coin"].(uint),
+				CoinID:         cid,
 				ValidatorID:    vId,
 				Value:          mapValues["amount"].(string),
 				IsKicked:       true,
