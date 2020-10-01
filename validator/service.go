@@ -27,7 +27,12 @@ type Service struct {
 	jobUpdateStakes     chan int
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
+	chasingMode         bool
 	logger              *logrus.Entry
+}
+
+func (s *Service) SetChasingMode(chasingMode bool) {
+	s.chasingMode = chasingMode
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
@@ -38,6 +43,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		logger:              logger,
+		chasingMode:         false,
 		jobUpdateValidators: make(chan int, 1),
 		jobUpdateStakes:     make(chan int, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
@@ -122,81 +128,94 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 
 func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(false, uint64(height))
+		if s.chasingMode {
+			return
+		}
+
+		resp, err := s.nodeApi.Candidates(false)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
 
-		if len(resp.Candidates) > 0 {
-			var (
-				validators      []*models.Validator
-				validatorsPkMap = make(map[string]struct{})
-				addressesMap    = make(map[string]struct{})
-			)
-
-			// Collect all PubKey's and addresses for save it before
-			for _, vlr := range resp.Candidates {
-				validatorsPkMap[helpers.RemovePrefix(vlr.PublicKey)] = struct{}{}
-				addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
-				addressesMap[helpers.RemovePrefix(vlr.ControlAddress)] = struct{}{}
-			}
-
-			err = s.repository.SaveAllIfNotExist(validatorsPkMap)
-			if err != nil {
-				s.logger.Error(err)
-			}
-
-			err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
-			if err != nil {
-				s.logger.Error(err)
-			}
-
-			for _, validator := range resp.Candidates {
-				updateAt := time.Now()
-				totalStake := validator.TotalStake
-				status := uint8(validator.Status)
-				commission := validator.Commission
-
-				id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PublicKey))
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
-				if err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				validators = append(validators, &models.Validator{
-					ID:              id,
-					Status:          &status,
-					TotalStake:      &totalStake,
-					UpdateAt:        &updateAt,
-					Commission:      &commission,
-					OwnerAddressID:  &ownerAddressID,
-					RewardAddressID: &rewardAddressID,
-				})
-			}
-			err = s.repository.ResetAllStatuses()
-			if err != nil {
-				s.logger.Error(err)
-			}
-			err = s.repository.UpdateAll(validators)
-			if err != nil {
-				s.logger.Error(err)
-			}
+		if len(resp.Candidates) <= 0 {
+			return
 		}
+
+		var (
+			validators      []*models.Validator
+			validatorsPkMap = make(map[string]struct{})
+			addressesMap    = make(map[string]struct{})
+		)
+
+		// Collect all PubKey's and addresses for save it before
+		for _, vlr := range resp.Candidates {
+			validatorsPkMap[helpers.RemovePrefix(vlr.PublicKey)] = struct{}{}
+			addressesMap[helpers.RemovePrefix(vlr.RewardAddress)] = struct{}{}
+			addressesMap[helpers.RemovePrefix(vlr.ControlAddress)] = struct{}{}
+		}
+
+		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		for _, validator := range resp.Candidates {
+			updateAt := time.Now()
+			totalStake := validator.TotalStake
+			status := uint8(validator.Status)
+			commission := validator.Commission
+
+			id, err := s.repository.FindIdByPkOrCreate(helpers.RemovePrefix(validator.PublicKey))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			ownerAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			controlAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.OwnerAddress))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			validators = append(validators, &models.Validator{
+				ID:               id,
+				Status:           &status,
+				TotalStake:       &totalStake,
+				UpdateAt:         &updateAt,
+				Commission:       &commission,
+				OwnerAddressID:   &ownerAddressID,
+				ControlAddressID: &controlAddressID,
+				RewardAddressID:  &rewardAddressID,
+			})
+		}
+		err = s.repository.ResetAllStatuses()
+		if err != nil {
+			s.logger.Error(err)
+		}
+		err = s.repository.UpdateAll(validators)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
 	}
 }
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		resp, err := s.nodeApi.Candidates(true, uint64(height))
+
+		if s.chasingMode {
+			return
+		}
+
+		resp, err := s.nodeApi.Candidates(true)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 			return

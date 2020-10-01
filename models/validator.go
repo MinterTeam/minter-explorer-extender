@@ -12,7 +12,7 @@ type Validator struct {
 	RewardAddressID      *uint                 `json:"reward_address_id"`
 	OwnerAddressID       *uint                 `json:"owner_address_id"`
 	ControlAddressID     *uint                 `json:"control_address_id"`
-	CreatedAtBlockID     *uint64               `json:"created_at_block_id"`
+	CreatedAtBlockID     *uint                 `json:"created_at_block_id"`
 	PublicKey            string                `json:"public_key"  pg:"type:varchar(64)"`
 	Status               *uint8                `json:"status"`
 	Commission           *uint64               `json:"commission"`

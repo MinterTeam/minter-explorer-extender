@@ -115,11 +115,6 @@ func (r *Repository) SaveAllIfNotExist(validators map[string]struct{}) error {
 
 func (r *Repository) UpdateAll(validators []*models.Validator) error {
 	_, err := r.db.Model(&validators).
-		Column("status").
-		Column("commission").
-		Column("reward_address_id").
-		Column("owner_address_id").
-		Column("total_stake").
 		WherePK().
 		Update()
 	return err
@@ -142,7 +137,6 @@ func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 	if len(idList) > 0 {
 		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
 		return err
-
 	}
 	return nil
 }
