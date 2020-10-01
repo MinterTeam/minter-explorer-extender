@@ -129,7 +129,7 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	for height := range jobs {
 		if s.chasingMode {
-			return
+			continue
 		}
 
 		resp, err := s.nodeApi.Candidates(false)
@@ -138,7 +138,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 		}
 
 		if len(resp.Candidates) <= 0 {
-			return
+			continue
 		}
 
 		var (
@@ -212,13 +212,13 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
 
 		if s.chasingMode {
-			return
+			continue
 		}
 
 		resp, err := s.nodeApi.Candidates(true)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
-			return
+			continue
 		}
 		var (
 			stakes       []*models.Stake
