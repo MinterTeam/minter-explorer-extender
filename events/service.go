@@ -80,6 +80,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				ValidatorID:    vId,
 				Value:          mapValues["amount"].(string),
 				IsKicked:       true,
+				BipValue:       "0",
 			}
 
 			err = s.validatorRepository.UpdateStake(stk)

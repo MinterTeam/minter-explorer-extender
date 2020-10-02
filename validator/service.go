@@ -132,7 +132,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 			continue
 		}
 
-		resp, err := s.nodeApi.Candidates(false)
+		resp, err := s.nodeApi.Candidates(false, api_pb.CandidatesRequest_all)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
@@ -215,7 +215,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 			continue
 		}
 
-		resp, err := s.nodeApi.Candidates(true)
+		resp, err := s.nodeApi.Candidates(true, api_pb.CandidatesRequest_all)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 			continue
