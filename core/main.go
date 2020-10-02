@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-const ChasingModDiff = 2
+const ChasingModDiff = 121
 
 var Version string
 

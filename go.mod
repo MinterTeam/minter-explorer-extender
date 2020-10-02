@@ -13,7 +13,6 @@ require (
 	github.com/go-pg/urlstruct v0.5.1 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/joho/godotenv v1.3.0
-	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/prometheus/client_golang v1.4.1
 	github.com/sirupsen/logrus v1.4.2
 	google.golang.org/protobuf v1.25.0

@@ -2,7 +2,7 @@ package models
 
 type Address struct {
 	ID                  uint                  `json:"id"      pg:",pk"`
-	Address             string                `json:"address" pg:",unique; type:varchar(64)"`
+	Address             string                `json:"address" pg:"type:varchar(64)"`
 	Balances            []*Balance            `json:"balances"`                                     //relation has many to Balances
 	Rewards             []*Reward             `json:"rewards"`                                      //relation has many to Rewards
 	Slashes             []*Slash              `json:"slashes"`                                      //relation has many to Slashes

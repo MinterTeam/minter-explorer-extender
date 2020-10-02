@@ -211,10 +211,6 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
 
-		if s.chasingMode {
-			continue
-		}
-
 		resp, err := s.nodeApi.Candidates(true, api_pb.CandidatesRequest_all)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
