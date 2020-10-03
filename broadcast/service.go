@@ -47,9 +47,9 @@ func (s *Service) SetChasingMode(chasingMode bool) {
 	s.chasingMode = chasingMode
 }
 
-func (s *Service) PublishBlock(b *models.Block) {
+func (s *Service) PublishBlock(b models.Block) {
 	channel := `blocks`
-	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
+	msg, err := json.Marshal(new(blocks.Resource).Transform(b))
 	if err != nil {
 		s.logger.Error(err)
 	}

@@ -61,7 +61,18 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 	}
 	s.SetBlockCache(block)
 
-	go s.broadcastService.PublishBlock(block)
+	//need for correct broadcast model
+	broadcastBlock := *block
+	var blockValidators []models.BlockValidator
+	for _, v := range response.Validators {
+		blockValidators = append(blockValidators, models.BlockValidator{
+			Validator: models.Validator{
+				PublicKey: v.PublicKey,
+			},
+		})
+	}
+	broadcastBlock.BlockValidators = blockValidators
+	go s.broadcastService.PublishBlock(broadcastBlock)
 	go s.broadcastService.PublishStatus()
 
 	return s.blockRepository.Save(block)
