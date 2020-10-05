@@ -71,7 +71,6 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-
 	if s.chasingMode {
 		return
 	}

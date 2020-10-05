@@ -375,6 +375,6 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
 
-	ext.validatorService.SetChasingMode(isChasingMode)
-	ext.broadcastService.SetChasingMode(isChasingMode)
+	ext.validatorService.SetChasingMode(ext.chasingMode)
+	ext.broadcastService.SetChasingMode(ext.chasingMode)
 }
