@@ -170,6 +170,13 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 				s.logger.Error(err)
 				continue
 			}
+
+			v, err := s.repository.GetById(id)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
 			rewardAddressID, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(validator.RewardAddress))
 			if err != nil {
 				s.logger.Error(err)
@@ -187,6 +194,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 			}
 			validators = append(validators, &models.Validator{
 				ID:               id,
+				PublicKey:        v.PublicKey,
 				Status:           &status,
 				TotalStake:       &totalStake,
 				UpdateAt:         &updateAt,
@@ -210,6 +218,10 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
+
+		if s.chasingMode {
+			continue
+		}
 
 		resp, err := s.nodeApi.Candidates(true, api_pb.CandidatesRequest_all)
 		if err != nil {
