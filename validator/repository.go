@@ -114,10 +114,17 @@ func (r *Repository) SaveAllIfNotExist(validators map[string]struct{}) error {
 }
 
 func (r *Repository) UpdateAll(validators []*models.Validator) error {
-	_, err := r.db.Model(&validators).
-		WherePK().
-		Update()
-	return err
+	for _, v := range validators {
+		_, err := r.db.Model(v).
+			WherePK().
+			Update()
+
+		if err != nil {
+			r.log.WithField("validator", v).Error(err)
+		}
+	}
+
+	return nil
 }
 
 func (r *Repository) Update(validator *models.Validator) error {
