@@ -275,12 +275,12 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 
 func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
 	if len(block.Transactions) > 0 {
-		coins, err := ext.coinService.ExtractCoinsFromTransactions(block)
+		coinsList, err := ext.coinService.ExtractCoinsFromTransactions(block)
 		if err != nil {
 			ext.logger.Fatal(err)
 		}
-		if len(coins) > 0 {
-			err = ext.coinService.CreateNewCoins(coins)
+		if len(coinsList) > 0 {
+			err = ext.coinService.CreateNewCoins(coinsList)
 			if err != nil {
 				ext.logger.Fatal(err)
 			}

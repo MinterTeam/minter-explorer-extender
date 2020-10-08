@@ -62,6 +62,10 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 	s.UpdateCoinIdCache()
 	for _, tx := range block.Transactions {
 
+		if tx.Log != "" || tx.Code > 0 {
+			continue
+		}
+
 		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
 			coin, err := s.ExtractFromTx(tx, block.Height)
 			if err != nil {
