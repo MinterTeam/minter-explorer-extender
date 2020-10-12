@@ -67,19 +67,19 @@ CREATE INDEX block_validator_validator_id_index ON block_validator USING btree (
 
 CREATE TABLE coins
 (
-    id                      serial primary key,
-    name                    character varying(255),
-    symbol                  character varying(20) NOT NULL,
-    volume                  numeric(70, 0),
-    crr                     integer,
-    reserve                 numeric(70, 0),
-    max_supply              numeric(70, 0),
-    version                 integer,
-    owner_address_id        bigint REFERENCES addresses (id),
-    created_at_block_id     bigint REFERENCES blocks (id),
-    created_at              timestamp with time zone DEFAULT current_timestamp,
-    updated_at              timestamp with time zone DEFAULT NULL,
-    deleted_at              timestamp with time zone DEFAULT NULL,
+    id                  serial primary key,
+    name                character varying(255),
+    symbol              character varying(20) NOT NULL,
+    volume              numeric(70, 0),
+    crr                 integer,
+    reserve             numeric(70, 0),
+    max_supply          numeric(70, 0),
+    version             integer,
+    owner_address_id    bigint REFERENCES addresses (id),
+    created_at_block_id bigint,
+    created_at          timestamp with time zone DEFAULT current_timestamp,
+    updated_at          timestamp with time zone DEFAULT NULL,
+    deleted_at          timestamp with time zone DEFAULT NULL,
     UNIQUE (symbol, version)
 );
 CREATE INDEX coins_symbol_index ON coins USING btree (symbol);

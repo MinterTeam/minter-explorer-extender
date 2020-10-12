@@ -10,6 +10,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
+	"strings"
 )
 
 type Service struct {
@@ -216,8 +217,10 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*mod
 		ownerAddressId, err = s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(coinResp.OwnerAddress.Value))
 	}
 
+	symbol := strings.Split(coinResp.Symbol, "-")
+
 	coin.Name = coinResp.Name
-	coin.Symbol = coinResp.Symbol
+	coin.Symbol = symbol[0]
 	coin.Crr = uint(coinResp.Crr)
 	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
