@@ -75,6 +75,12 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 		return
 	}
 
+	defer func() {
+		if err := recover(); err != nil {
+			s.logger.WithField("balances", balances).Error("panic occurred:", err)
+		}
+	}()
+
 	var mapBalances = make(map[uint][]interface{})
 
 	for _, item := range balances {
