@@ -1,6 +1,8 @@
 name: CI-explorer-extender
 
-on: push
+on: 
+   push:
+     branches: [ chilinet ]
 
 jobs:
   docker:
