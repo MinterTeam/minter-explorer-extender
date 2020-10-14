@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201002102755-9fefb68c5d54
-	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200925082318-34d057c50709
+	github.com/MinterTeam/minter-explorer-api v1.4.1-0.20201014173133-ab97d5ea1f3a
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
 	github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201007101936-bb6346f4dde4
 	github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20201002002423-9c7eba45b3e4

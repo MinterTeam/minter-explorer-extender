@@ -3,7 +3,6 @@ package broadcast
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-api/helpers"
 	"github.com/MinterTeam/minter-explorer-api/resource"
 	"github.com/MinterTeam/minter-explorer-api/transaction/data_resources"
@@ -11,6 +10,8 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -86,8 +87,8 @@ func TransformTxData(tx models.Transaction) resource.Interface {
 
 	config := transformConfig[tx.Type]
 
-	val := reflect.New(reflect.TypeOf(config.Model).Elem()).Interface()
-	err := json.Unmarshal(tx.Data, val)
+	val := reflect.New(reflect.TypeOf(config.Model).Elem()).Interface().(proto.Message)
+	err := protojson.Unmarshal(tx.Data, val)
 	helpers.CheckErr(err)
 
 	return config.Resource.Transform(val, tx)

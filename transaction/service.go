@@ -15,6 +15,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"time"
@@ -477,13 +478,14 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 }
 
 func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
+	mo := protojson.MarshalOptions{EmitUnpopulated: true}
 	switch transaction.Type(txType) {
 	case transaction.TypeSend:
 		txData := new(api_pb.SendData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -493,7 +495,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -503,7 +505,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -513,7 +515,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -523,7 +525,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -533,7 +535,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -543,7 +545,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -553,7 +555,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -563,7 +565,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -573,7 +575,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -583,7 +585,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -593,7 +595,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -603,7 +605,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -613,7 +615,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -623,7 +625,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -633,7 +635,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -643,7 +645,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -653,7 +655,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -663,7 +665,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
@@ -673,7 +675,7 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
-		txDataJson, err := json.Marshal(txData)
+		txDataJson, err := mo.Marshal(txData)
 		if err != nil {
 			return nil, err
 		}
