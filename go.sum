@@ -33,6 +33,8 @@ github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec h1:1Qb69m
 github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec/go.mod h1:CD8UlnlLDiqb36L110uqiP2iSflVjx9g/3U9hCI4q2U=
 github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016142212-e088c4acbbce h1:S12VyFUBzYa/kkwD0Y+kXyNt9xvRcVNgjNdyqFGrtKQ=
 github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016142212-e088c4acbbce/go.mod h1:3eSjpI5uzUomm8vzrL/xX35q1E5w5jjUR8y4YgD12wc=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016205738-a7947738d217 h1:W4T+proToOp34+6sxxXFSFyz3edhUGFWZ5fVSKDOLT4=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016205738-a7947738d217/go.mod h1:3eSjpI5uzUomm8vzrL/xX35q1E5w5jjUR8y4YgD12wc=
 github.com/MinterTeam/go-amino v0.14.1 h1:RJZh+Rn2MpSnCroAL/HA8CdnibeYPSsiLvQWacFCVKc=
 github.com/MinterTeam/go-amino v0.14.1/go.mod h1:2sqs1fcf3DcQpvIJarkzVCjALWc11WDwc5oFHCrG5R4=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200824121237-4e1fff866521 h1:fESN8yqH2SsNa+z+zCghWF2p5bPNwFVUkvMcbkFYcVY=
