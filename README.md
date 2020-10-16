@@ -47,9 +47,7 @@ _NOTE: This project in active development stage so feel free to send us question
 
 - build and move the compiled file to the directory e.g. `/opt/minter/extender`
 
-- copy .env.prod to .env file in extender's directory and fill with own values
-
-- build and run [explorer-genesis-uploader](https://github.com/MinterTeam/explorer-genesis-uploader) to fill data from genesis file (you can use the same config file for both services)
+- copy .env.prod to .env file in the extender's directory and fill with own values
 
 #### Run
 
