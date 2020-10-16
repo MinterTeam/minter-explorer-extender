@@ -164,6 +164,10 @@ func (r *Repository) GetLastCoinId() (uint, error) {
 		Limit(1).
 		Select()
 
+	if err != nil && err.Error() == "pg: no rows in result set" {
+		return 0, nil
+	}
+
 	return coin.ID, err
 }
 
