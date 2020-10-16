@@ -310,7 +310,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.EventsResponse) {
 	if len(response.Events) > 0 {
 		//Save events
-		err := ext.eventService.HandleEventResponse(blockHeight, response.Events)
+		err := ext.eventService.HandleEventResponse(blockHeight, response)
 		if err != nil {
 			ext.logger.Fatal(err)
 		}

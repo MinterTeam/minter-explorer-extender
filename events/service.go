@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -46,20 +47,21 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_pb.EventsResponse_Event) error {
+func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
 	var (
 		rewards           []*models.Reward
 		slashes           []*models.Slash
 		coinsForUpdateMap = make(map[uint64]struct{})
 	)
 
-	for _, event := range responseEvents {
-		if event.Type == "minter/UnbondEvent" {
+	for _, event := range responseEvents.Events {
+
+		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/UnbondEvent" {
 			continue
 		}
 
-		if event.Type == "minter/StakeKickEvent" {
-			mapValues := event.Value.AsMap()
+		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/StakeKickEvent" {
+			mapValues := event.AsMap()["value"].(map[string]interface{})
 
 			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
 			if err != nil {
@@ -72,11 +74,16 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 				s.logger.Error(err)
 				continue
 			}
-			cid := uint(mapValues["coin"].(float64))
-			coinsForUpdateMap[uint64(cid)] = struct{}{}
+			cid, err := strconv.ParseUint(mapValues["coin"].(string), 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			coinsForUpdateMap[cid] = struct{}{}
 			stk := &models.Stake{
 				OwnerAddressID: addressId,
-				CoinID:         cid,
+				CoinID:         uint(cid),
 				ValidatorID:    vId,
 				Value:          mapValues["amount"].(string),
 				IsKicked:       true,
@@ -91,40 +98,40 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents []*api_
 			continue
 		}
 
-		mapValues := event.Value.AsMap()
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(mapValues["address"].(string)))
+		values := event.AsMap()["value"].(map[string]interface{})
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(values["address"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"address": mapValues["address"],
+				"address": values["address"].(string),
 			}).Error(err)
 			return err
 		}
 
-		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
+		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(values["validator_pub_key"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"public_key": mapValues["validator_pub_key"],
+				"public_key": values["validator_pub_key"],
 			}).Error(err)
 			return err
 		}
 
-		switch event.Type {
+		switch fmt.Sprintf("%s", event.AsMap()["type"]) {
 		case models.RewardEvent:
 			rewards = append(rewards, &models.Reward{
 				BlockID:     blockHeight,
-				Role:        mapValues["role"].(string),
-				Amount:      mapValues["amount"].(string),
+				Role:        values["role"].(string),
+				Amount:      values["amount"].(string),
 				AddressID:   addressId,
 				ValidatorID: uint64(validatorId),
 			})
 
 		case models.SlashEvent:
-			coinId := uint(mapValues["coin"].(float64))
+			coinId := uint(values["coin"].(float64))
 			coinsForUpdateMap[uint64(coinId)] = struct{}{}
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
 				CoinID:      coinId,
-				Amount:      mapValues["amount"].(string),
+				Amount:      values["amount"].(string),
 				AddressID:   addressId,
 				ValidatorID: uint64(validatorId),
 			})

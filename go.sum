@@ -31,8 +31,8 @@ github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e h1:ahyvB3q25Yn
 github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e/go.mod h1:kGUqhHd//musdITWjFvNTHn90WG9bMLBEPQZ17Cmlpw=
 github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec h1:1Qb69mGp/UtRPn422BH4/Y4Q3SLUrD9KHuDkm8iodFc=
 github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec/go.mod h1:CD8UlnlLDiqb36L110uqiP2iSflVjx9g/3U9hCI4q2U=
-github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201002102755-9fefb68c5d54 h1:ts3cxvtcJ4V/7LZTNp6Kl2d5TXJlINPJtdHEiAr8gbo=
-github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201002102755-9fefb68c5d54/go.mod h1:wPZffLFMIX9h6eb5UhIrcaSh7xC/IT/qgVPe7l3KwV4=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016142212-e088c4acbbce h1:S12VyFUBzYa/kkwD0Y+kXyNt9xvRcVNgjNdyqFGrtKQ=
+github.com/MinterTeam/explorer-genesis-uploader v1.1.1-0.20201016142212-e088c4acbbce/go.mod h1:3eSjpI5uzUomm8vzrL/xX35q1E5w5jjUR8y4YgD12wc=
 github.com/MinterTeam/go-amino v0.14.1 h1:RJZh+Rn2MpSnCroAL/HA8CdnibeYPSsiLvQWacFCVKc=
 github.com/MinterTeam/go-amino v0.14.1/go.mod h1:2sqs1fcf3DcQpvIJarkzVCjALWc11WDwc5oFHCrG5R4=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200824121237-4e1fff866521 h1:fESN8yqH2SsNa+z+zCghWF2p5bPNwFVUkvMcbkFYcVY=
@@ -41,8 +41,6 @@ github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200902081834-fab3955b454e h
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200902081834-fab3955b454e/go.mod h1:7n42VVVi6usjnw3IrbNX7ULdMxvcqGKfJmF9+FngzFE=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200918104534-e02c006e0c51 h1:wDIMm+0xsoRZFptuQqS6NJmLJb1pM4P8BHA98pxfJNo=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200918104534-e02c006e0c51/go.mod h1:776D9BGdIbLxmCxtd3pYK4raKKpUWYGXALDYVjNCUpo=
-github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200925082318-34d057c50709 h1:VtmljYTNpIciG7q+3XxmTiW3rcwSzCgJ8gX7pVXHYgU=
-github.com/MinterTeam/minter-explorer-api v1.4.1-0.20200925082318-34d057c50709/go.mod h1:5ef/tDKVUrNBMGACjFOqUJAuIFaVfPFfKz6FGdyPLgw=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20201014173133-ab97d5ea1f3a h1:DjVMiNr+dc5N/+t7Ch5/9x92WdBjDTGMizjuTB1UQ1Q=
 github.com/MinterTeam/minter-explorer-api v1.4.1-0.20201014173133-ab97d5ea1f3a/go.mod h1:2E19ty4KZRWQ1IipCspnXnjZhoaKr5SeSKc3+X01JMI=
 github.com/MinterTeam/minter-explorer-extender/v2 v2.1.1-0.20200824120016-277608980ac6/go.mod h1:7jy+TEO9dEdfEwgGdXesETCxcWl3DYGlZCbMvD3KxHM=
@@ -69,10 +67,10 @@ github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200917014844-f43d50b6e469/go.mod
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200920180942-a75383c270a2/go.mod h1:1HgEEeuAt7XlX7a7JxMbgJZALr3NaoTrRUMlb/sBXEY=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200925010749-81e29232e7e3 h1:UtFzWb8QYvkH/qfcrg6L/iddf97MeLQCeiuavytr4GE=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200925010749-81e29232e7e3/go.mod h1:H60KTb5mvAx4wsQumjbuTdED1NcyEiniJpO8K3/5pcA=
-github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201002003308-9463dc858495 h1:DNRVd9s+skWqtJrvOdfDkYbyxWPCTd2Ov/tU8Rj2leU=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201002003308-9463dc858495/go.mod h1:S86XA2gZ10lgXZ7caosjiLX+GHQ0JrwuBb7VVSAvA54=
-github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201007101936-bb6346f4dde4 h1:3wD9eV7ZqyzzqoQeSZrdBlDWW2eCwnpNYjAnFk9wy3w=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201007101936-bb6346f4dde4/go.mod h1:qiu6xfO3nrq7TV5/rpruwqa+cskH1oFhWwycKksXre0=
+github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201016141625-fb50c352ef65 h1:4ik5WLiy47as/Dj7dDEr0ybfS45yyW2AjuF3jZxHCDU=
+github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201016141625-fb50c352ef65/go.mod h1:jZqlfoPbQxWyNGfjhdfiPZ7BjCnThaYdB/4Yoh/b82o=
 github.com/MinterTeam/minter-node-go-api v1.3.5/go.mod h1:y0z0cScz5N5mxlDcK+S1pRpSbSq4yVgOxq6pLR6YSvw=
 github.com/MinterTeam/node-grpc-gateway v1.1.1/go.mod h1:WWdGy/bxMgnaTlDWaemx4Z7tc2/4IjPOKdlmC8QRH2M=
 github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200818113440-fe9f21434b29 h1:MnKjbs8Lii+I4TSEWiXxRgQuOZ99WGf52KUWr0M53u0=
@@ -85,8 +83,9 @@ github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200917013747-c25ba3234571/go.
 github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200920180544-2bc88646bf02/go.mod h1:LZ+Y8IYfSBx0IQZY+a9pHLjztMwmlaCQX2ncTejoE2o=
 github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200925002945-15b5cde8e354 h1:HpjApkir3UtOL4WzGzkgQcdT9SyqwiZ/wbGrahzIlLQ=
 github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20200925002945-15b5cde8e354/go.mod h1:LZ+Y8IYfSBx0IQZY+a9pHLjztMwmlaCQX2ncTejoE2o=
-github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20201002002423-9c7eba45b3e4 h1:yS7aXu1LI8spwdwp+EhLX1UmXiNDErZbPgPrbF+STQ8=
 github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20201002002423-9c7eba45b3e4/go.mod h1:49888tivqufwv7KMC0QVZLGJP3wW2cQQazccvOYWCiE=
+github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20201016140502-48720810e1d0 h1:S48WwE3uOGfBMZzyDSgUeZ+zTvUbrxrT57FV4XQH8zo=
+github.com/MinterTeam/node-grpc-gateway v1.1.3-0.20201016140502-48720810e1d0/go.mod h1:49888tivqufwv7KMC0QVZLGJP3wW2cQQazccvOYWCiE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/PuerkitoBio/purell v1.1.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
@@ -129,6 +128,7 @@ github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3 h1:A/EVblehb75cUgXA5
 github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3/go.mod h1:3J08xEfcugPacsc34/LKRU2yO7YmuT8yt28J8k2+rrI=
 github.com/btcsuite/btcd v0.20.1-beta h1:Ik4hyJqN8Jfyv3S4AGBOmyouMsYE3EdYODkMbQjwPGw=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=
+github.com/btcsuite/btcd v0.21.0-beta h1:At9hIZdJW0s9E/fAz28nrz6AmcNlSVucCH796ZteX1M=
 github.com/btcsuite/btcd v0.21.0-beta/go.mod h1:ZSWyehm27aAuS9bvkATT+Xte3hjHZ+MRgMY/8NJ7K94=
 github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f h1:bAs4lUbRJpnnkd9VhRV3jjAVU7DJVjMaK+IsvSeZvFo=
 github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f/go.mod h1:TdznJufoqS23FtqVCzL0ZqgP5MqXbb4fg/WgDys70nA=
@@ -372,6 +372,7 @@ github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf/go.mod h1:HP5RmnzzSNb993RKQDq4+1A4ia9nllfqcQFTQJedwGI=
 github.com/google/gofuzz v1.0.0 h1:A8PeW59pxE9IoFRqBp37U+mSNaQoZ46F1f0f863XSXw=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+github.com/google/gofuzz v1.1.1-0.20200604201612-c04b05f3adfa h1:Q75Upo5UN4JbPFURXZ8nLKYUvF85dyFRop/vQ0Rv+64=
 github.com/google/gofuzz v1.1.1-0.20200604201612-c04b05f3adfa/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
 github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=
@@ -713,8 +714,6 @@ golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
-golang.org/x/crypto v0.0.0-20201002094018-c90954cbb977 h1:yH6opeNE+0SY+7pXT4gclZUoKHogXeC2EvOSHGOMGPU=
-golang.org/x/crypto v0.0.0-20201002094018-c90954cbb977/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 h1:hb9wdF1z5waM+dSIICn1l0DkLVDT3hqhhQsDNUmHPRE=
 golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
@@ -781,8 +780,6 @@ golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc/go.mod h1:/O7V0waA8r7cgGh81R
 golang.org/x/net v0.0.0-20200822124328-c89045814202 h1:VvcQYSHwXgi7W+TpUR6A9g6Up98WAHf3f/ulnJ62IyA=
 golang.org/x/net v0.0.0-20200822124328-c89045814202/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
 golang.org/x/net v0.0.0-20200925080053-05aa5d4ee321/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
-golang.org/x/net v0.0.0-20200930145003-4acb6c075d10 h1:YfxMZzv3PjGonQYNUaeU2+DhAdqOxerQ30JFB6WgAXo=
-golang.org/x/net v0.0.0-20200930145003-4acb6c075d10/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
 golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c/go.mod h1:iQL9McJNjoIa5mjH6nYTCTZXUN6RP+XW3eib7Ya3XcI=
 golang.org/x/net v0.0.0-20201009032441-dbdefad45b89 h1:1GKfLldebiSdhTlt3nalwrb7L40Tixr/0IH+kSbRgmk=
 golang.org/x/net v0.0.0-20201009032441-dbdefad45b89/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=

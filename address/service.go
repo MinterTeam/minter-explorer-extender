@@ -99,10 +99,11 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.BlockR
 func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Events {
-		eventData := event.GetValue()
-		eventMap := eventData.AsMap()
-		if eventMap["address"] != nil {
-			addressesHash := helpers.RemovePrefix(eventMap["address"].(string))
+		addressValues := event.AsMap()["value"].(map[string]interface{})
+		address := addressValues["address"].(string)
+
+		if address != "" {
+			addressesHash := helpers.RemovePrefix(address)
 			mapAddresses[addressesHash] = struct{}{}
 		}
 	}
