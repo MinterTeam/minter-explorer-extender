@@ -241,6 +241,9 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 
 func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, height uint64) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
+	if err != nil {
+		return err
+	}
 	s.lastCoinId += 1
 	newCoin := &models.Coin{
 		ID:               s.lastCoinId,

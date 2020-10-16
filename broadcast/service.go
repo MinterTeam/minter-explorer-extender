@@ -61,10 +61,17 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 	for _, tx := range transactions {
 		mTransaction := *tx
 		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
+
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
 		mTransaction.FromAddress = &models.Address{Address: adr}
 		msg, err := json.Marshal(new(TransactionResource).Transform(mTransaction))
 		if err != nil {
-			log.Printf(`Error parse json: %s`, err)
+			s.logger.Error(err)
+			continue
 		}
 		s.publish(channel, msg)
 	}

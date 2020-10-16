@@ -88,7 +88,9 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		}
 
 		err = s.repository.AddUnbond(unbond)
-
+		if err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 

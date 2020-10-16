@@ -134,7 +134,8 @@ func (ext *Extender) Run() {
 	_, err := ext.nodeApi.Status()
 	if err == nil {
 		err = ext.blockRepository.DeleteLastBlockData()
-	} else {
+	}
+	if err != nil {
 		ext.logger.Fatal(err)
 	}
 
