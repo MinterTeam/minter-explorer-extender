@@ -126,11 +126,16 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			})
 
 		case models.SlashEvent:
-			coinId := uint(values["coin"].(float64))
-			coinsForUpdateMap[uint64(coinId)] = struct{}{}
+
+			coinId, err := strconv.ParseUint(values["coin"].(string), 10, 64)
+			if err != nil {
+				continue
+			}
+
+			coinsForUpdateMap[coinId] = struct{}{}
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
-				CoinID:      coinId,
+				CoinID:      uint(coinId),
 				Amount:      values["amount"].(string),
 				AddressID:   addressId,
 				ValidatorID: uint64(validatorId),
