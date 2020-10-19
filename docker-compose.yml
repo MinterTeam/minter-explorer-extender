@@ -15,10 +15,8 @@ services:
       - ./database/db.sql:/docker-entrypoint-initdb.d/init.sql
   centrifugo:
     image: centrifugo/centrifugo:v2.2.2
-    environment:
-      CENTRIFUGO_SECRET: d9ff2b00-1d1f-4c35-8a9e-7068ef6b4f94
-      CENTRIFUGO_ADMIN_PASSWORD: password
-      CENTRIFUGO_ADMIN_SECRET: minter
+    env_file:
+      - .env
     ports:
       - 8000:8000
     command: centrifugo --api_insecure --client_insecure

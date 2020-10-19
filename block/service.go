@@ -2,11 +2,10 @@ package block
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
-	"strconv"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"time"
 )
 
@@ -34,15 +33,9 @@ func (s *Service) GetBlockCache() (b *models.Block) {
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
-	height, err := strconv.ParseUint(response.Height, 10, 64)
-	helpers.HandleError(err)
-	numTx, err := strconv.ParseUint(response.NumTxs, 10, 32)
-	helpers.HandleError(err)
-	size, err := strconv.ParseUint(response.Size, 10, 64)
-	helpers.HandleError(err)
-
-	var proposerId uint64
+func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
+	var proposerId uint
+	var err error
 	if response.Proposer != "" {
 		proposerId, err = s.validatorRepository.FindIdByPk(helpers.RemovePrefix(response.Proposer))
 		helpers.HandleError(err)
@@ -50,20 +43,36 @@ func (s *Service) HandleBlockResponse(response *api.BlockResult) error {
 		proposerId = 1
 	}
 
+	layout := "2006-01-02T15:04:05Z"
+	blockTime, err := time.Parse(layout, response.Time)
+	if err != nil {
+		return err
+	}
+
 	block := &models.Block{
-		ID:                  height,
-		NumTxs:              uint32(numTx),
-		Size:                size,
-		BlockTime:           s.getBlockTime(response.Time),
-		CreatedAt:           response.Time,
+		ID:                  response.Height,
+		Size:                response.Size,
+		BlockTime:           s.getBlockTime(blockTime),
+		CreatedAt:           blockTime,
 		BlockReward:         response.BlockReward,
-		ProposerValidatorID: proposerId,
+		ProposerValidatorID: uint64(proposerId),
+		NumTxs:              uint32(response.TransactionCount),
 		Hash:                response.Hash,
 	}
 	s.SetBlockCache(block)
 
-	go s.broadcastService.PublishBlock(block)
-
+	//need for correct broadcast model
+	broadcastBlock := *block
+	var blockValidators []models.BlockValidator
+	for _, v := range response.Validators {
+		blockValidators = append(blockValidators, models.BlockValidator{
+			Validator: models.Validator{
+				PublicKey: v.PublicKey,
+			},
+		})
+	}
+	broadcastBlock.BlockValidators = blockValidators
+	go s.broadcastService.PublishBlock(broadcastBlock)
 	go s.broadcastService.PublishStatus()
 
 	return s.blockRepository.Save(block)

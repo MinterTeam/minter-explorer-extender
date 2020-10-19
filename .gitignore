@@ -23,3 +23,5 @@ media/
 config.json
 .env
 *.tmp.yaml
+
+helm/values-prod.yaml

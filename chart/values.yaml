@@ -1,0 +1,61 @@
+replicaCount: 1
+
+image:
+  repository: minterteam/explorer-extender
+  pullPolicy: IfNotPresent
+  tag: latest
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  debug: {DEBUG}
+  pgDbName: {DB_NAME}
+  pgUser: {DB_USER}
+  pgPassword: {DB_PASSWORD}
+  pgHost: {DB_HOST}
+  pgPort: { DB_PORT }
+  nodeApi: {NODE_API}
+  сentrifugoSecret: {CENTRIFUGO_SECRET}
+  сentrifugoLink: {CENTRIFUGO_LINK}
+  minterBaseCoin: {MINTER_BASE_COIN}
+  coinsUpdateTime: "1"
+  txChunkSize: "50"
+  addressChunkSize: "50"
+  eventChunkSize: "50"
+  stakeChunkSize: "500"
+  balanceChunkSize: "500"
+  validatorChunkSize: "500"
+  coinsChunkSize: "1000"
+  rewardsAggregareBlocksCount: "60"
+  rewardsTimeInterval: "day"
+  stakeUpdateBlocks: "1"
+  validatorUpdateBlocks: "1"
+  rewardsBlocks: "51840"
+  saveTxsWorkers: "10"
+  saveTxsOutputWorkers: "10"
+  saveInvalidTxsWorkers: "2"
+  saveValidatorTxsWorkers: "2"
+  saveRewardsWorkers: "10"
+  saveSlashesWorkers: "2"
+  saveAddressesWorkers: "5"
+  saveBalancesWorkers: "5"
+  updateBalancesWorkers: "5"
+  txsIndexCount: "96"
+  txsIndexPeriod: "60"
+  extenderApiPort: "8011"

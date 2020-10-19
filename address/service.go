@@ -2,13 +2,12 @@ package address
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
-	"github.com/MinterTeam/minter-go-sdk/transaction"
+	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
-	"strconv"
 	"sync"
 )
 
@@ -21,7 +20,8 @@ type Service struct {
 	logger             *logrus.Entry
 }
 
-func NewService(env *env.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		env:                env,
 		repository:         repository,
@@ -40,35 +40,29 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 		err := s.repository.SaveAllIfNotExist(addresses)
 		s.wgAddresses.Done()
 		if err != nil {
-			s.logger.Fatal(err)
+			s.logger.Panic(err)
 		}
 	}
 }
 
-func (s *Service) ExtractAddressesFromTransactions(transactions []api.TransactionResult) ([]string, error, map[string]struct{}) {
+func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 
-		if transaction.Type(tx.Type) == transaction.TypeSend {
-			var txData api.SendData
-			err := tx.Data.FillStruct(&txData)
-			if tx.Data == nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
+		txType := transaction.Type(tx.Type)
+
+		if txType == transaction.TypeSend {
+			txData := new(api_pb.SendData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
 			}
 			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeMultisend {
-			var txData api.MultisendData
-			err := tx.Data.FillStruct(&txData)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
+		if txType == transaction.TypeMultisend {
+			txData := new(api_pb.MultiSendData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
 			}
 			for _, receiver := range txData.List {
@@ -76,19 +70,17 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 			}
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeRedeemCheck {
-			txData := new(api.RedeemCheckData)
-			err := tx.Data.FillStruct(txData)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
-				}).Error(err)
+		if txType == transaction.TypeRedeemCheck {
+			txData := new(api_pb.RedeemCheckData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
 			}
-			data, err := transaction.DecodeCheck(txData.RawCheck)
+
+			data, err := transaction.DecodeCheckBase64(txData.RawCheck)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"Tx": tx.Hash,
+					"RawCheck": txData.RawCheck,
+					"Tx":       tx.Hash,
 				}).Error(err)
 				return nil, err, nil
 			}
@@ -104,22 +96,23 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []api.Transactio
 	return addresses, nil, mapAddresses
 }
 
-func (s *Service) ExtractAddressesEventsResponse(response *api.EventsResult) ([]string, map[string]struct{}) {
+func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Events {
-		addressesHash := event.Value["address"]
-		if len(addressesHash) > 2 {
-			addressesHash = helpers.RemovePrefix(addressesHash)
+		addressValues := event.AsMap()["value"].(map[string]interface{})
+		address := addressValues["address"].(string)
+
+		if address != "" {
+			addressesHash := helpers.RemovePrefix(address)
 			mapAddresses[addressesHash] = struct{}{}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
-
 	return addresses, mapAddresses
 }
 
 // Find all addresses in block response and save it
-func (s *Service) HandleResponses(blockResponse *api.BlockResult, eventsResponse *api.EventsResult) error {
+func (s *Service) HandleResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) error {
 	var (
 		err                error
 		height             uint64
@@ -128,12 +121,9 @@ func (s *Service) HandleResponses(blockResponse *api.BlockResult, eventsResponse
 	)
 
 	if blockResponse != nil {
-		height, err = strconv.ParseUint(blockResponse.Height, 10, 64)
-		if err != nil {
-			return err
-		}
+		height = blockResponse.Height
 	}
-	if blockResponse != nil && blockResponse.NumTxs != "0" {
+	if blockResponse != nil && len(blockResponse.Transactions) > 0 {
 		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Transactions)
 		if err != nil {
 			return err
@@ -173,7 +163,11 @@ func addressesMapToSlice(mapAddresses map[string]struct{}) []string {
 	addresses := make([]string, len(mapAddresses))
 	i := 0
 	for a := range mapAddresses {
-		addresses[i] = a
+		if len(a) > 40 {
+			addresses[i] = helpers.RemovePrefix(a)
+		} else {
+			addresses[i] = a
+		}
 		i++
 	}
 	return addresses

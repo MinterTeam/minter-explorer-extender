@@ -2,10 +2,8 @@ package events
 
 import (
 	"errors"
-	"fmt"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v9"
-	"os"
 	"strings"
 )
 
@@ -13,14 +11,7 @@ type Repository struct {
 	db *pg.DB
 }
 
-func NewRepository() *Repository {
-	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Database: os.Getenv("DB_NAME"),
-	})
+func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
 	}
