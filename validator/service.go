@@ -194,17 +194,14 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 				s.logger.Error(err)
 				continue
 			}
-			validators = append(validators, &models.Validator{
-				ID:               id,
-				PublicKey:        v.PublicKey,
-				Status:           &status,
-				TotalStake:       &totalStake,
-				UpdateAt:         &updateAt,
-				Commission:       &commission,
-				OwnerAddressID:   &ownerAddressID,
-				ControlAddressID: &controlAddressID,
-				RewardAddressID:  &rewardAddressID,
-			})
+			v.Status = &status
+			v.TotalStake = &totalStake
+			v.UpdateAt = &updateAt
+			v.Commission = &commission
+			v.OwnerAddressID = &ownerAddressID
+			v.ControlAddressID = &controlAddressID
+			v.RewardAddressID = &rewardAddressID
+			validators = append(validators, v)
 		}
 		err = s.repository.ResetAllStatuses()
 		if err != nil {
