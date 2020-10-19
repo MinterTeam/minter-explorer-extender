@@ -84,7 +84,11 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			s.logger.WithField("balances", balances).Error("panic occurred:", err)
+			var list []models.Balance
+			for _, b := range balances {
+				list = append(list, *b)
+			}
+			s.logger.WithField("balances", list).Error(err)
 		}
 	}()
 
