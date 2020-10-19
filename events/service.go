@@ -1,14 +1,15 @@
 package events
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
@@ -46,77 +47,98 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleEventResponse(blockHeight uint64, response *api.EventsResult) error {
+func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
 	var (
 		rewards           []*models.Reward
 		slashes           []*models.Slash
-		coinsForUpdateMap = make(map[string]struct{})
+		coinsForUpdateMap = make(map[uint64]struct{})
 	)
 
-	for _, event := range response.Events {
-		if event.Type == "minter/CoinLiquidationEvent" {
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
-			err = s.balanceRepository.DeleteByCoinId(coinId)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value["coin"],
-				}).Error(err)
-				return err
-			}
+	for _, event := range responseEvents.Events {
 
-			err = s.coinRepository.DeleteBySymbol(event.Value["coin"])
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"coin": event.Value["coin"],
-				}).Error(err)
-				return err
-			}
-			continue
-		}
-		if event.Type == "minter/UnbondEvent" {
+		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/UnbondEvent" {
 			continue
 		}
 
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(event.Value["address"]))
+		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/StakeKickEvent" {
+			mapValues := event.AsMap()["value"].(map[string]interface{})
+
+			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			cid, err := strconv.ParseUint(mapValues["coin"].(string), 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			coinsForUpdateMap[cid] = struct{}{}
+			stk := &models.Stake{
+				OwnerAddressID: addressId,
+				CoinID:         uint(cid),
+				ValidatorID:    vId,
+				Value:          mapValues["amount"].(string),
+				IsKicked:       true,
+				BipValue:       "0",
+			}
+
+			err = s.validatorRepository.UpdateStake(stk)
+			if err != nil {
+				s.logger.Error(err)
+			}
+
+			continue
+		}
+
+		values := event.AsMap()["value"].(map[string]interface{})
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(values["address"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"address": event.Value["address"],
+				"address": values["address"].(string),
 			}).Error(err)
 			return err
 		}
 
-		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(event.Value["validator_pub_key"]))
+		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(values["validator_pub_key"].(string)))
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"public_key": event.Value["validator_pub_key"],
+				"public_key": values["validator_pub_key"],
 			}).Error(err)
 			return err
 		}
 
-		switch event.Type {
+		switch fmt.Sprintf("%s", event.AsMap()["type"]) {
 		case models.RewardEvent:
 			rewards = append(rewards, &models.Reward{
 				BlockID:     blockHeight,
-				Role:        event.Value["role"],
-				Amount:      event.Value["amount"],
+				Role:        values["role"].(string),
+				Amount:      values["amount"].(string),
 				AddressID:   addressId,
-				ValidatorID: validatorId,
+				ValidatorID: uint64(validatorId),
 			})
 
 		case models.SlashEvent:
-			coinsForUpdateMap[event.Value["coin"]] = struct{}{}
-			coinId, err := s.coinRepository.FindIdBySymbol(event.Value["coin"])
+
+			coinId, err := strconv.ParseUint(values["coin"].(string), 10, 64)
 			if err != nil {
-				s.logger.Error(err)
-				return err
+				continue
 			}
 
+			coinsForUpdateMap[coinId] = struct{}{}
 			slashes = append(slashes, &models.Slash{
 				BlockID:     blockHeight,
-				CoinID:      coinId,
-				Amount:      event.Value["amount"],
+				CoinID:      uint(coinId),
+				Amount:      values["amount"].(string),
 				AddressID:   addressId,
-				ValidatorID: validatorId,
+				ValidatorID: uint64(validatorId),
 			})
 		}
 	}
@@ -165,7 +187,7 @@ func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint6
 	}
 	helpers.HandleError(err)
 
-	blocks := os.Getenv("APP_REWARDS_BLOCK")
+	blocks := os.Getenv("APP_REWARDS_BLOCKS")
 	bc, err := strconv.ParseUint(blocks, 10, 32)
 	if err != nil {
 		s.logger.Error(err)

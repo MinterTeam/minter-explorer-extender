@@ -1,25 +1,15 @@
 package block
 
 import (
-	"fmt"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v9"
-	"os"
 )
 
 type Repository struct {
 	db *pg.DB
 }
 
-func NewRepository() *Repository {
-	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Database: os.Getenv("DB_NAME"),
-	})
-
+func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
 	}
@@ -65,6 +55,7 @@ func (r *Repository) DeleteLastBlockData() error {
 	_, err = tx.Query(nil, `delete from transactions where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from rewards where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from slashes where block_id = (select id from blocks order by id desc limit 1);`)
+	_, err = tx.Query(nil, `delete from coins where created_at_block_id >= (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from block_validator where block_id = (select id from blocks order by id desc limit 1);`)
 	_, err = tx.Query(nil, `delete from blocks where id = (select id from blocks order by id desc limit 1);`)
 	return tx.Commit()

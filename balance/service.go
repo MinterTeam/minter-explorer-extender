@@ -5,9 +5,10 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
-	"github.com/MinterTeam/minter-go-sdk/api"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
@@ -15,7 +16,7 @@ import (
 
 type Service struct {
 	env                    *env.ExtenderEnvironment
-	nodeApi                *api.Api
+	nodeApi                *grpc_client.Client
 	repository             *Repository
 	addressRepository      *address.Repository
 	coinRepository         *coin.Repository
@@ -30,7 +31,7 @@ type Service struct {
 type AddressesBalancesContainer struct {
 	Addresses         []string
 	Balances          []*models.Balance
-	nodeApi           *api.Api
+	nodeApi           *grpc_client.Client
 	repository        *Repository
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
@@ -38,9 +39,7 @@ type AddressesBalancesContainer struct {
 	broadcastService  *broadcast.Service
 }
 
-func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *api.Api,
-	addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service,
-	logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *grpc_client.Client, addressRepository *address.Repository, coinRepository *coin.Repository, broadcastService *broadcast.Service, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                    env,
 		repository:             repository,
@@ -93,14 +92,16 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 	for blockAddresses := range jobs {
 		addresses := make([]string, len(blockAddresses.Addresses))
 		for i, adr := range blockAddresses.Addresses {
-			addresses[i] = `"Mx` + adr + `"`
+			addresses[i] = `Mx` + adr
 		}
-		response, err := s.nodeApi.Addresses(addresses, int(blockAddresses.Height))
+		response, err := s.nodeApi.Addresses(addresses, blockAddresses.Height)
+		s.wgBalances.Done()
 		if err != nil {
 			s.logger.Error(err)
 			continue
 		}
 		balances, err := s.HandleBalanceResponse(response)
+
 		if err != nil {
 			s.logger.Error(err)
 		} else {
@@ -119,25 +120,21 @@ func (s *Service) UpdateBalancesWorker(jobs <-chan AddressesBalancesContainer) {
 	}
 }
 
-func (s *Service) HandleBalanceResponse(results []*api.AddressesResult) ([]*models.Balance, error) {
+func (s *Service) HandleBalanceResponse(results *api_pb.AddressesResponse) ([]*models.Balance, error) {
 	var balances []*models.Balance
 
-	for _, item := range results {
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(item.Address))
+	for adr, item := range results.Addresses {
+
+		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(adr))
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{"address": item.Address}).Error(err)
-			return nil, err
+			s.logger.WithFields(logrus.Fields{"address": adr}).Error(err)
+			continue
 		}
-		for c, val := range item.Balance {
-			coinId, err := s.coinRepository.FindIdBySymbol(c)
-			if err != nil {
-				s.logger.WithFields(logrus.Fields{"coin": c}).Error(err)
-				continue
-			}
+		for _, val := range item.Balance {
 			balances = append(balances, &models.Balance{
 				AddressID: addressId,
-				CoinID:    coinId,
-				Value:     val,
+				CoinID:    uint(val.Coin.Id),
+				Value:     val.Value,
 			})
 		}
 	}
@@ -145,8 +142,6 @@ func (s *Service) HandleBalanceResponse(results []*api.AddressesResult) ([]*mode
 }
 
 func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Balance) error {
-	defer s.wgBalances.Done()
-
 	dbBalances, err := s.repository.FindAllByAddress(addresses)
 	if err != nil {
 		s.logger.Error(err)
@@ -161,11 +156,11 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 	var forCreate, forUpdate, forDelete []*models.Balance
 
 	for _, nodeBalance := range nodeBalances {
-		if mapAddressBalances[nodeBalance.AddressID][nodeBalance.CoinID] != nil {
+		if mapAddressBalances[nodeBalance.AddressID][(nodeBalance.CoinID)] != nil {
 			mapAddressBalances[nodeBalance.AddressID][nodeBalance.CoinID].Value = nodeBalance.Value
 			forUpdate = append(forUpdate, mapAddressBalances[nodeBalance.AddressID][nodeBalance.CoinID])
 			delete(mapAddressBalances[nodeBalance.AddressID], nodeBalance.CoinID)
-		} else if nodeBalance.CoinID > 0 {
+		} else if nodeBalance.CoinID >= 0 {
 			forCreate = append(forCreate, nodeBalance)
 			delete(mapAddressBalances[nodeBalance.AddressID], nodeBalance.CoinID)
 		}
@@ -202,14 +197,14 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 	return nil
 }
 
-func makeAddressBalanceMap(balances []*models.Balance) map[uint64]map[uint64]*models.Balance {
-	addrMap := make(map[uint64]map[uint64]*models.Balance)
+func makeAddressBalanceMap(balances []*models.Balance) map[uint]map[uint]*models.Balance {
+	addrMap := make(map[uint]map[uint]*models.Balance)
 	for _, balance := range balances {
-		if val, ok := addrMap[balance.AddressID]; ok {
-			val[balance.Coin.ID] = balance
+		if val, ok := addrMap[balance.Address.ID]; ok {
+			val[balance.CoinID] = balance
 		} else {
-			addrMap[balance.AddressID] = make(map[uint64]*models.Balance)
-			addrMap[balance.AddressID][balance.Coin.ID] = balance
+			addrMap[balance.Address.ID] = make(map[uint]*models.Balance)
+			addrMap[balance.Address.ID][balance.CoinID] = balance
 		}
 	}
 	return addrMap

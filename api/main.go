@@ -1,4 +1,4 @@
-package api
+package metrics
 
 import (
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"

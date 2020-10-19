@@ -1,10 +1,8 @@
 package address
 
 import (
-	"fmt"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v9"
-	"os"
 	"sync"
 )
 
@@ -14,15 +12,7 @@ type Repository struct {
 	invCache *sync.Map
 }
 
-func NewRepository() *Repository {
-	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Database: os.Getenv("DB_NAME"),
-	})
-
+func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db:       db,
 		cache:    new(sync.Map), //TODO: добавить реализацию очистки
@@ -31,11 +21,11 @@ func NewRepository() *Repository {
 }
 
 //Find address id
-func (r *Repository) FindId(address string) (uint64, error) {
+func (r *Repository) FindId(address string) (uint, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(address)
 	if ok {
-		return id.(uint64), nil
+		return id.(uint), nil
 	}
 	adr := new(models.Address)
 	err := r.db.Model(adr).Column("id").Where("address = ?", address).Select(adr)
@@ -47,11 +37,11 @@ func (r *Repository) FindId(address string) (uint64, error) {
 }
 
 //Find address id or create if not exist
-func (r *Repository) FindIdOrCreate(address string) (uint64, error) {
+func (r *Repository) FindIdOrCreate(address string) (uint, error) {
 	//First look in the cache
 	id, ok := r.cache.Load(address)
 	if ok {
-		return id.(uint64), nil
+		return id.(uint), nil
 	}
 
 	adr := &models.Address{Address: address}
@@ -68,7 +58,7 @@ func (r *Repository) FindIdOrCreate(address string) (uint64, error) {
 	return adr.ID, err
 }
 
-func (r *Repository) FindById(id uint64) (string, error) {
+func (r *Repository) FindById(id uint) (string, error) {
 	//First look in the cache
 	address, ok := r.invCache.Load(id)
 	if ok {

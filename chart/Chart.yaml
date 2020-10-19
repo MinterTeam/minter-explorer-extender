@@ -1,0 +1,15 @@
+version: 1.0.0
+apiVersion: v2
+
+name: minter-explorer-extender
+icon: https://explorer.minter.network/img/minter-logo-circle.svg
+description: A Helm chart for Minter Explorer Extender
+
+appVersion: latest
+
+home: https://github.com/MinterTeam/minter-explorer-extender
+keywords:
+  - minter-explorer-extender
+maintainers:
+  - name: daniildulin
+    email: daniildulin@gmail.com

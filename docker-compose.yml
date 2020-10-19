@@ -1,10 +1,37 @@
 version: '3.6'
 
 services:
+  postgres:
+    image: postgres:alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: explorer
+      POSTGRES_USER: minter
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./tmp/postgresql:/var/lib/postgresql/data
+      - ./database/db.sql:/docker-entrypoint-initdb.d/init.sql
+  centrifugo:
+    image: centrifugo/centrifugo:v2.2.2
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    command: centrifugo --api_insecure --client_insecure
   extender:
     build: ./
     volumes:
       - ./:/app
     env_file:
       - .env
+    links:
+      - centrifugo
+      - postgres
+    depends_on:
+      - postgres
+      - centrifugo
     restart: always
+    command: extender
+

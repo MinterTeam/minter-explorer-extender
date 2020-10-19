@@ -5,124 +5,97 @@ import (
 	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-api/balance"
 	"github.com/MinterTeam/minter-explorer-api/blocks"
-	"github.com/MinterTeam/minter-explorer-api/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
-	"github.com/MinterTeam/minter-explorer-tools/v4/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/centrifugal/gocent"
-	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
 	"log"
-	"os"
-	"time"
 )
 
 type Service struct {
 	client            *gocent.Client
-	httpClient        *resty.Client
+	nodeClient        *grpc_client.Client
 	ctx               context.Context
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
 	logger            *logrus.Entry
-}
-
-type NodeStatus struct {
-	Data struct {
-		Version           string    `json:"version"`
-		LatestBlockHash   string    `json:"latest_block_hash"`
-		LatestAppHash     string    `json:"latest_app_hash"`
-		LatestBlockHeight string    `json:"latest_block_height"`
-		LatestBlockTime   time.Time `json:"latest_block_time"`
-		KeepLastStates    string    `json:"keep_last_states"`
-		TotalSlashed      string    `json:"total_slashed"`
-		TmStatus          struct {
-			NodeInfo struct {
-				ProtocolVersion struct {
-					P2P   string `json:"p2p"`
-					Block string `json:"block"`
-					App   string `json:"app"`
-				} `json:"protocol_version"`
-				ID         string `json:"id"`
-				ListenAddr string `json:"listen_addr"`
-				Network    string `json:"network"`
-				Version    string `json:"version"`
-				Channels   string `json:"channels"`
-				Moniker    string `json:"moniker"`
-				Other      struct {
-					TxIndex    string `json:"tx_index"`
-					RPCAddress string `json:"rpc_address"`
-				} `json:"other"`
-			} `json:"node_info"`
-			SyncInfo struct {
-				LatestBlockHash   string    `json:"latest_block_hash"`
-				LatestAppHash     string    `json:"latest_app_hash"`
-				LatestBlockHeight string    `json:"latest_block_height"`
-				LatestBlockTime   time.Time `json:"latest_block_time"`
-				CatchingUp        bool      `json:"catching_up"`
-			} `json:"sync_info"`
-			ValidatorInfo struct {
-				Address string `json:"address"`
-				PubKey  struct {
-					Type  string `json:"type"`
-					Value string `json:"value"`
-				} `json:"pub_key"`
-				VotingPower string `json:"voting_power"`
-			} `json:"validator_info"`
-		} `json:"tm_status"`
-	} `json:"result"`
+	chasingMode       bool
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
-	logger *logrus.Entry) *Service {
+	nodeClient *grpc_client.Client, logger *logrus.Entry) *Service {
 	wsClient := gocent.New(gocent.Config{
 		Addr: env.WsLink,
 		Key:  env.WsKey,
 	})
 
-	httpClient := resty.New().
-		SetHostURL(os.Getenv("NODE_API")).
-		SetHeader("Accept", "application/json")
-
 	return &Service{
 		client:            wsClient,
-		httpClient:        httpClient,
+		nodeClient:        nodeClient,
 		ctx:               context.Background(),
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
 		logger:            logger,
+		chasingMode:       false,
 	}
 }
 
-func (s *Service) PublishBlock(b *models.Block) {
+func (s *Service) SetChasingMode(chasingMode bool) {
+	s.chasingMode = chasingMode
+}
+
+func (s *Service) PublishBlock(b models.Block) {
 	channel := `blocks`
-	msg, err := json.Marshal(new(blocks.Resource).Transform(*b))
+	msg, err := json.Marshal(new(blocks.Resource).Transform(b))
 	if err != nil {
 		s.logger.Error(err)
 	}
-	s.publish(channel, []byte(msg))
+	s.publish(channel, msg)
 }
 
 func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 	channel := `transactions`
 	for _, tx := range transactions {
 		mTransaction := *tx
-		adr, err := s.addressRepository.FindById(tx.FromAddressID)
-		mTransaction.FromAddress = &models.Address{Address: adr}
-		msg, err := json.Marshal(new(transaction.Resource).Transform(mTransaction))
+		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
+
 		if err != nil {
-			log.Printf(`Error parse json: %s`, err)
+			s.logger.Error(err)
+			continue
 		}
-		s.publish(channel, []byte(msg))
+
+		mTransaction.FromAddress = &models.Address{Address: adr}
+		msg, err := json.Marshal(new(TransactionResource).Transform(mTransaction))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		s.publish(channel, msg)
 	}
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
+	if s.chasingMode {
+		return
+	}
 
-	var mapBalances = make(map[uint64][]interface{})
+	defer func() {
+		if err := recover(); err != nil {
+			var list []models.Balance
+			for _, b := range balances {
+				list = append(list, *b)
+			}
+			s.logger.WithField("balances", list).Error(err)
+		}
+	}()
+
+	var mapBalances = make(map[uint][]interface{})
 
 	for _, item := range balances {
-		symbol, err := s.coinRepository.FindSymbolById(item.CoinID)
+		c, err := s.coinRepository.GetById(item.CoinID)
 		if err != nil {
 			s.logger.Error(err)
 			continue
@@ -132,9 +105,10 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 			s.logger.Error(err)
 			continue
 		}
+
 		mBalance := *item
 		mBalance.Address = &models.Address{Address: adr}
-		mBalance.Coin = &models.Coin{Symbol: symbol}
+		mBalance.Coin = c
 		res := new(balance.Resource).Transform(mBalance)
 		mapBalances[item.AddressID] = append(mapBalances[item.AddressID], res)
 	}
@@ -150,29 +124,26 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 		if err != nil {
 			log.Printf(`Error parse json: %s`, err)
 		}
-		s.publish(channel, []byte(msg))
+		s.publish(channel, msg)
 	}
 }
 
 func (s *Service) PublishStatus() {
 
-	resp, err := s.httpClient.R().
-		SetResult(&NodeStatus{}).
-		Get("/status")
+	if s.chasingMode {
+		return
+	}
+
+	status, err := s.nodeClient.Status()
 
 	if err != nil {
 		s.logger.Error(err)
 		return
 	}
 
-	if resp.IsError() {
-		s.logger.Error(err)
-		return
-	}
-	data := resp.Result().(*NodeStatus)
 	channel := `status`
 
-	msg, err := json.Marshal(data)
+	msg, err := json.Marshal(status)
 	if err != nil {
 		s.logger.Error(err)
 	}
