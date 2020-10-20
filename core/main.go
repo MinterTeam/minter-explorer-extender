@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
-	"github.com/MinterTeam/minter-explorer-api/coins"
+	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
@@ -156,15 +156,22 @@ func (ext *Extender) Run() {
 	for {
 		start := time.Now()
 		ext.findOutChasingMode(height)
+
 		//Pulling block data
+		startGettingBlock := time.Now()
 		blockResponse, err := ext.nodeApi.Block(height)
+		elapsedGettingBlock := time.Since(startGettingBlock)
+		ext.logger.Info(fmt.Sprintf("Block: %d Block's data getting time: %s", height, elapsedGettingBlock))
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
 
 		//Pulling events
+		startGettingEvents := time.Now()
 		eventsResponse, err := ext.nodeApi.Events(height)
+		elapsedGettingEvents := time.Since(startGettingEvents)
+		ext.logger.Info(fmt.Sprintf("Block: %d Events's data getting time: %s", height, elapsedGettingEvents))
 		if err != nil {
 			ext.logger.Panic(err)
 		}
@@ -178,10 +185,9 @@ func (ext *Extender) Run() {
 		}
 		go ext.handleEventResponse(height, eventsResponse)
 
-		ext.logger.Info("Block: ", height)
-		height++
 		elapsed := time.Since(start)
-		ext.logger.Info("Processing time: ", elapsed)
+		ext.logger.Info(fmt.Sprintf("Block: %d Processing time: %s", height, elapsed))
+		height++
 	}
 }
 
