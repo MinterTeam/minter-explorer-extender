@@ -135,11 +135,13 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 		if s.chasingMode {
 			continue
 		}
-
+		start := time.Now()
 		resp, err := s.nodeApi.Candidates(false, api_pb.CandidatesRequest_all)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
+		elapsed := time.Since(start)
+		s.logger.Info(fmt.Sprintf("Block: %d Candidate's data getting time: %s", height, elapsed))
 
 		if len(resp.Candidates) <= 0 {
 			continue
@@ -224,11 +226,14 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 			continue
 		}
 
+		start := time.Now()
 		resp, err := s.nodeApi.Candidates(true, api_pb.CandidatesRequest_all)
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
-			continue
 		}
+		elapsed := time.Since(start)
+		s.logger.Info(fmt.Sprintf("Block: %d Candidate's (stakes) data getting time: %s", height, elapsed))
+
 		var (
 			stakes       []*models.Stake
 			validatorIds = make([]uint64, len(resp.Candidates))
@@ -437,6 +442,7 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	strRune := []rune(adr)
 	prefix := string(strRune[0:2])
 
+	start := time.Now()
 	if strings.ToLower(prefix) == "mx" {
 		data, err = s.nodeApi.WaitList(pk, adr)
 	} else {
@@ -445,6 +451,8 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	if err != nil {
 		return err
 	}
+	elapsed := time.Since(start)
+	s.logger.Info(fmt.Sprintf("WaitList's data getting time: %s", elapsed))
 
 	if strings.ToLower(prefix) == "mx" {
 		addressId, err = s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(adr))
