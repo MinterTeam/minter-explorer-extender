@@ -17,6 +17,8 @@ import (
 	"time"
 )
 
+const UnbondBlockCount = 518400
+
 type Service struct {
 	env                 *env.ExtenderEnvironment
 	nodeApi             *grpc_client.Client
@@ -80,7 +82,7 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		}
 
 		unbond := &models.Unbond{
-			BlockId:     uint(tx.BlockID),
+			BlockId:     uint(tx.BlockID + UnbondBlockCount),
 			AddressId:   uint(tx.FromAddressID),
 			CoinId:      uint(txData.Coin.Id),
 			ValidatorId: vId,
