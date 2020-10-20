@@ -1,4 +1,4 @@
-name: mainnet
+name: MainNet
 
 on:
   push:

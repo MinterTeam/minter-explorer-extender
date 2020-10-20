@@ -160,21 +160,21 @@ func (ext *Extender) Run() {
 		//Pulling block data
 		startGettingBlock := time.Now()
 		blockResponse, err := ext.nodeApi.Block(height)
-		elapsedGettingBlock := time.Since(startGettingBlock)
-		ext.logger.Info(fmt.Sprintf("Block: %d Block's data getting time: %s", height, elapsedGettingBlock))
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		elapsedGettingBlock := time.Since(startGettingBlock)
+		ext.logger.Info(fmt.Sprintf("Block: %d Block's data getting time: %s", height, elapsedGettingBlock))
 
 		//Pulling events
 		startGettingEvents := time.Now()
 		eventsResponse, err := ext.nodeApi.Events(height)
-		elapsedGettingEvents := time.Since(startGettingEvents)
-		ext.logger.Info(fmt.Sprintf("Block: %d Events's data getting time: %s", height, elapsedGettingEvents))
 		if err != nil {
 			ext.logger.Panic(err)
 		}
+		elapsedGettingEvents := time.Since(startGettingEvents)
+		ext.logger.Info(fmt.Sprintf("Block: %d Events's data getting time: %s", height, elapsedGettingEvents))
 
 		ext.handleCoinsFromTransactions(blockResponse)
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)

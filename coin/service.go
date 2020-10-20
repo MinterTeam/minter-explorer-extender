@@ -1,6 +1,7 @@
 package coin
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
@@ -11,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -202,10 +204,13 @@ func (s *Service) UpdateCoinsInfo(coinIds []uint64) error {
 }
 
 func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*models.Coin, error) {
+	start := time.Now()
 	coinResp, err := s.nodeApi.CoinInfoByID(coinId, optionalHeight...)
 	if err != nil {
 		return nil, err
 	}
+	elapsed := time.Since(start)
+	s.logger.Info(fmt.Sprintf("Coin: %d Coin's data getting time: %s", coinId, elapsed))
 
 	coin, err := s.repository.GetById(uint(coinId))
 	if err != nil && err.Error() != "pg: no rows in result set" {

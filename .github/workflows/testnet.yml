@@ -1,4 +1,4 @@
-name: CI-explorer-extender
+name: TestNet
 
 on:
   push:

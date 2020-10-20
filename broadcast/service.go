@@ -3,6 +3,7 @@ package broadcast
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-api/v2/balance"
 	"github.com/MinterTeam/minter-explorer-api/v2/blocks"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
@@ -13,6 +14,7 @@ import (
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
 	"log"
+	"time"
 )
 
 type Service struct {
@@ -133,13 +135,14 @@ func (s *Service) PublishStatus() {
 	if s.chasingMode {
 		return
 	}
-
+	start := time.Now()
 	status, err := s.nodeClient.Status()
-
 	if err != nil {
 		s.logger.Error(err)
 		return
 	}
+	elapsed := time.Since(start)
+	s.logger.Info(fmt.Sprintf("Status data getting time: %s", elapsed))
 
 	channel := `status`
 

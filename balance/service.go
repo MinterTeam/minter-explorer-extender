@@ -1,6 +1,7 @@
 package balance
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -12,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
+	"time"
 )
 
 type Service struct {
@@ -94,7 +96,11 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `Mx` + adr
 		}
+		start := time.Now()
 		response, err := s.nodeApi.Addresses(addresses, blockAddresses.Height)
+		elapsed := time.Since(start)
+		s.logger.Info(fmt.Sprintf("Block: %d Address's data getting time: %s", blockAddresses.Height, elapsed))
+
 		s.wgBalances.Done()
 		if err != nil {
 			s.logger.Error(err)
