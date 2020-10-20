@@ -221,7 +221,7 @@ CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
 
 CREATE TABLE unbonds
 (
-    block_id     bigint         NOT NULL references blocks (id),
+    block_id     bigint         NOT NULL,
     address_id   bigint         NOT NULL references addresses (id),
     coin_id      integer        NOT NULL references coins (id),
     validator_id integer        NOT NULL references validators (id),
