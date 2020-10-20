@@ -3,8 +3,8 @@ package broadcast
 import (
 	"context"
 	"encoding/json"
-	"github.com/MinterTeam/minter-explorer-api/balance"
-	"github.com/MinterTeam/minter-explorer-api/blocks"
+	"github.com/MinterTeam/minter-explorer-api/v2/balance"
+	"github.com/MinterTeam/minter-explorer-api/v2/blocks"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"

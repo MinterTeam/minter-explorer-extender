@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
-	"github.com/MinterTeam/minter-explorer-api/coins"
+	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
