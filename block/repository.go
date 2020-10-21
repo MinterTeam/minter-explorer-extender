@@ -2,7 +2,8 @@ package block
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 )
 
 type Repository struct {
@@ -10,6 +11,7 @@ type Repository struct {
 }
 
 func NewRepository(db *pg.DB) *Repository {
+	orm.RegisterTable((*models.BlockValidator)(nil))
 	return &Repository{
 		db: db,
 	}
@@ -33,11 +35,7 @@ func (r *Repository) GetLastFromDB() (*models.Block, error) {
 }
 
 func (r *Repository) LinkWithValidators(links []*models.BlockValidator) error {
-	var args []interface{}
-	for _, l := range links {
-		args = append(args, l)
-	}
-	err := r.db.Insert(args...)
+	_, err := r.db.Model(&links).Insert()
 	return err
 }
 

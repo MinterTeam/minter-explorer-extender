@@ -2,7 +2,7 @@ package coin
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 	"sync"
 )
 
@@ -105,7 +105,7 @@ func (r *Repository) Add(c *models.Coin) error {
 	return err
 }
 
-func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
+func (r *Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 	_, err := r.DB.Model(&coins).OnConflict("(symbol, version) DO UPDATE").Insert()
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (r Repository) SaveAllIfNotExist(coins []*models.Coin) error {
 	return err
 }
 
-func (r Repository) SaveAllNewIfNotExist(coins []*models.Coin) error {
+func (r *Repository) SaveAllNewIfNotExist(coins []*models.Coin) error {
 	_, err := r.DB.Model(&coins).OnConflict("(symbol, version) DO UPDATE").Insert()
 	return err
 }
@@ -128,7 +128,7 @@ func (r *Repository) GetAllCoins() ([]*models.Coin, error) {
 	return coins, err
 }
 
-func (r Repository) DeleteBySymbol(symbol string) error {
+func (r *Repository) DeleteBySymbol(symbol string) error {
 	coin := &models.Coin{Symbol: symbol}
 	_, err := r.DB.Model(coin).Where("symbol = ?symbol").Delete()
 	return err

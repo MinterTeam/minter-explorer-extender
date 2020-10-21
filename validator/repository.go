@@ -2,7 +2,7 @@ package validator
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -26,7 +26,8 @@ func NewRepository(db *pg.DB, logger *logrus.Entry) *Repository {
 }
 
 func (r *Repository) AddUnbond(unbond *models.Unbond) error {
-	return r.db.Insert(unbond)
+	_, err := r.db.Model(unbond).Insert()
+	return err
 }
 
 func (r *Repository) GetById(id uint) (*models.Validator, error) {
@@ -43,7 +44,7 @@ func (r *Repository) AddPk(id uint, pk string) error {
 		ValidatorId: id,
 		Key:         pk,
 	}
-	err := r.db.Insert(vpk)
+	_, err := r.db.Model(vpk).Insert()
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 		validator := &models.Validator{
 			PublicKey: pk,
 		}
-		err := r.db.Insert(validator)
+		_, err := r.db.Model(validator).Insert()
 		if err != nil {
 			r.log.WithField("pk", pk).Error(err)
 			return 0, err
@@ -90,7 +91,7 @@ func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 			ValidatorId: validator.ID,
 			Key:         pk,
 		}
-		err = r.db.Insert(vpk)
+		_, err = r.db.Model(vpk).Insert()
 		if err != nil {
 			r.log.WithField("pk", pk).Error(err)
 			return 0, err
@@ -128,10 +129,11 @@ func (r *Repository) UpdateAll(validators []*models.Validator) error {
 }
 
 func (r *Repository) Update(validator *models.Validator) error {
-	return r.db.Update(validator)
+	_, err := r.db.Model(validator).WherePK().Update()
+	return err
 }
 
-func (r Repository) DeleteStakesNotInListIds(idList []uint64) error {
+func (r *Repository) DeleteStakesNotInListIds(idList []uint64) error {
 	if len(idList) > 0 {
 		_, err := r.db.Query(nil, `delete from stakes where id not in (?) and is_kicked != true;`, pg.In(idList))
 		return err
@@ -140,7 +142,7 @@ func (r Repository) DeleteStakesNotInListIds(idList []uint64) error {
 	return nil
 }
 
-func (r Repository) DeleteStakesByValidatorIds(idList []uint64) error {
+func (r *Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 	if len(idList) > 0 {
 		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
 		return err
@@ -153,7 +155,7 @@ func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
 	return err
 }
 
-func (r Repository) ResetAllStatuses() error {
+func (r *Repository) ResetAllStatuses() error {
 	_, err := r.db.Query(nil, `update validators set status = null;`)
 	return err
 }

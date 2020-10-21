@@ -1,9 +1,10 @@
 package events
 
 import (
+	"context"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 	"strings"
 )
 
@@ -18,19 +19,13 @@ func NewRepository(db *pg.DB) *Repository {
 }
 
 func (r *Repository) SaveRewards(rewards []*models.Reward) error {
-	var args []interface{}
-	for _, reward := range rewards {
-		args = append(args, reward)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&rewards).Insert()
+	return err
 }
 
 func (r *Repository) SaveSlashes(slashes []*models.Slash) error {
-	var args []interface{}
-	for _, slash := range slashes {
-		args = append(args, slash)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&slashes).Insert()
+	return err
 }
 
 func (r *Repository) AggregateRewards(aggregateInterval string, beforeBlockId uint64) error {
@@ -39,7 +34,7 @@ func (r *Repository) AggregateRewards(aggregateInterval string, beforeBlockId ui
 		return errors.New("not acceptable aggregate interval")
 	}
 
-	_, err := r.db.Query(nil, `
+	_, err := r.db.ExecContext(context.Background(), `
 insert into aggregated_rewards (time_id,
                                 from_block_id,
                                 to_block_id,
@@ -68,7 +63,7 @@ ON CONFLICT (time_id,address_id,validator_id,role)
 }
 
 func (r *Repository) DropOldRewardsData(saveBlocksCount uint32) error {
-	_, err := r.db.Query(nil, `
+	_, err := r.db.ExecContext(context.Background(), `
 		delete from rewards where block_id < ((select id from blocks order by id desc limit 1) - ?);
 	`, saveBlocksCount)
 	return err
