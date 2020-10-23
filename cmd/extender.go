@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/MinterTeam/minter-explorer-extender/v2/core"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
-	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -21,14 +20,14 @@ func main() {
 	}
 
 	envData := env.New()
-	metricsApi := metrics.New("", envData.ApiPort)
-	go metricsApi.Run()
 	ext := core.NewExtender(envData)
 
 	if *version {
 		ext.GetInfo()
 		os.Exit(0)
 	}
+
+	go ext.Metrics.RunApi()
 
 	ext.Run()
 }
