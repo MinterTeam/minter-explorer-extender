@@ -28,6 +28,7 @@ type Service struct {
 	chAddresses            chan models.BlockAddresses
 	wgBalances             sync.WaitGroup
 	logger                 *logrus.Entry
+	chasingMode            bool
 }
 
 type AddressesBalancesContainer struct {
@@ -53,6 +54,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		jobUpdateBalance:       make(chan AddressesBalancesContainer, env.WrkUpdateBalanceCount),
 		jobGetBalancesFromNode: make(chan models.BlockAddresses, env.WrkGetBalancesFromNodeCount),
 		logger:                 logger,
+		chasingMode:            false,
 	}
 }
 
@@ -75,6 +77,10 @@ func (s *Service) Run() {
 	}
 }
 
+func (s *Service) SetChasingMode(chasingMode bool) {
+	s.chasingMode = chasingMode
+}
+
 func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 	// Split addresses by chunks
 	chunksCount := int(math.Ceil(float64(len(blockAddresses.Addresses)) / float64(s.env.AddrChunkSize)))
@@ -92,12 +98,17 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 
 func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, result chan<- AddressesBalancesContainer) {
 	for blockAddresses := range jobs {
+
+		if s.chasingMode {
+			continue
+		}
+
 		addresses := make([]string, len(blockAddresses.Addresses))
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `Mx` + adr
 		}
 		start := time.Now()
-		response, err := s.nodeApi.Addresses(addresses, blockAddresses.Height)
+		response, err := s.nodeApi.Addresses(addresses)
 		elapsed := time.Since(start)
 		s.logger.Info(fmt.Sprintf("Block: %d Address's data getting time: %s", blockAddresses.Height, elapsed))
 
