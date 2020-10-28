@@ -11,7 +11,6 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
-	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
@@ -31,7 +30,7 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
-	Metrics             *metrics.Metrics
+	//Metrics             *metrics.Metrics
 	env                 *env.ExtenderEnvironment
 	nodeApi             *grpc_client.Client
 	blockService        *block.Service
@@ -117,7 +116,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 
 	return &Extender{
-		Metrics:             metrics.New(),
+		//Metrics:             metrics.New(),
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
