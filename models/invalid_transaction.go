@@ -9,7 +9,7 @@ type InvalidTransaction struct {
 	CreatedAt     time.Time `json:"created_at"`
 	Type          uint8     `json:"type"`
 	Hash          string    `json:"hash"`
-	TxData        string    `json:"tx_data" pg:",jsonb"`
+	TxData        string    `json:"tx_data"`
 	Block         *Block    //Relation has one to Blocks
 	FromAddress   *Address  `pg:"fk:from_address_id"` //Relation has one to Addresses
 }

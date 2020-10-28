@@ -37,7 +37,7 @@ type Transaction struct {
 	Tags          map[string]string    `json:"tags"`
 	Payload       []byte               `json:"payload"`
 	RawTx         []byte               `json:"raw_tx"`
-	Block         *Block               `json:"block"`                                             //Relation has one to Blocks
+	Block         *Block               `json:"block"        pg:"rel:has-one"`                     //Relation has one to Blocks
 	FromAddress   *Address             `json:"from_address" pg:"fk:from_address_id"`              //Relation has one to Address
 	GasCoin       *Coin                `json:"gas_coin"     pg:"fk:gas_coin_id"`                  //Relation has one to Coin
 	Validators    []*Validator         `json:"validators"   pg:"many2many:transaction_validator"` //Relation has many to Validators

@@ -11,13 +11,15 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
+	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
+	pg9 "github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
@@ -29,6 +31,7 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
+	Metrics             *metrics.Metrics
 	env                 *env.ExtenderEnvironment
 	nodeApi             *grpc_client.Client
 	blockService        *block.Service
@@ -76,6 +79,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		Database: env.DbName,
 	})
 
+	db9 := pg9.Connect(&pg9.Options{
+		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
+		User:     env.DbUser,
+		Password: env.DbPassword,
+		Database: env.DbName,
+	})
+
 	uploader := genesisUploader.New()
 	err := uploader.Do()
 	if err != nil {
@@ -98,7 +108,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	eventsRepository := events.NewRepository(db)
 	balanceRepository := balance.NewRepository(db)
 
-	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
+	coins.GlobalRepository = coins.NewRepository(db9) //temporary solution
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
@@ -107,6 +117,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 
 	return &Extender{
+		Metrics:             metrics.New(),
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),

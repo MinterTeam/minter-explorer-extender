@@ -2,7 +2,7 @@ package address
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 	"sync"
 )
 
@@ -65,7 +65,7 @@ func (r *Repository) FindById(id uint) (string, error) {
 		return address.(string), nil
 	}
 	a := &models.Address{ID: id}
-	err := r.db.Select(a)
+	err := r.db.Model(a).Select()
 	if err != nil {
 		return "", err
 	}
@@ -90,24 +90,24 @@ func (r *Repository) SaveAllIfNotExist(addresses []string) error {
 	if len(loadFromDb) == 0 {
 		return nil
 	}
-	var args []interface{}
-	var aList []*models.Address  // need for cache update after insert
-	_, _ = r.FindAll(loadFromDb) //use for update cache
+	var list []*models.Address      // need for cache update after insert
+	_, err := r.FindAll(loadFromDb) //use for update cache
+	if err != nil {
+		return err
+	}
 	for _, a := range addresses {
 		_, exist := r.cache.Load(a)
 		if !exist {
-			address := &models.Address{Address: a}
-			args = append(args, address)
-			aList = append(aList, address)
+			list = append(list, &models.Address{Address: a})
 		}
 	}
 	// if all addresses do nothing
-	if len(args) == 0 {
+	if len(list) == 0 {
 		return nil
 	}
-	err := r.db.Insert(args...)
+	_, err = r.db.Model(&list).Insert()
 	if err != nil {
-		r.addToCache(aList)
+		r.addToCache(list)
 	}
 	return err
 }

@@ -1,8 +1,10 @@
 package transaction
 
 import (
+	"context"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 )
 
 type Repository struct {
@@ -10,6 +12,7 @@ type Repository struct {
 }
 
 func NewRepository(db *pg.DB) *Repository {
+	orm.RegisterTable((*models.TransactionValidator)(nil))
 	return &Repository{
 		db: db,
 	}
@@ -24,39 +27,27 @@ func (r *Repository) Save(transaction *models.Transaction) error {
 }
 
 func (r *Repository) SaveAll(transactions []*models.Transaction) error {
-	var args []interface{}
-	for _, t := range transactions {
-		args = append(args, t)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&transactions).Insert()
+	return err
 }
 
 func (r *Repository) SaveAllInvalid(transactions []*models.InvalidTransaction) error {
-	var args []interface{}
-	for _, t := range transactions {
-		args = append(args, t)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&transactions).Insert()
+	return err
 }
 
 func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error {
-	var args []interface{}
-	for _, t := range output {
-		args = append(args, t)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&output).Insert()
+	return err
 }
 
 func (r *Repository) LinkWithValidators(links []*models.TransactionValidator) error {
-	var args []interface{}
-	for _, t := range links {
-		args = append(args, t)
-	}
-	return r.db.Insert(args...)
+	_, err := r.db.Model(&links).Insert()
+	return err
 }
 
-func (r Repository) IndexTxAddress(txsId []uint64) error {
-	_, err := r.db.Query(nil, `
+func (r *Repository) IndexTxAddress(txsId []uint64) error {
+	_, err := r.db.ExecContext(context.Background(), `
 insert into index_transaction_by_address (block_id, address_id, transaction_id)
   (select block_id, from_address_id, id
    from transactions
@@ -71,8 +62,8 @@ ON CONFLICT DO NOTHING;
 	return err
 }
 
-func (r Repository) IndexLastNTxAddress(txsNumber int) error {
-	_, err := r.db.Query(nil, `
+func (r *Repository) IndexLastNTxAddress(txsNumber int) error {
+	_, err := r.db.ExecContext(context.Background(), `
 insert into index_transaction_by_address (block_id, address_id, transaction_id)
     (select it.block_id, it.from_address_id, it.id
      from transactions as it

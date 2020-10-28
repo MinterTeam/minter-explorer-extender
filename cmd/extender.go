@@ -20,14 +20,14 @@ func main() {
 	}
 
 	envData := env.New()
-	//extenderApi := api.New("", envData.ApiPort)
-	//go extenderApi.Run()
 	ext := core.NewExtender(envData)
 
 	if *version {
 		ext.GetInfo()
 		os.Exit(0)
 	}
+
+	go ext.Metrics.RunApi()
 
 	ext.Run()
 }

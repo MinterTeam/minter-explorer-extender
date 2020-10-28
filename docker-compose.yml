@@ -20,18 +20,18 @@ services:
     ports:
       - 8000:8000
     command: centrifugo --api_insecure --client_insecure
-  extender:
-    build: ./
-    volumes:
-      - ./:/app
-    env_file:
-      - .env
-    links:
-      - centrifugo
-      - postgres
-    depends_on:
-      - postgres
-      - centrifugo
-    restart: always
-    command: extender
+#  extender:
+#    build: ./
+#    volumes:
+#      - ./:/app
+#    env_file:
+#      - .env
+#    links:
+#      - centrifugo
+#      - postgres
+#    depends_on:
+#      - postgres
+#      - centrifugo
+#    restart: always
+#    command: extender
 
