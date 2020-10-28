@@ -90,6 +90,8 @@ github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200925010749-81e29232e7e3 h1:UtF
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20200925010749-81e29232e7e3/go.mod h1:H60KTb5mvAx4wsQumjbuTdED1NcyEiniJpO8K3/5pcA=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201016141625-fb50c352ef65 h1:4ik5WLiy47as/Dj7dDEr0ybfS45yyW2AjuF3jZxHCDU=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.0-20201016141625-fb50c352ef65/go.mod h1:jZqlfoPbQxWyNGfjhdfiPZ7BjCnThaYdB/4Yoh/b82o=
+github.com/MinterTeam/minter-go-sdk/v2 v2.0.0 h1:k7bKXmUE/hN04X7jGMMayDZNgHQ5eKuQaE4LIcCYSFI=
+github.com/MinterTeam/minter-go-sdk/v2 v2.0.0/go.mod h1:jZqlfoPbQxWyNGfjhdfiPZ7BjCnThaYdB/4Yoh/b82o=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.4-0.20201023151642-1254adb6ecec h1:c7FlHvpF+ubIkwSc8Nu6GUW5q8IBjrUh/j0ogViu/D0=
 github.com/MinterTeam/minter-go-sdk/v2 v2.0.4-0.20201023151642-1254adb6ecec/go.mod h1:slfxjkmfSJMLOll0N21rbPIL6DxPjDNgiFcmFQrxkEA=
 github.com/MinterTeam/minter-node-go-api v1.3.5/go.mod h1:y0z0cScz5N5mxlDcK+S1pRpSbSq4yVgOxq6pLR6YSvw=
