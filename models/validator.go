@@ -24,10 +24,10 @@ type Validator struct {
 	MetaUpdatedAtBlockID *uint64               `json:"meta_updated_at_block_id"`
 	UpdateAt             *time.Time            `json:"update_at"`
 	ControlAddress       *Address              `json:"control_address" pg:"fk:control_address_id"`
-	RewardAddress        *Address              `json:"reward_address" pg:"fk:reward_address_id"`
-	OwnerAddress         *Address              `json:"owner_address"  pg:"fk:owner_address_id"`
-	Stakes               []*Stake              `json:"stakes"`
-	PublicKeys           []ValidatorPublicKeys `json:"public_keys"`
+	RewardAddress        *Address              `json:"reward_address"  pg:"fk:reward_address_id"`
+	OwnerAddress         *Address              `json:"owner_address"   pg:"fk:owner_address_id"`
+	Stakes               []*Stake              `json:"stakes"          pg:"rel:has-many"`
+	PublicKeys           []ValidatorPublicKeys `json:"public_keys"     pg:"rel:has-many"`
 }
 
 //Return validators PK with prefix

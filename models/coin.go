@@ -19,7 +19,7 @@ type Coin struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`
 	DeletedAt        *time.Time `pg:",soft_delete"`
-	OwnerAddress     Address    `pg:"fk:id"`
+	OwnerAddress     Address    `pg:"rel:has-one"`
 }
 
 // Return coin with version

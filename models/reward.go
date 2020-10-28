@@ -8,7 +8,7 @@ type Reward struct {
 	ValidatorID uint64     `json:"validator_id" pg:",pk"`
 	Role        string     `json:"role"         pg:",pk"`
 	Amount      string     `json:"amount"       pg:"type:numeric(70)"`
-	Block       *Block     //Relation has one to Blocks
-	Address     *Address   //Relation has one to Addresses
-	Validator   *Validator //Relation has one to Validators
+	Block       *Block     `pg:"rel:has-one"` //Relation has one to Blocks
+	Address     *Address   `pg:"rel:has-one"` //Relation has one to Addresses
+	Validator   *Validator `pg:"rel:has-one"` //Relation has one to Validators
 }
