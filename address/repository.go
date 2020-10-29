@@ -64,8 +64,8 @@ func (r *Repository) FindById(id uint) (string, error) {
 	if ok {
 		return address.(string), nil
 	}
-	a := &models.Address{ID: id}
-	err := r.db.Model(a).Select()
+	a := new(models.Address)
+	err := r.db.Model(a).Where("id = ?", id).Select()
 	if err != nil {
 		return "", err
 	}

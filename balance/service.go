@@ -98,25 +98,21 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 
 func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, result chan<- AddressesBalancesContainer) {
 	for blockAddresses := range jobs {
-
-		if s.chasingMode {
-			continue
-		}
-
 		addresses := make([]string, len(blockAddresses.Addresses))
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `Mx` + adr
 		}
 		start := time.Now()
 		response, err := s.nodeApi.Addresses(addresses)
+		if err != nil {
+			s.logger.Error(err)
+			s.wgBalances.Done()
+			continue
+		}
 		elapsed := time.Since(start)
 		s.logger.Info(fmt.Sprintf("Block: %d Address's data getting time: %s", blockAddresses.Height, elapsed))
 
 		s.wgBalances.Done()
-		if err != nil {
-			s.logger.Error(err)
-			continue
-		}
 		balances, err := s.HandleBalanceResponse(response)
 
 		if err != nil {
