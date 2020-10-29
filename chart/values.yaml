@@ -36,8 +36,8 @@ env:
   minterBaseCoin: {MINTER_BASE_COIN}
   coinsUpdateTime: "1"
   txChunkSize: "50"
-  addressChunkSize: "50"
-  eventChunkSize: "50"
+  addressChunkSize: "700"
+  eventChunkSize: "1000"
   stakeChunkSize: "500"
   balanceChunkSize: "500"
   validatorChunkSize: "500"
@@ -59,3 +59,4 @@ env:
   txsIndexCount: "96"
   txsIndexPeriod: "60"
   extenderApiPort: "8011"
+  updateBalancesWhenChasing: "true"

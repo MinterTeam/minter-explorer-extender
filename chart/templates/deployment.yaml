@@ -97,6 +97,8 @@ spec:
               value: {{ .Values.env.txsIndexPeriod | quote }}
             - name: EXTENDER_API_PORT
               value: {{ .Values.env.extenderApiPort | quote }}
+            - name: UPDATE_BALANCES_WHEN_CHASING
+              value: {{ .Values.env.updateBalancesWhenChasing | quote }}
           resources:
       {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

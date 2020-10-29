@@ -25,3 +25,4 @@ config.json
 *.tmp.yaml
 
 helm/values-prod.yaml
+values.stage.yaml

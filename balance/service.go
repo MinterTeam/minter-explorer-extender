@@ -12,6 +12,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
+	"os"
 	"sync"
 	"time"
 )
@@ -98,6 +99,12 @@ func (s *Service) HandleAddresses(blockAddresses models.BlockAddresses) {
 
 func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, result chan<- AddressesBalancesContainer) {
 	for blockAddresses := range jobs {
+
+		if s.chasingMode && os.Getenv("UPDATE_BALANCES_WHEN_CHASING") == "false" {
+			s.wgBalances.Done()
+			continue
+		}
+
 		addresses := make([]string, len(blockAddresses.Addresses))
 		for i, adr := range blockAddresses.Addresses {
 			addresses[i] = `Mx` + adr
