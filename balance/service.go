@@ -100,6 +100,7 @@ func (s *Service) GetBalancesFromNodeWorker(jobs <-chan models.BlockAddresses, r
 	for blockAddresses := range jobs {
 
 		if s.chasingMode {
+			s.wgBalances.Done()
 			continue
 		}
 

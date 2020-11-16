@@ -26,3 +26,4 @@ config.json
 
 helm/values-prod.yaml
 /go.sum
+values.*.yaml
