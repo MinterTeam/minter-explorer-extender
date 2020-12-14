@@ -140,6 +140,9 @@ func (RedeemCheck) Transform(txData resource.ItemInterface, params ...resource.P
 			Value:    data.Value,
 			Sender:   sender,
 			DueBlock: data.DueBlock,
+			Coin: models.Coin{
+				ID: uint(data.Coin),
+			},
 		},
 	}
 }
