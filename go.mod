@@ -6,8 +6,8 @@ require (
 	github.com/MinterTeam/explorer-genesis-uploader v1.2.5
 	github.com/MinterTeam/minter-explorer-api/v2 v2.0.1
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
-	github.com/MinterTeam/minter-go-sdk/v2 v2.0.4-0.20201105131240-1450ce732c2f
-	github.com/MinterTeam/node-grpc-gateway v1.2.1-0.20201105130854-87a7f4ef17cd
+	github.com/MinterTeam/minter-go-sdk/v2 v2.1.0
+	github.com/MinterTeam/node-grpc-gateway v1.2.1
 	github.com/centrifugal/gocent v2.1.0+incompatible
 	github.com/go-pg/pg/v10 v10.4.0
 	github.com/go-pg/pg/v9 v9.2.0
