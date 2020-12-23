@@ -232,3 +232,15 @@ CREATE TABLE unbonds
 CREATE INDEX unbonds_address_id_index ON unbonds USING btree (address_id);
 CREATE INDEX unbonds_coin_id_index ON unbonds USING btree (coin_id);
 CREATE INDEX unbonds_validator_id_index ON unbonds USING btree (validator_id);
+
+CREATE TABLE checks
+(
+    transaction_id  bigint NOT NULL references transactions (id),
+    from_address_id bigint NOT NULL references addresses (id),
+    to_address_id   bigint NOT NULL references addresses (id),
+    data            varchar
+);
+CREATE INDEX checks_transaction_id_index ON checks USING btree (transaction_id);
+CREATE INDEX checks_from_address_id_index ON checks USING btree (from_address_id);
+CREATE INDEX checks_to_address_id_index ON checks USING btree (to_address_id);
+CREATE INDEX checks_check_index ON checks USING btree (data);

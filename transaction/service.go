@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -176,8 +177,9 @@ func (s *Service) UpdateTxsIndexWorker() {
 
 func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	var (
-		list    []*models.TransactionOutput
-		idsList []uint64
+		list      []*models.TransactionOutput
+		checkList []*models.Checks
+		idsList   []uint64
 	)
 
 	for _, tx := range txList {
@@ -257,6 +259,19 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 
+			rawCheck, err := base64.StdEncoding.DecodeString(txData.RawCheck)
+			if err != nil {
+				s.logger.Fatal(err)
+				return err
+			}
+
+			checkList = append(checkList, &models.Checks{
+				TransactionID: tx.ID,
+				Data:          hex.EncodeToString(rawCheck),
+				ToAddressId:   toId,
+				FromAddressId: uint(tx.FromAddressID),
+			})
+
 			list = append(list, &models.TransactionOutput{
 				TransactionID: tx.ID,
 				ToAddressID:   uint64(toId),
@@ -333,6 +348,12 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	}
 	if len(idsList) > 0 {
 		err := s.txRepository.IndexTxAddress(idsList)
+		if err != nil {
+			return err
+		}
+	}
+	if len(checkList) > 0 {
+		err := s.txRepository.SaveRedeemedChecks(checkList)
 		if err != nil {
 			return err
 		}

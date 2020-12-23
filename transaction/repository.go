@@ -41,6 +41,11 @@ func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error 
 	return err
 }
 
+func (r *Repository) SaveRedeemedChecks(list []*models.Checks) error {
+	_, err := r.db.Model(&list).OnConflict("DO NOTHING").Insert()
+	return err
+}
+
 func (r *Repository) LinkWithValidators(links []*models.TransactionValidator) error {
 	_, err := r.db.Model(&links).Insert()
 	return err
