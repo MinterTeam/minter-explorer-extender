@@ -227,7 +227,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		}
 
 		start := time.Now()
-		resp, err := s.nodeApi.Candidates(true)
+		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
