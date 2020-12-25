@@ -75,10 +75,6 @@ func (r *Repository) DeleteLastBlockData() error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.Query(nil, `delete from rewards where block_id = (select id from blocks order by id desc limit 1);`)
-	if err != nil {
-		return err
-	}
 	_, err = tx.Query(nil, `delete from slashes where block_id = (select id from blocks order by id desc limit 1);`)
 	if err != nil {
 		return err
