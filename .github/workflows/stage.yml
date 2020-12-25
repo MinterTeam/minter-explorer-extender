@@ -18,13 +18,15 @@ jobs:
         id: version
         with:
           path: VERSION
+          trim: true
 
       - name: Build & Push to Docker Hub
         uses: opspresso/action-docker@master
         env:
-          USERNAME: ${{ secrets.DOCKER_HUB_USER }}
-          PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          IMAGE_NAME: "minterteam/explorer-extender"
+          USERNAME: ${{ secrets.MINTER_REGISTRY_USERNAME }}
+          PASSWORD: ${{ secrets.MINTER_REGISTRY_PASSWORD }}
+          IMAGE_NAME: "explorer-extender"
+          REGISTRY: "registry.minter.network"
           DOCKERFILE: ".docker/Dockerfile"
           LATEST: "true"
           VERSION: "${{ steps.version.outputs.text }}"
@@ -35,14 +37,15 @@ jobs:
         uses: wahyd4/kubectl-helm-action@master
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_STAGE_CONFIG_DATA }}
+          IMAGE_TAG: ${{ github.sha }}
         with:
-          args: helm upgrade -i minter-explorer-extender  chart/ --reuse-values --atomic --timeout 100s --set image.tag=$GITHUB_SHA
+          args: helm upgrade -i extender chart/ --reuse-values --atomic --timeout 100s --set image.tag=$IMAGE_TAG
 
       - name: notification
         if: cancelled() == false
         uses: xinthink/action-telegram@v1.1
         with:
-          botToken: ${{ secrets.TELEGRAM_TOKEN }}
-          chatId: ${{ secrets.TELEGRAM_TO }}
+          botToken: ${{ secrets.TELEGRAM_CI_TOKEN }}
+          chatId: ${{ secrets.TELEGRAM_CI_TO }}
           jobStatus: ${{ job.status }}
           skipSuccess: false

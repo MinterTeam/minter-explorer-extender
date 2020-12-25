@@ -34,6 +34,15 @@ func (r *Repository) GetLastFromDB() (*models.Block, error) {
 	return block, nil
 }
 
+func (r *Repository) GetById(id uint64) (*models.Block, error) {
+	block := new(models.Block)
+	err := r.db.Model(block).Where("id = ?", id).Select()
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
 func (r *Repository) LinkWithValidators(links []*models.BlockValidator) error {
 	_, err := r.db.Model(&links).Insert()
 	return err
@@ -47,14 +56,44 @@ func (r *Repository) DeleteLastBlockData() error {
 	// Rollback tx on error.
 	defer tx.Rollback()
 	_, err = tx.Query(nil, `delete from transaction_outputs where transaction_id IN (select distinct id from transactions where block_id = (select id from blocks order by id desc limit 1));`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from transaction_validator where transaction_id IN (select distinct id from transactions where block_id = (select id from blocks order by id desc limit 1));`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from index_transaction_by_address where transaction_id in (select distinct id from transactions where block_id = (select id from blocks order by id desc limit 1));`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from invalid_transactions  where block_id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from transactions where block_id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from rewards where block_id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from slashes where block_id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from coins where created_at_block_id >= (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from block_validator where block_id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from blocks where id = (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	return tx.Commit()
 }

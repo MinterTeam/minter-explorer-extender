@@ -1,6 +1,6 @@
 module github.com/MinterTeam/minter-explorer-extender/v2
 
-go 1.14
+go 1.15
 
 require (
 	github.com/MinterTeam/explorer-genesis-uploader v1.2.5

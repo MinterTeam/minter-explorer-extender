@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
+	"github.com/MinterTeam/minter-explorer-extender/v2/block"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
+	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math"
-	"os"
+	"math/big"
 	"strconv"
+	"time"
 )
 
 type Service struct {
@@ -24,6 +27,7 @@ type Service struct {
 	coinRepository      *coin.Repository
 	coinService         *coin.Service
 	balanceRepository   *balance.Repository
+	blockRepository     *block.Repository
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	logger              *logrus.Entry
@@ -31,7 +35,7 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
+	blockRepository *block.Repository, balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -40,6 +44,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		coinRepository:      coinRepository,
 		coinService:         coinService,
 		balanceRepository:   balanceRepository,
+		blockRepository:     blockRepository,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 		logger:              logger,
@@ -168,7 +173,94 @@ func (s *Service) GetSaveSlashesJobChannel() chan []*models.Slash {
 
 func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 	for rewards := range jobs {
-		err := s.repository.SaveRewards(rewards)
+
+		now := time.Now()
+
+		b, err := s.blockRepository.GetById(rewards[0].BlockID)
+		if err != nil {
+			s.logger.Fatal(err)
+		}
+
+		timeId, err := time.Parse("2006-01-02", b.CreatedAt.Format("2006-01-02"))
+		if err != nil {
+			s.logger.Fatal(err)
+		}
+
+		exist, err := s.repository.GetRewardsByDay(now)
+		if err != nil && err != pg.ErrNoRows {
+			s.logger.Fatal(err)
+		}
+
+		rewardsMap := map[string][]*models.Reward{}
+		for _, reward := range rewards {
+			key := fmt.Sprintf("%d-%d-%s", reward.AddressID, reward.ValidatorID, reward.Role)
+			rewardsMap[key] = append(rewardsMap[key], reward)
+		}
+
+		if (err != nil && err == pg.ErrNoRows) || len(exist) == 0 {
+			startBlock := rewards[0].BlockID - 120
+			if startBlock == 0 {
+				startBlock = 1
+			}
+
+			var aggregated []*models.AggregatedReward
+			for _, rewards := range rewardsMap {
+
+				total := big.NewInt(0)
+
+				for _, r := range rewards {
+					amount, _ := big.NewInt(0).SetString(r.Amount, 10)
+					total.Add(total, amount)
+				}
+
+				aggregated = append(aggregated, &models.AggregatedReward{
+					FromBlockID: startBlock,
+					ToBlockID:   rewards[0].BlockID,
+					AddressID:   uint64(rewards[0].AddressID),
+					ValidatorID: rewards[0].ValidatorID,
+					Role:        rewards[0].Role,
+					Amount:      total.String(),
+					TimeID:      timeId,
+				})
+			}
+			err = s.repository.SaveAggregatedRewards(aggregated)
+			helpers.HandleError(err)
+
+			continue
+		}
+
+		existRewardsMap := map[string]*models.AggregatedReward{}
+		for _, reward := range exist {
+			key := fmt.Sprintf("%d-%d-%s", reward.AddressID, reward.ValidatorID, reward.Role)
+			existRewardsMap[key] = reward
+		}
+
+		var aggregated []*models.AggregatedReward
+		for _, reward := range rewardsMap {
+			key := fmt.Sprintf("%d-%d-%s", reward[0].AddressID, reward[0].ValidatorID, reward[0].Role)
+			total := big.NewInt(0)
+			for _, r := range rewards {
+				amount, _ := big.NewInt(0).SetString(r.Amount, 10)
+				total.Add(total, amount)
+			}
+
+			if existRewardsMap[key] != nil {
+				existAmount, _ := big.NewInt(0).SetString(existRewardsMap[key].Amount, 10)
+				total.Add(total, existAmount)
+			}
+
+			aggregated = append(aggregated, &models.AggregatedReward{
+				FromBlockID: reward[0].BlockID,
+				ToBlockID:   reward[0].BlockID,
+				AddressID:   uint64(reward[0].AddressID),
+				ValidatorID: reward[0].ValidatorID,
+				Role:        reward[0].Role,
+				Amount:      total.String(),
+				TimeID:      timeId,
+			})
+		}
+
+		err = s.repository.SaveAggregatedRewards(aggregated)
 		helpers.HandleError(err)
 	}
 }
@@ -180,36 +272,8 @@ func (s *Service) SaveSlashesWorker(jobs <-chan []*models.Slash) {
 	}
 }
 
-func (s *Service) AggregateRewards(aggregateInterval string, beforeBlockId uint64) {
-	err := s.repository.AggregateRewards(aggregateInterval, beforeBlockId)
-	if err != nil {
-		s.logger.Error(err)
-	}
-	helpers.HandleError(err)
-
-	blocks := os.Getenv("APP_REWARDS_BLOCKS")
-	bc, err := strconv.ParseUint(blocks, 10, 32)
-	if err != nil {
-		s.logger.Error(err)
-		return
-	}
-
-	err = s.repository.DropOldRewardsData(uint32(bc))
-	if err != nil {
-		s.logger.Error(err)
-	}
-}
-
 func (s *Service) saveRewards(rewards []*models.Reward) {
-	chunksCount := int(math.Ceil(float64(len(rewards)) / float64(s.env.EventsChunkSize)))
-	for i := 0; i < chunksCount; i++ {
-		start := s.env.EventsChunkSize * i
-		end := start + s.env.EventsChunkSize
-		if end > len(rewards) {
-			end = len(rewards)
-		}
-		s.GetSaveRewardsJobChannel() <- rewards[start:end]
-	}
+	s.GetSaveRewardsJobChannel() <- rewards
 }
 
 func (s *Service) saveSlashes(slashes []*models.Slash) {
