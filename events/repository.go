@@ -16,11 +16,6 @@ func NewRepository(db *pg.DB) *Repository {
 	}
 }
 
-func (r *Repository) SaveRewards(rewards []*models.Reward) error {
-	_, err := r.db.Model(&rewards).Insert()
-	return err
-}
-
 func (r *Repository) SaveSlashes(slashes []*models.Slash) error {
 	_, err := r.db.Model(&slashes).Insert()
 	return err
