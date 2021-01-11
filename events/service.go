@@ -10,6 +10,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-go-sdk/v2/api"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
@@ -60,12 +62,51 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 	)
 
 	for _, event := range responseEvents.Events {
-
-		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/UnbondEvent" {
-			continue
+		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		if err != nil {
+			return err
 		}
 
-		if fmt.Sprintf("%s", event.AsMap()["type"]) == "minter/StakeKickEvent" {
+		switch e := eventStruct.(type) {
+		case *api.RewardEvent:
+			reward, err := s.handleRewardEvent(blockHeight, e)
+			if err != nil {
+				return err
+			}
+			rewards = append(rewards, reward)
+
+		case *api.SlashEvent:
+			coinId, err := strconv.ParseUint(e.Coin, 10, 64)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"coin": e.Coin,
+				}).Error(err)
+				continue
+			}
+			addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(e.Address))
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"address": e.Address,
+				}).Error(err)
+				continue
+			}
+
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"public_key": e.GetValidatorPublicKey(),
+				}).Error(err)
+				continue
+			}
+			coinsForUpdateMap[coinId] = struct{}{}
+			slashes = append(slashes, &models.Slash{
+				BlockID:     blockHeight,
+				CoinID:      uint(coinId),
+				Amount:      e.Amount,
+				AddressID:   addressId,
+				ValidatorID: uint64(validatorId),
+			})
+		case *api.StakeKickEvent:
 			mapValues := event.AsMap()["value"].(map[string]interface{})
 
 			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
@@ -100,52 +141,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				s.logger.Error(err)
 			}
 
+		case *api.UnbondEvent:
 			continue
 		}
 
-		values := event.AsMap()["value"].(map[string]interface{})
-		addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(values["address"].(string)))
-		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"address": values["address"].(string),
-			}).Error(err)
-			return err
-		}
-
-		validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(values["validator_pub_key"].(string)))
-		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"public_key": values["validator_pub_key"],
-			}).Error(err)
-			return err
-		}
-
-		switch fmt.Sprintf("%s", event.AsMap()["type"]) {
-		case models.RewardEvent:
-			rewards = append(rewards, &models.Reward{
-				BlockID:     blockHeight,
-				Role:        values["role"].(string),
-				Amount:      values["amount"].(string),
-				AddressID:   addressId,
-				ValidatorID: uint64(validatorId),
-			})
-
-		case models.SlashEvent:
-
-			coinId, err := strconv.ParseUint(values["coin"].(string), 10, 64)
-			if err != nil {
-				continue
-			}
-
-			coinsForUpdateMap[coinId] = struct{}{}
-			slashes = append(slashes, &models.Slash{
-				BlockID:     blockHeight,
-				CoinID:      uint(coinId),
-				Amount:      values["amount"].(string),
-				AddressID:   addressId,
-				ValidatorID: uint64(validatorId),
-			})
-		}
 	}
 
 	if len(coinsForUpdateMap) > 0 {
@@ -286,4 +285,30 @@ func (s *Service) saveSlashes(slashes []*models.Slash) {
 		}
 		s.GetSaveSlashesJobChannel() <- slashes[start:end]
 	}
+}
+
+func (s *Service) handleRewardEvent(blockHeight uint64, e *api.RewardEvent) (*models.Reward, error) {
+	addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(e.Address))
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"address": e.Address,
+		}).Error(err)
+		return nil, err
+	}
+
+	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+	if err != nil {
+		s.logger.WithFields(logrus.Fields{
+			"public_key": e.GetValidatorPublicKey(),
+		}).Error(err)
+		return nil, err
+	}
+
+	return &models.Reward{
+		BlockID:     blockHeight,
+		Role:        e.Role,
+		Amount:      e.Amount,
+		AddressID:   addressId,
+		ValidatorID: uint64(validatorId),
+	}, nil
 }
