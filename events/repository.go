@@ -21,9 +21,9 @@ func (r *Repository) SaveSlashes(slashes []*models.Slash) error {
 	return err
 }
 
-func (r *Repository) GetRewardsByDay(now time.Time) ([]*models.AggregatedReward, error) {
+func (r *Repository) GetRewardsByDay(date time.Time) ([]*models.AggregatedReward, error) {
 	var result []*models.AggregatedReward
-	err := r.db.Model(&result).Where("time_id = ?", now.Format("2006-01-02")).Select()
+	err := r.db.Model(&result).Where("time_id = ?", date.Format("2006-01-02")).Select()
 	return result, err
 }
 

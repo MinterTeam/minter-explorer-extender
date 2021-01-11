@@ -172,9 +172,6 @@ func (s *Service) GetSaveSlashesJobChannel() chan []*models.Slash {
 
 func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 	for rewards := range jobs {
-
-		now := time.Now()
-
 		b, err := s.blockRepository.GetById(rewards[0].BlockID)
 		if err != nil {
 			s.logger.Fatal(err)
@@ -185,7 +182,7 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 			s.logger.Fatal(err)
 		}
 
-		exist, err := s.repository.GetRewardsByDay(now)
+		exist, err := s.repository.GetRewardsByDay(timeId)
 		if err != nil && err != pg.ErrNoRows {
 			s.logger.Fatal(err)
 		}
@@ -203,28 +200,25 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 			}
 
 			var aggregated []*models.AggregatedReward
-			for _, rewards := range rewardsMap {
-
+			for _, userRewards := range rewardsMap {
 				total := big.NewInt(0)
-
-				for _, r := range rewards {
+				for _, r := range userRewards {
 					amount, _ := big.NewInt(0).SetString(r.Amount, 10)
 					total.Add(total, amount)
 				}
 
 				aggregated = append(aggregated, &models.AggregatedReward{
 					FromBlockID: startBlock,
-					ToBlockID:   rewards[0].BlockID,
-					AddressID:   uint64(rewards[0].AddressID),
-					ValidatorID: rewards[0].ValidatorID,
-					Role:        rewards[0].Role,
+					ToBlockID:   userRewards[0].BlockID,
+					AddressID:   uint64(userRewards[0].AddressID),
+					ValidatorID: userRewards[0].ValidatorID,
+					Role:        userRewards[0].Role,
 					Amount:      total.String(),
 					TimeID:      timeId,
 				})
 			}
 			err = s.repository.SaveAggregatedRewards(aggregated)
 			helpers.HandleError(err)
-
 			continue
 		}
 
@@ -235,10 +229,10 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 		}
 
 		var aggregated []*models.AggregatedReward
-		for _, reward := range rewardsMap {
-			key := fmt.Sprintf("%d-%d-%s", reward[0].AddressID, reward[0].ValidatorID, reward[0].Role)
+		for _, userRewards := range rewardsMap {
+			key := fmt.Sprintf("%d-%d-%s", userRewards[0].AddressID, userRewards[0].ValidatorID, userRewards[0].Role)
 			total := big.NewInt(0)
-			for _, r := range reward {
+			for _, r := range userRewards {
 				amount, _ := big.NewInt(0).SetString(r.Amount, 10)
 				total.Add(total, amount)
 			}
@@ -249,11 +243,11 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 			}
 
 			aggregated = append(aggregated, &models.AggregatedReward{
-				FromBlockID: reward[0].BlockID,
-				ToBlockID:   reward[0].BlockID,
-				AddressID:   uint64(reward[0].AddressID),
-				ValidatorID: reward[0].ValidatorID,
-				Role:        reward[0].Role,
+				FromBlockID: userRewards[0].BlockID,
+				ToBlockID:   userRewards[0].BlockID,
+				AddressID:   uint64(userRewards[0].AddressID),
+				ValidatorID: userRewards[0].ValidatorID,
+				Role:        userRewards[0].Role,
 				Amount:      total.String(),
 				TimeID:      timeId,
 			})
