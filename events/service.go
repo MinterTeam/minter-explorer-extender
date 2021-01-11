@@ -238,7 +238,7 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 		for _, reward := range rewardsMap {
 			key := fmt.Sprintf("%d-%d-%s", reward[0].AddressID, reward[0].ValidatorID, reward[0].Role)
 			total := big.NewInt(0)
-			for _, r := range rewards {
+			for _, r := range reward {
 				amount, _ := big.NewInt(0).SetString(r.Amount, 10)
 				total.Add(total, amount)
 			}
