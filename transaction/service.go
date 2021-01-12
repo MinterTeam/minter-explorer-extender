@@ -75,7 +75,8 @@ func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValid
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) error {
+func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
+	transactions []*api_pb.BlockResponse_Transaction) error {
 
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction
@@ -693,6 +694,116 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		return txDataJson, nil
 	case transaction.TypeEditCandidatePublicKey:
 		txData := new(api_pb.EditCandidatePublicKeyData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeAddSwapPool:
+		txData := new(api_pb.AddSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeRemoveSwapPool:
+		txData := new(api_pb.RemoveSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeSellSwapPool:
+		txData := new(api_pb.SellSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeBuySwapPool:
+		txData := new(api_pb.BuySwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeSellAllSwapPool:
+		txData := new(api_pb.SellAllSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeEditCommission:
+		txData := new(api_pb.EditCommissionData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeMoveStake:
+		txData := new(api_pb.MoveStakeData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeMintToken:
+		txData := new(api_pb.MintTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeBurnToken:
+		txData := new(api_pb.BurnTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeCreateToken:
+		txData := new(api_pb.CreateTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeRecreateToken:
+		txData := new(api_pb.RecreateTokenData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
