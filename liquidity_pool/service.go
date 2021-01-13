@@ -26,6 +26,7 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.BlockResponse_Tr
 		case transaction.TypeAddSwapPool:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeRemoveSwapPool:
+			err = s.removeFromLiquidityPool(tx)
 		}
 
 		if err != nil {
@@ -50,6 +51,7 @@ func (s *Service) addToLiquidityPool(tx *api_pb.BlockResponse_Transaction) error
 	if err != nil && err != pg.ErrNoRows {
 		return err
 	}
+
 	var firstCoinVolume, secondCoinVolume *big.Int
 
 	if lp.FirstCoinVolume == "" {
@@ -70,9 +72,47 @@ func (s *Service) addToLiquidityPool(tx *api_pb.BlockResponse_Transaction) error
 	volume1, _ := big.NewInt(0).SetString(txTags["tx.volume1"], 10)
 	secondCoinVolume.Add(secondCoinVolume, volume1)
 
-	lp.Liquidity = txTags["tx.volume1"]
+	lp.Liquidity = txTags["tx.liquidity"]
 
-	return s.repository.LiquidityPool(lp)
+	return s.repository.UpdateLiquidityPool(lp)
+}
+
+func (s *Service) removeFromLiquidityPool(tx *api_pb.BlockResponse_Transaction) error {
+	txData := new(api_pb.RemoveSwapPoolData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	txTags := tx.GetTags()
+
+	lp, err := s.repository.getLiquidityPoolByCoinIds(txData.Coin0.Id, txData.Coin1.Id)
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	}
+
+	var firstCoinVolume, secondCoinVolume *big.Int
+
+	if lp.FirstCoinVolume == "" {
+		firstCoinVolume = big.NewInt(0)
+	} else {
+		firstCoinVolume, _ = big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+	}
+
+	if lp.SecondCoinVolume == "" {
+		secondCoinVolume = big.NewInt(0)
+	} else {
+		secondCoinVolume, _ = big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+	}
+
+	volume0, _ := big.NewInt(0).SetString(txTags["tx.volume0"], 10)
+	firstCoinVolume.Sub(firstCoinVolume, volume0)
+
+	volume1, _ := big.NewInt(0).SetString(txTags["tx.volume1"], 10)
+	secondCoinVolume.Sub(secondCoinVolume, volume1)
+
+	lp.Liquidity = txData.Liquidity
+
+	return s.repository.UpdateLiquidityPool(lp)
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {

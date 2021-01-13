@@ -15,7 +15,7 @@ func (r *Repository) getLiquidityPoolByCoinIds(firstCoin, secondCoin uint64) (*m
 	return pl, err
 }
 
-func (r *Repository) LiquidityPool(lp *models.LiquidityPool) error {
+func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
 	_, err := r.db.Model(lp).OnConflict("(first_coin, second_coin) DO UPDATE").Insert()
 	return err
 }
