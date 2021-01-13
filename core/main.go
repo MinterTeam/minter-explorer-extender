@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
+	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
@@ -31,21 +32,22 @@ var Version string
 
 type Extender struct {
 	//Metrics             *metrics.Metrics
-	env                 *env.ExtenderEnvironment
-	nodeApi             *grpc_client.Client
-	blockService        *block.Service
-	addressService      *address.Service
-	blockRepository     *block.Repository
-	validatorService    *validator.Service
-	validatorRepository *validator.Repository
-	transactionService  *transaction.Service
-	eventService        *events.Service
-	balanceService      *balance.Service
-	coinService         *coin.Service
-	broadcastService    *broadcast.Service
-	chasingMode         bool
-	currentNodeHeight   uint64
-	logger              *logrus.Entry
+	env                  *env.ExtenderEnvironment
+	nodeApi              *grpc_client.Client
+	blockService         *block.Service
+	addressService       *address.Service
+	blockRepository      *block.Repository
+	validatorService     *validator.Service
+	validatorRepository  *validator.Repository
+	transactionService   *transaction.Service
+	eventService         *events.Service
+	balanceService       *balance.Service
+	coinService          *coin.Service
+	broadcastService     *broadcast.Service
+	liquidityPoolService *liquidity_pool.Service
+	chasingMode          bool
+	currentNodeHeight    uint64
+	logger               *logrus.Entry
 }
 
 func NewExtender(env *env.ExtenderEnvironment) *Extender {
@@ -107,6 +109,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	eventsRepository := events.NewRepository(db)
 	balanceRepository := balance.NewRepository(db)
 
+	liquidityPoolRepository := liquidity_pool.NewRepository(db)
+
 	coins.GlobalRepository = coins.NewRepository(db9) //temporary solution
 
 	// Services
@@ -114,24 +118,26 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
+	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, contextLogger)
 
 	return &Extender{
 		//Metrics:             metrics.New(),
-		env:                 env,
-		nodeApi:             nodeApi,
-		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, contextLogger),
-		blockRepository:     blockRepository,
-		validatorService:    validatorService,
-		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel()),
-		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
-		validatorRepository: validatorRepository,
-		balanceService:      balanceService,
-		coinService:         coinService,
-		broadcastService:    broadcastService,
-		chasingMode:         true,
-		currentNodeHeight:   0,
-		logger:              contextLogger,
+		env:                  env,
+		nodeApi:              nodeApi,
+		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
+		eventService:         events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, contextLogger),
+		blockRepository:      blockRepository,
+		validatorService:     validatorService,
+		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService.JobUpdateLiquidityPoolChannel()),
+		addressService:       address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
+		validatorRepository:  validatorRepository,
+		balanceService:       balanceService,
+		coinService:          coinService,
+		broadcastService:     broadcastService,
+		liquidityPoolService: liquidityPoolService,
+		chasingMode:          true,
+		currentNodeHeight:    0,
+		logger:               contextLogger,
 	}
 }
 
@@ -253,6 +259,9 @@ func (ext *Extender) runWorkers() {
 
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
+
+	//LiquidityPool
+	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {

@@ -23,41 +23,43 @@ import (
 )
 
 type Service struct {
-	env                 *env.ExtenderEnvironment
-	txRepository        *Repository
-	addressRepository   *address.Repository
-	validatorRepository *validator.Repository
-	coinRepository      *coin.Repository
-	coinService         *coin.Service
-	broadcastService    *broadcast.Service
-	jobSaveTxs          chan []*models.Transaction
-	jobSaveTxsOutput    chan []*models.Transaction
-	jobSaveValidatorTxs chan []*models.TransactionValidator
-	jobSaveInvalidTxs   chan []*models.InvalidTransaction
-	jobUpdateWaitList   chan *models.Transaction
-	jobUnbondSaver      chan *models.Transaction
-	logger              *logrus.Entry
+	env                    *env.ExtenderEnvironment
+	txRepository           *Repository
+	addressRepository      *address.Repository
+	validatorRepository    *validator.Repository
+	coinRepository         *coin.Repository
+	coinService            *coin.Service
+	broadcastService       *broadcast.Service
+	jobSaveTxs             chan []*models.Transaction
+	jobSaveTxsOutput       chan []*models.Transaction
+	jobSaveValidatorTxs    chan []*models.TransactionValidator
+	jobSaveInvalidTxs      chan []*models.InvalidTransaction
+	jobUpdateWaitList      chan *models.Transaction
+	jobUnbondSaver         chan *models.Transaction
+	jobUpdateLiquidityPool chan *api_pb.BlockResponse_Transaction
+	logger                 *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
-	jobUnbondSaver chan *models.Transaction) *Service {
+	jobUnbondSaver chan *models.Transaction, jobUpdateLiquidityPool chan *api_pb.BlockResponse_Transaction) *Service {
 	return &Service{
-		env:                 env,
-		txRepository:        repository,
-		coinRepository:      coinRepository,
-		addressRepository:   addressRepository,
-		coinService:         coinService,
-		validatorRepository: validatorRepository,
-		broadcastService:    broadcastService,
-		jobSaveTxs:          make(chan []*models.Transaction, env.WrkSaveTxsCount),
-		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
-		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
-		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
-		jobUpdateWaitList:   jobUpdateWaitList,
-		jobUnbondSaver:      jobUnbondSaver,
-		logger:              logger,
+		env:                    env,
+		txRepository:           repository,
+		coinRepository:         coinRepository,
+		addressRepository:      addressRepository,
+		coinService:            coinService,
+		validatorRepository:    validatorRepository,
+		broadcastService:       broadcastService,
+		jobSaveTxs:             make(chan []*models.Transaction, env.WrkSaveTxsCount),
+		jobSaveTxsOutput:       make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
+		jobSaveValidatorTxs:    make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
+		jobSaveInvalidTxs:      make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
+		jobUpdateWaitList:      jobUpdateWaitList,
+		jobUnbondSaver:         jobUnbondSaver,
+		jobUpdateLiquidityPool: jobUpdateLiquidityPool,
+		logger:                 logger,
 	}
 }
 
@@ -89,6 +91,16 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				return err
 			}
 			txList = append(txList, txn)
+
+			switch transaction.Type(tx.Type) {
+			case transaction.TypeBuySwapPool,
+				transaction.TypeSellSwapPool,
+				transaction.TypeSellAllSwapPool,
+				transaction.TypeAddSwapPool,
+				transaction.TypeRemoveSwapPool:
+				s.jobUpdateLiquidityPool <- tx
+			}
+
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
@@ -184,12 +196,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	)
 
 	for _, tx := range txList {
-		if tx.ID == 0 {
-			return errors.New("no transaction id")
-		}
-
-		idsList = append(idsList, tx.ID)
-
 		if transaction.Type(tx.Type) != transaction.TypeSend &&
 			transaction.Type(tx.Type) != transaction.TypeMultisend &&
 			transaction.Type(tx.Type) != transaction.TypeRedeemCheck &&
@@ -199,6 +205,12 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			transaction.Type(tx.Type) != transaction.TypeDelegate {
 			continue
 		}
+
+		if tx.ID == 0 {
+			return errors.New("no transaction id")
+		}
+
+		idsList = append(idsList, tx.ID)
 
 		if transaction.Type(tx.Type) == transaction.TypeSend {
 			txData := new(api_pb.SendData)

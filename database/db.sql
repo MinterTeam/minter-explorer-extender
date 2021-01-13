@@ -232,3 +232,23 @@ CREATE INDEX checks_transaction_id_index ON checks USING btree (transaction_id);
 CREATE INDEX checks_from_address_id_index ON checks USING btree (from_address_id);
 CREATE INDEX checks_to_address_id_index ON checks USING btree (to_address_id);
 CREATE INDEX checks_check_index ON checks USING btree (data);
+
+CREATE TABLE liquidity_pools
+(
+    id                 serial,
+    first_coin_id      integer         NOT NULL references coins (id),
+    second_coin_id     integer         NOT NULL references coins (id),
+    first_coin_volume  numeric(100, 0) NOT NULL,
+    second_coin_volume numeric(100, 0) NOT NULL,
+    liquidity          numeric(100, 0) NOT NULL,
+    unique (first_coin_id, second_coin_id)
+);
+CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);
+CREATE INDEX liquidity_pools_second_coin_id_index ON liquidity_pools USING btree (second_coin_id);
+
+CREATE TABLE address_liquidity_pools
+(
+    address_id        bigint not null,
+    liquidity_pool_id int    not null,
+    unique (address_id, liquidity_pool_id)
+);
