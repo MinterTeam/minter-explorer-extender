@@ -147,7 +147,8 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		}
 
 		s.GetSaveTxsOutputJobChannel() <- transactions
-		go s.broadcastService.PublishTransactions(transactions)
+		//TODO: enable in prod
+		//go s.broadcastService.PublishTransactions(transactions)
 	}
 }
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {
