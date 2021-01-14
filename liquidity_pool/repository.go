@@ -20,6 +20,33 @@ func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
 	return err
 }
 
+func (r *Repository) LinkAddressLiquidityPool(addressId uint, liquidityPoolId uint64) error {
+	addressLiquidityPool := &models.AddressLiquidityPool{
+		LiquidityPoolId: liquidityPoolId,
+		AddressId:       uint64(addressId),
+	}
+	_, err := r.db.Model(addressLiquidityPool).OnConflict("(address_id, liquidity_pool_id) DO NOTHING").Insert()
+	return err
+}
+
+func (r *Repository) GetAddressLiquidityPool(addressId uint, liquidityPoolId uint64) (*models.AddressLiquidityPool, error) {
+	var alp = new(models.AddressLiquidityPool)
+	err := r.db.Model(alp).Where("address_id = ? AND liquidity_pool_id = ?", addressId, liquidityPoolId).Select()
+	return alp, err
+}
+
+func (r *Repository) UpdateAddressLiquidityPool(alp *models.AddressLiquidityPool) error {
+	_, err := r.db.Model(alp).OnConflict("(address_id, liquidity_pool_id) DO UPDATE").Insert()
+	return err
+}
+
+func (r *Repository) DeleteAddressLiquidityPool(addressId uint, liquidityPoolId uint64) error {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM address_liquidity_pools WHERE address_id = ? and liquidity_pool_id = ?;
+	`, addressId, liquidityPoolId)
+	return err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,

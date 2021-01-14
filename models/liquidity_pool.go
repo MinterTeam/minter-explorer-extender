@@ -12,4 +12,5 @@ type LiquidityPool struct {
 type AddressLiquidityPool struct {
 	LiquidityPoolId uint64 `json:"liquidity_pool_id"`
 	AddressId       uint64 `json:"address_id"`
+	Liquidity       string `json:"liquidity"`
 }

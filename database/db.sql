@@ -248,7 +248,8 @@ CREATE INDEX liquidity_pools_second_coin_id_index ON liquidity_pools USING btree
 
 CREATE TABLE address_liquidity_pools
 (
-    address_id        bigint not null,
-    liquidity_pool_id int    not null,
+    address_id        bigint          not null,
+    liquidity_pool_id int             not null,
+    liquidity         numeric(100, 0) not null,
     unique (address_id, liquidity_pool_id)
 );
