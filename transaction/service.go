@@ -765,8 +765,8 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeEditCommission:
-		txData := new(api_pb.EditCommissionData)
+	case transaction.TypeEditCommissionCandidate:
+		txData := new(api_pb.EditCandidateCommission)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
