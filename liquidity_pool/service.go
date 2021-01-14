@@ -20,9 +20,10 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.BlockResponse_Tr
 	for tx := range jobs {
 		var err error
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeBuySwapPool:
-		case transaction.TypeSellSwapPool:
-		case transaction.TypeSellAllSwapPool:
+		case transaction.TypeBuySwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeSellAllSwapPool:
+			err = s.updateVolumes(tx)
 		case transaction.TypeAddSwapPool:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeRemoveSwapPool:
@@ -73,6 +74,8 @@ func (s *Service) addToLiquidityPool(tx *api_pb.BlockResponse_Transaction) error
 	secondCoinVolume.Add(secondCoinVolume, volume1)
 
 	lp.Liquidity = txTags["tx.liquidity"]
+	lp.FirstCoinId = txData.Coin0.Id
+	lp.SecondCoinId = txData.Coin1.Id
 
 	return s.repository.UpdateLiquidityPool(lp)
 }
@@ -111,8 +114,15 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.BlockResponse_Transaction) 
 	secondCoinVolume.Sub(secondCoinVolume, volume1)
 
 	lp.Liquidity = txData.Liquidity
+	lp.FirstCoinId = txData.Coin0.Id
+	lp.SecondCoinId = txData.Coin1.Id
 
 	return s.repository.UpdateLiquidityPool(lp)
+}
+
+func (s *Service) updateVolumes(tx *api_pb.BlockResponse_Transaction) error {
+	//todo
+	return nil
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
