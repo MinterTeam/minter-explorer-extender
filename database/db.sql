@@ -154,25 +154,13 @@ CREATE TABLE index_transaction_by_address
 (
     block_id       bigint NOT NULL references blocks (id),
     address_id     bigint NOT NULL references addresses (id),
-    transaction_id bigint NOT NULL references transactions (id)
+    transaction_id bigint NOT NULL references transactions (id),
+    unique (block_id, address_id, transaction_id)
 );
 
 CREATE INDEX index_transaction_by_address_address_id_index ON index_transaction_by_address USING btree (address_id);
 CREATE INDEX index_transaction_by_address_block_id_address_id_index ON index_transaction_by_address USING btree (block_id, address_id);
 CREATE INDEX index_transaction_by_address_transaction_id_index ON index_transaction_by_address USING btree (transaction_id);
-
-
-CREATE TABLE rewards
-(
-    address_id   bigint         NOT NULL references addresses (id),
-    block_id     bigint         NOT NULL references blocks (id),
-    validator_id integer        NOT NULL references validators (id),
-    role         rewards_role   NOT NULL,
-    amount       numeric(70, 0) NOT NULL
-);
--- CREATE INDEX rewards_address_id_index ON rewards USING btree (address_id);
--- CREATE INDEX rewards_block_id_index ON rewards USING btree (block_id);
--- CREATE INDEX rewards_validator_id_index ON rewards USING btree (validator_id);
 
 CREATE TABLE aggregated_rewards
 (

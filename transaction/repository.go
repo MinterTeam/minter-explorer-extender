@@ -41,7 +41,7 @@ func (r *Repository) SaveAllTxOutputs(output []*models.TransactionOutput) error 
 	return err
 }
 
-func (r *Repository) SaveRedeemedChecks(list []*models.Checks) error {
+func (r *Repository) SaveRedeemedChecks(list []*models.Check) error {
 	_, err := r.db.Model(&list).OnConflict("DO NOTHING").Insert()
 	return err
 }

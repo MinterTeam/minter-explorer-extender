@@ -120,7 +120,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		env:                 env,
 		nodeApi:             nodeApi,
 		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, balanceRepository, contextLogger),
+		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, contextLogger),
 		blockRepository:     blockRepository,
 		validatorService:    validatorService,
 		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel()),
@@ -154,7 +154,10 @@ func (ext *Extender) Run() {
 	// ----- Workers -----
 	ext.runWorkers()
 
-	lastExplorerBlock, _ := ext.blockRepository.GetLastFromDB()
+	lastExplorerBlock, err := ext.blockRepository.GetLastFromDB()
+	if err != nil && err != pg.ErrNoRows {
+		ext.logger.Fatal(err)
+	}
 
 	if lastExplorerBlock != nil {
 		height = lastExplorerBlock.ID + 1
@@ -179,6 +182,10 @@ func (ext *Extender) Run() {
 
 		//Pulling events
 		startGettingEvents := time.Now()
+		eventsHeight := height - 1
+		if eventsHeight == 0 {
+			eventsHeight = 1
+		}
 		eventsResponse, err := ext.nodeApi.Events(height)
 		if err != nil {
 			ext.logger.Panic(err)
@@ -190,9 +197,6 @@ func (ext *Extender) Run() {
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
 		ext.handleBlockResponse(blockResponse)
 
-		if height%ext.env.RewardAggregateEveryBlocksCount == 0 {
-			go ext.eventService.AggregateRewards(ext.env.RewardAggregateTimeInterval, uint64(height))
-		}
 		go ext.handleEventResponse(height, eventsResponse)
 
 		elapsed := time.Since(start)
