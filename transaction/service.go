@@ -192,7 +192,7 @@ func (s *Service) UpdateTxsIndexWorker() {
 func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	var (
 		list      []*models.TransactionOutput
-		checkList []*models.Checks
+		checkList []*models.Check
 		idsList   []uint64
 	)
 
@@ -279,7 +279,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 				return err
 			}
 
-			checkList = append(checkList, &models.Checks{
+			checkList = append(checkList, &models.Check{
 				TransactionID: tx.ID,
 				Data:          hex.EncodeToString(rawCheck),
 				ToAddressId:   toId,
