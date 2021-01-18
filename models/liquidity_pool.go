@@ -12,9 +12,9 @@ type LiquidityPool struct {
 }
 
 type AddressLiquidityPool struct {
-	LiquidityPoolId uint64         `json:"liquidity_pool_id"`
-	AddressId       uint64         `json:"address_id"`
+	LiquidityPoolId uint64         `json:"liquidity_pool_id" pg:",pk"`
+	AddressId       uint64         `json:"address_id"        pg:",pk"`
 	Liquidity       string         `json:"liquidity"`
-	Address         *Address       `json:"first_coin"      pg:"fk:address_id"`
-	LiquidityPool   *LiquidityPool `json:"liquidity_pool"  pg:"fk:liquidity_pool_id"`
+	Address         *Address       `json:"first_coin"        pg:"fk:address_id"`
+	LiquidityPool   *LiquidityPool `json:"liquidity_pool"    pg:"fk:liquidity_pool_id"`
 }
