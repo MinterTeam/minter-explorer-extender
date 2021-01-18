@@ -253,3 +253,6 @@ CREATE TABLE address_liquidity_pools
     liquidity         numeric(100, 0) not null,
     unique (address_id, liquidity_pool_id)
 );
+
+CREATE INDEX address_liquidity_address_id_index ON address_liquidity_pools USING btree (address_id);
+CREATE INDEX address_liquidity_liquidity_pool_id_index ON address_liquidity_pools USING btree (liquidity_pool_id);
