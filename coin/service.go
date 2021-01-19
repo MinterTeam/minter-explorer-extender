@@ -93,7 +93,7 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 	return coins, nil
 }
 
-func (s *Service) ExtractFromTx(tx *api_pb.BlockResponse_Transaction, blockId uint64) (*models.Coin, error) {
+func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) (*models.Coin, error) {
 	var txData = new(api_pb.CreateCoinData)
 	err := tx.Data.UnmarshalTo(txData)
 	if err != nil {

@@ -367,7 +367,7 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	}
 }
 
-func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) {
+func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.TransactionResponse) {
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	if err != nil {

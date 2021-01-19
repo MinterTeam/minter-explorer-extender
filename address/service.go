@@ -45,7 +45,7 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	}
 }
 
-func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.BlockResponse_Transaction) ([]string, error, map[string]struct{}) {
+func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.TransactionResponse) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, tx := range transactions {
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}

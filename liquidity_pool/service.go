@@ -14,10 +14,10 @@ type Service struct {
 	repository             *Repository
 	addressRepository      *address.Repository
 	logger                 *logrus.Entry
-	jobUpdateLiquidityPool chan *api_pb.BlockResponse_Transaction
+	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
 }
 
-func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.BlockResponse_Transaction) {
+func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionResponse) {
 	for tx := range jobs {
 		var err error
 		switch transaction.Type(tx.Type) {
@@ -25,9 +25,9 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.BlockResponse_Tr
 			transaction.TypeSellSwapPool,
 			transaction.TypeSellAllSwapPool:
 			err = s.updateVolumes(tx)
-		case transaction.TypeAddSwapPool:
+		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
-		case transaction.TypeRemoveSwapPool:
+		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
 		}
 
@@ -37,12 +37,12 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.BlockResponse_Tr
 	}
 }
 
-func (s *Service) JobUpdateLiquidityPoolChannel() chan *api_pb.BlockResponse_Transaction {
+func (s *Service) JobUpdateLiquidityPoolChannel() chan *api_pb.TransactionResponse {
 	return s.jobUpdateLiquidityPool
 }
 
-func (s *Service) addToLiquidityPool(tx *api_pb.BlockResponse_Transaction) error {
-	txData := new(api_pb.AddSwapPoolData)
+func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.AddLiquidityData)
 	if err := tx.GetData().UnmarshalTo(txData); err != nil {
 		return err
 	}
@@ -135,8 +135,8 @@ func (s *Service) addToLiquidityPool(tx *api_pb.BlockResponse_Transaction) error
 	return s.repository.UpdateAddressLiquidityPool(alp)
 }
 
-func (s *Service) removeFromLiquidityPool(tx *api_pb.BlockResponse_Transaction) error {
-	txData := new(api_pb.RemoveSwapPoolData)
+func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.RemoveLiquidityData)
 	if err := tx.GetData().UnmarshalTo(txData); err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.BlockResponse_Transaction) 
 	}
 }
 
-func (s *Service) updateVolumes(tx *api_pb.BlockResponse_Transaction) error {
+func (s *Service) updateVolumes(tx *api_pb.TransactionResponse) error {
 	//todo
 	return nil
 }
@@ -239,6 +239,6 @@ func NewService(repository *Repository, addressRepository *address.Repository, l
 		repository:             repository,
 		addressRepository:      addressRepository,
 		logger:                 logger,
-		jobUpdateLiquidityPool: make(chan *api_pb.BlockResponse_Transaction, 1),
+		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
 	}
 }

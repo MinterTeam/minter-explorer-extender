@@ -36,14 +36,14 @@ type Service struct {
 	jobSaveInvalidTxs      chan []*models.InvalidTransaction
 	jobUpdateWaitList      chan *models.Transaction
 	jobUnbondSaver         chan *models.Transaction
-	jobUpdateLiquidityPool chan *api_pb.BlockResponse_Transaction
+	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
 	logger                 *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
-	jobUnbondSaver chan *models.Transaction, jobUpdateLiquidityPool chan *api_pb.BlockResponse_Transaction) *Service {
+	jobUnbondSaver chan *models.Transaction, jobUpdateLiquidityPool chan *api_pb.TransactionResponse) *Service {
 	return &Service{
 		env:                    env,
 		txRepository:           repository,
@@ -78,7 +78,7 @@ func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValid
 
 //Handle response and save block to DB
 func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
-	transactions []*api_pb.BlockResponse_Transaction) error {
+	transactions []*api_pb.TransactionResponse) error {
 
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction
@@ -96,8 +96,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			case transaction.TypeBuySwapPool,
 				transaction.TypeSellSwapPool,
 				transaction.TypeSellAllSwapPool,
-				transaction.TypeAddSwapPool,
-				transaction.TypeRemoveSwapPool:
+				transaction.TypeAddLiquidity,
+				transaction.TypeRemoveLiquidity:
 				s.jobUpdateLiquidityPool <- tx
 			}
 
@@ -376,7 +376,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	return nil
 }
 
-func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
+func (s *Service) handleValidTransaction(tx *api_pb.TransactionResponse, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -423,7 +423,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 	}, nil
 }
 
-func (s *Service) handleInvalidTransaction(tx *api_pb.BlockResponse_Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
+func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -715,8 +715,8 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeAddSwapPool:
-		txData := new(api_pb.AddSwapPoolData)
+	case transaction.TypeAddLiquidity:
+		txData := new(api_pb.AddLiquidityData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
@@ -725,8 +725,8 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeRemoveSwapPool:
-		txData := new(api_pb.RemoveSwapPoolData)
+	case transaction.TypeRemoveLiquidity:
+		txData := new(api_pb.RemoveLiquidityData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
