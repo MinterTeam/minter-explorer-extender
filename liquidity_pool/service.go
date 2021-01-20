@@ -21,10 +21,10 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 	for tx := range jobs {
 		var err error
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeBuySwapPool,
-			transaction.TypeSellSwapPool,
-			transaction.TypeSellAllSwapPool:
-			err = s.updateVolumes(tx)
+		case transaction.TypeBuySwapPool:
+			err = s.updateVolumesBuySwapPool(tx)
+		case transaction.TypeSellSwapPool:
+		case transaction.TypeSellAllSwapPool:
 		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
@@ -229,9 +229,55 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	}
 }
 
-func (s *Service) updateVolumes(tx *api_pb.TransactionResponse) error {
-	//todo
-	return nil
+func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error {
+
+	txData := new(api_pb.BuySwapPoolData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	txTags := tx.GetTags()
+
+	var (
+		firstCoinId, secondCoinId   uint64
+		firstCoinVol, secondCoinVol string
+	)
+
+	if txData.CoinToBuy.Id < txData.CoinToSell.Id {
+		firstCoinId = txData.CoinToBuy.Id
+		firstCoinVol = txData.ValueToBuy
+		secondCoinId = txData.CoinToSell.Id
+		secondCoinVol = txTags["tx.return"]
+	} else {
+		firstCoinId = txData.CoinToSell.Id
+		firstCoinVol = txTags["tx.return"]
+		secondCoinId = txData.CoinToBuy.Id
+		secondCoinVol = txData.ValueToBuy
+	}
+
+	lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+	if err != nil {
+		return err
+	}
+
+	lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+	txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
+
+	lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+	txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
+
+	if txData.CoinToBuy.Id < txData.CoinToSell.Id {
+		lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
+		lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+	} else {
+		lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+		lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
+	}
+
+	lp.FirstCoinVolume = lpFirstCoinVol.String()
+	lp.SecondCoinVolume = lpSecondCoinVol.String()
+
+	return s.repository.UpdateLiquidityPool(lp)
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
