@@ -282,7 +282,42 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, height uint64) err
 		Reserve:          data.InitialReserve,
 		Symbol:           data.Symbol,
 		MaxSupply:        data.MaxSupply,
+		Burnable:         false,
+		Mintable:         false,
 		CreatedAtBlockId: uint(height),
+		Version:          0,
+	}
+
+	for _, c := range coins {
+		if c.Version == 0 {
+			c.Version = uint(len(coins))
+			err = s.repository.Update(&c)
+			if err != nil {
+				return err
+			}
+			newCoin.OwnerAddressId = c.OwnerAddressId
+			break
+		}
+	}
+	s.repository.RemoveFromCacheBySymbol(data.Symbol)
+	err = s.repository.Add(newCoin)
+	return err
+}
+func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, height uint64) error {
+	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
+	if err != nil {
+		return err
+	}
+	s.lastCoinId += 1
+	newCoin := &models.Coin{
+		ID:               s.lastCoinId,
+		Name:             data.Name,
+		Volume:           data.InitialAmount,
+		Symbol:           data.Symbol,
+		MaxSupply:        data.MaxSupply,
+		CreatedAtBlockId: uint(height),
+		Burnable:         data.Burnable,
+		Mintable:         data.Mintable,
 		Version:          0,
 	}
 
