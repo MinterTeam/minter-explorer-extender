@@ -237,7 +237,7 @@ CREATE INDEX checks_check_index ON checks USING btree (data);
 
 CREATE TABLE liquidity_pools
 (
-    id                 serial,
+    id                 serial primary key,
     first_coin_id      integer         NOT NULL references coins (id),
     second_coin_id     integer         NOT NULL references coins (id),
     first_coin_volume  numeric(100, 0) NOT NULL,
@@ -250,8 +250,8 @@ CREATE INDEX liquidity_pools_second_coin_id_index ON liquidity_pools USING btree
 
 CREATE TABLE address_liquidity_pools
 (
-    address_id        bigint          not null,
-    liquidity_pool_id int             not null,
+    address_id        bigint          not null references addresses (id),
+    liquidity_pool_id int             not null references liquidity_pools (id),
     liquidity         numeric(100, 0) not null,
     unique (address_id, liquidity_pool_id)
 );
