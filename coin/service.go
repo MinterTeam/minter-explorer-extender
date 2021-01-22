@@ -69,7 +69,7 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 			continue
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeCreateCoin {
+		if transaction.Type(tx.Type) == transaction.TypeCreateCoin || transaction.Type(tx.Type) == transaction.TypeCreateToken {
 			coin, err := s.ExtractFromTx(tx, block.Height)
 			if err != nil {
 				return nil, err
@@ -94,24 +94,48 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 }
 
 func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) (*models.Coin, error) {
-	var txData = new(api_pb.CreateCoinData)
-	err := tx.Data.UnmarshalTo(txData)
-	if err != nil {
-		return nil, err
-	}
 
 	s.lastCoinId += 1
 
-	coin := &models.Coin{
-		ID:               s.lastCoinId,
-		Crr:              uint(txData.ConstantReserveRatio),
-		Volume:           txData.InitialAmount,
-		Reserve:          txData.InitialReserve,
-		MaxSupply:        txData.MaxSupply,
-		Name:             txData.Name,
-		Symbol:           txData.Symbol,
-		CreatedAtBlockId: uint(blockId),
-		Version:          0,
+	var coin = new(models.Coin)
+
+	switch transaction.Type(tx.Type) {
+	case transaction.TypeCreateCoin:
+		var txData = new(api_pb.CreateCoinData)
+		err := tx.Data.UnmarshalTo(txData)
+		if err != nil {
+			return nil, err
+		}
+		coin = &models.Coin{
+			ID:               s.lastCoinId,
+			Crr:              uint(txData.ConstantReserveRatio),
+			Volume:           txData.InitialAmount,
+			Reserve:          txData.InitialReserve,
+			MaxSupply:        txData.MaxSupply,
+			Name:             txData.Name,
+			Symbol:           txData.Symbol,
+			CreatedAtBlockId: uint(blockId),
+			Burnable:         false,
+			Mintable:         false,
+			Version:          0,
+		}
+	case transaction.TypeCreateToken:
+		var txData = new(api_pb.CreateTokenData)
+		err := tx.Data.UnmarshalTo(txData)
+		if err != nil {
+			return nil, err
+		}
+		coin = &models.Coin{
+			ID:               s.lastCoinId,
+			Volume:           txData.InitialAmount,
+			MaxSupply:        txData.MaxSupply,
+			Name:             txData.Name,
+			Symbol:           txData.Symbol,
+			CreatedAtBlockId: uint(blockId),
+			Burnable:         txData.Mintable,
+			Mintable:         txData.Mintable,
+			Version:          0,
+		}
 	}
 
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))

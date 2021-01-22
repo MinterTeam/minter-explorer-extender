@@ -16,6 +16,8 @@ type Coin struct {
 	Version          uint       `json:"version"    pg:",use_zero"`
 	OwnerAddressId   uint       `json:"owner_address"`
 	CreatedAtBlockId uint       `json:"created_at_block_id"`
+	Burnable         bool       `json:"burnable"`
+	Mintable         bool       `json:"mintable"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`
 	DeletedAt        *time.Time `pg:",soft_delete"`
