@@ -188,6 +188,10 @@ func (ext *Extender) Run() {
 
 		//Pulling events
 		startGettingEvents := time.Now()
+		eventsHeight := height - 120
+		if eventsHeight <= 0 {
+			eventsHeight = 1
+		}
 		eventsResponse, err := ext.nodeApi.Events(height)
 		if err != nil {
 			ext.logger.Panic(err)
