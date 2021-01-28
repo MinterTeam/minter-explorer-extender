@@ -92,6 +92,11 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			}
 			txList = append(txList, txn)
 
+			tags := tx.GetTags()
+			if tx.GasCoin.Id != 0 && tags["tx.commission_conversion"] == "pool" {
+				s.jobUpdateLiquidityPool <- tx
+			}
+
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeBuySwapPool,
 				transaction.TypeSellSwapPool,
@@ -99,11 +104,6 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				transaction.TypeAddLiquidity,
 				transaction.TypeRemoveLiquidity:
 				s.jobUpdateLiquidityPool <- tx
-			default:
-				tags := tx.GetTags()
-				if tx.GasCoin.Id != 0 && tags["tx.commission_conversion"] == "pool" {
-					s.jobUpdateLiquidityPool <- tx
-				}
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
