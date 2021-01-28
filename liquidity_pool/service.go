@@ -31,6 +31,8 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
+		default:
+			err = s.updateVolumesByCommission(tx)
 		}
 
 		if err != nil {
@@ -377,6 +379,32 @@ func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) e
 		lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 		lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 	}
+
+	lp.FirstCoinVolume = lpFirstCoinVol.String()
+	lp.SecondCoinVolume = lpSecondCoinVol.String()
+
+	return s.repository.UpdateLiquidityPool(lp)
+}
+
+func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) error {
+	tags := tx.GetTags()
+	if tx.GasCoin.Id == 0 || tags["tx.commission_conversion"] != "pool" {
+		return nil
+	}
+
+	lp, err := s.repository.getLiquidityPoolByCoinIds(0, tx.GasCoin.Id)
+	if err != nil {
+		return err
+	}
+
+	bipCommission, _ := big.NewInt(0).SetString(tags["tx.commission_in_base_coin"], 10)
+	coinCommission, _ := big.NewInt(0).SetString(tags["tx.commission_amount"], 10)
+
+	lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+	lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+
+	lpFirstCoinVol.Sub(lpFirstCoinVol, bipCommission)
+	lpSecondCoinVol.Add(lpSecondCoinVol, coinCommission)
 
 	lp.FirstCoinVolume = lpFirstCoinVol.String()
 	lp.SecondCoinVolume = lpSecondCoinVol.String()

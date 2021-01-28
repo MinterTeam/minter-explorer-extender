@@ -99,8 +99,12 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				transaction.TypeAddLiquidity,
 				transaction.TypeRemoveLiquidity:
 				s.jobUpdateLiquidityPool <- tx
+			default:
+				tags := tx.GetTags()
+				if tx.GasCoin.Id != 0 && tags["tx.commission_conversion"] == "pool" {
+					s.jobUpdateLiquidityPool <- tx
+				}
 			}
-
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
