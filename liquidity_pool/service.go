@@ -29,6 +29,8 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 			err = s.updateVolumesSellAllSwapPool(tx)
 		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
+		case transaction.TypeCreateSwapPool:
+			err = s.addToLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
 		default:
@@ -69,6 +71,45 @@ func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
 		secondCoinId = txData.Coin0.Id
 		secondCoinVol = txData.Volume0
 	}
+
+	return s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+}
+
+func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.CreateSwapPoolData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	txTags := tx.GetTags()
+
+	var (
+		firstCoinId, secondCoinId   uint64
+		firstCoinVol, secondCoinVol string
+	)
+
+	if txData.Coin0.Id < txData.Coin1.Id {
+		firstCoinId = txData.Coin0.Id
+		firstCoinVol = txData.Volume0
+		secondCoinId = txData.Coin1.Id
+		secondCoinVol = txData.Volume1
+	} else {
+		firstCoinId = txData.Coin1.Id
+		firstCoinVol = txData.Volume1
+		secondCoinId = txData.Coin0.Id
+		secondCoinVol = txData.Volume0
+	}
+
+	//err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	//
+	//if err!= nil{
+	//	return err
+	//}
+
+	return s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+}
+
+func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, secondCoinVol, txFrom string, txTags map[string]string) error {
 
 	lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
 	if err != nil && err != pg.ErrNoRows {
@@ -115,7 +156,7 @@ func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+	addressId, err := s.addressRepository.FindIdOrCreate(txFrom)
 	if err != nil {
 		return err
 	}
