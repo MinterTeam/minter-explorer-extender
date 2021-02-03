@@ -2,17 +2,21 @@ package liquidity_pool
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
+	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math/big"
+	"strconv"
+	"strings"
 )
 
 type Service struct {
 	repository             *Repository
 	addressRepository      *address.Repository
+	coinService            *coin.Service
 	logger                 *logrus.Entry
 	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
 }
@@ -30,7 +34,7 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeCreateSwapPool:
-			err = s.addToLiquidityPool(tx)
+			err = s.createLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
 		default:
@@ -100,13 +104,12 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		secondCoinVol = txData.Volume0
 	}
 
-	//err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
-	//
-	//if err!= nil{
-	//	return err
-	//}
+	err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	if err != nil {
+		return err
+	}
 
-	return s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	return s.coinService.CreatePoolToken(tx)
 }
 
 func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, secondCoinVol, txFrom string, txTags map[string]string) error {
@@ -145,6 +148,14 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 	txLiquidity, _ := big.NewInt(0).SetString(txTags["tx.liquidity"], 10)
 	liquidity.Add(liquidity, txLiquidity)
 
+	txPoolToken := strings.Split(txTags["tx.pool_token"], "-")
+
+	lpId, err := strconv.ParseUint(txPoolToken[1], 10, 64)
+	if err != nil {
+		return err
+	}
+
+	lp.Id = lpId
 	lp.Liquidity = liquidity.String()
 	lp.FirstCoinId = firstCoinId
 	lp.SecondCoinId = secondCoinId
@@ -453,10 +464,12 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	return s.repository.UpdateLiquidityPool(lp)
 }
 
-func NewService(repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
+func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		repository:             repository,
 		addressRepository:      addressRepository,
+		coinService:            coinService,
 		logger:                 logger,
 		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
 	}

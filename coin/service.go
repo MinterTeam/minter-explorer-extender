@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,15 +24,9 @@ type Service struct {
 	logger                *logrus.Entry
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
-	lastCoinId            uint
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
-	coinId, err := repository.GetLastCoinId()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
@@ -40,7 +35,6 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		logger:                logger,
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
-		lastCoinId:            coinId,
 	}
 }
 
@@ -62,7 +56,6 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 
 func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*models.Coin, error) {
 	var coins []*models.Coin
-	s.UpdateCoinIdCache()
 	for _, tx := range block.Transactions {
 
 		if tx.Log != "" || tx.Code > 0 {
@@ -84,7 +77,7 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 				s.logger.Fatal(err)
 			}
 
-			err := s.RecreateCoin(txData, block.Height)
+			err := s.RecreateCoin(txData, tx.GetTags(), block.Height)
 			if err != nil {
 				s.logger.Fatal(err)
 			}
@@ -94,10 +87,13 @@ func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*m
 }
 
 func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) (*models.Coin, error) {
-
-	s.lastCoinId += 1
-
 	var coin = new(models.Coin)
+
+	txTags := tx.GetTags()
+	coinId, err := strconv.ParseUint(txTags["tx.coin_id"], 10, 64)
+	if err != nil {
+		return nil, err
+	}
 
 	switch transaction.Type(tx.Type) {
 	case transaction.TypeCreateCoin:
@@ -107,7 +103,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 			return nil, err
 		}
 		coin = &models.Coin{
-			ID:               s.lastCoinId,
+			ID:               uint(coinId),
 			Crr:              uint(txData.ConstantReserveRatio),
 			Volume:           txData.InitialAmount,
 			Reserve:          txData.InitialReserve,
@@ -126,7 +122,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 			return nil, err
 		}
 		coin = &models.Coin{
-			ID:               s.lastCoinId,
+			ID:               uint(coinId),
 			Volume:           txData.InitialAmount,
 			MaxSupply:        txData.MaxSupply,
 			Name:             txData.Name,
@@ -268,14 +264,19 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 	return s.repository.UpdateOwnerBySymbol(symbol, id)
 }
 
-func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, height uint64) error {
+func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, txTags map[string]string, height uint64) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
 	if err != nil {
 		return err
 	}
-	s.lastCoinId += 1
+
+	coinId, err := strconv.ParseUint(txTags["tx.coin_id"], 10, 64)
+	if err != nil {
+		return err
+	}
+
 	newCoin := &models.Coin{
-		ID:               s.lastCoinId,
+		ID:               uint(coinId),
 		Crr:              uint(data.ConstantReserveRatio),
 		Name:             data.Name,
 		Volume:           data.InitialAmount,
@@ -303,14 +304,17 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, height uint64) err
 	err = s.repository.Add(newCoin)
 	return err
 }
-func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, height uint64) error {
+func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[string]string, height uint64) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
 	if err != nil {
 		return err
 	}
-	s.lastCoinId += 1
+	coinId, err := strconv.ParseUint(txTags["tx.coin_id"], 10, 64)
+	if err != nil {
+		return err
+	}
 	newCoin := &models.Coin{
-		ID:               s.lastCoinId,
+		ID:               uint(coinId),
 		Name:             data.Name,
 		Volume:           data.InitialAmount,
 		Symbol:           data.Symbol,
@@ -337,10 +341,30 @@ func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, height uint64) e
 	return err
 }
 
-func (s *Service) UpdateCoinIdCache() {
-	coinId, err := s.repository.GetLastCoinId()
+func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) error {
+
+	txTags := tx.GetTags()
+	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {
-		s.logger.Fatal(err)
+		return err
 	}
-	s.lastCoinId = coinId
+
+	c := &models.Coin{
+		ID:        uint(coinId),
+		Name:      txTags["tx.pool_token"],
+		Symbol:    txTags["tx.pool_token"],
+		Volume:    txTags["tx.liquidity"],
+		Crr:       0,
+		Reserve:   "",
+		MaxSupply: "",
+		Version:   0,
+		Burnable:  false,
+		Mintable:  false,
+		CreatedAt: time.Now(),
+	}
+
+	var list []*models.Coin
+	list = append(list, c)
+
+	return s.CreateNewCoins(list)
 }
