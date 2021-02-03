@@ -351,17 +351,18 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 	}
 
 	c := &models.Coin{
-		ID:        uint(coinId),
-		Name:      txTags["tx.pool_token"],
-		Symbol:    txTags["tx.pool_token"],
-		Volume:    txTags["tx.liquidity"],
-		Crr:       0,
-		Reserve:   "",
-		MaxSupply: "",
-		Version:   0,
-		Burnable:  false,
-		Mintable:  false,
-		CreatedAt: time.Now(),
+		ID:               uint(coinId),
+		Name:             txTags["tx.pool_token"],
+		Symbol:           txTags["tx.pool_token"],
+		Volume:           txTags["tx.liquidity"],
+		Crr:              0,
+		Reserve:          "",
+		MaxSupply:        "",
+		Version:          0,
+		Burnable:         false,
+		Mintable:         false,
+		CreatedAtBlockId: uint(tx.Height),
+		CreatedAt:        time.Now(),
 	}
 
 	err = s.repository.Add(c)
