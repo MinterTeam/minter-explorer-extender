@@ -10,8 +10,10 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
+	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -215,6 +217,68 @@ func (s *Service) updateBalances(addresses []string, nodeBalances []*models.Bala
 		}
 	}
 	return nil
+}
+
+func (s *Service) Add(address string, coinID uint, value string) error {
+
+	var b *models.Balance
+
+	addressID, err := s.addressRepository.FindId(address)
+	if err != nil {
+		return err
+	}
+
+	b, err = s.repository.GetByCoinIdAndAddressId(addressID, coinID)
+
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	} else if err != nil && err == pg.ErrNoRows {
+		b = &models.Balance{
+			AddressID: addressID,
+			CoinID:    coinID,
+			Value:     value,
+		}
+	} else {
+		balanceValue, _ := big.NewInt(0).SetString(b.Value, 10)
+		addValue, _ := big.NewInt(0).SetString(value, 10)
+		balanceValue.Add(balanceValue, addValue)
+		b.Value = balanceValue.String()
+	}
+
+	return s.repository.Add(b)
+}
+
+func (s *Service) Sub(address string, coinID uint, value string) error {
+
+	var b *models.Balance
+
+	addressID, err := s.addressRepository.FindId(address)
+	if err != nil {
+		return err
+	}
+
+	b, err = s.repository.GetByCoinIdAndAddressId(addressID, coinID)
+
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	} else if err != nil && err == pg.ErrNoRows {
+		b = &models.Balance{
+			AddressID: addressID,
+			CoinID:    coinID,
+			Value:     value,
+		}
+	} else {
+		balanceValue, _ := big.NewInt(0).SetString(b.Value, 10)
+		addValue, _ := big.NewInt(0).SetString(value, 10)
+		balanceValue.Sub(balanceValue, addValue)
+		b.Value = balanceValue.String()
+	}
+
+	if b.Value == "0" {
+		return s.repository.Delete(b.AddressID, b.CoinID)
+	} else {
+		return s.repository.Add(b)
+	}
 }
 
 func makeAddressBalanceMap(balances []*models.Balance) map[uint]map[uint]*models.Balance {

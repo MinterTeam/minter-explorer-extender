@@ -1,5 +1,7 @@
 package models
 
+import "fmt"
+
 type LiquidityPool struct {
 	Id               uint64 `json:"id"`
 	FirstCoinId      uint64 `json:"first_coin_id"  pg:",use_zero"`
@@ -17,4 +19,8 @@ type AddressLiquidityPool struct {
 	Liquidity       string         `json:"liquidity"`
 	Address         *Address       `json:"first_coin"        pg:"fk:address_id"`
 	LiquidityPool   *LiquidityPool `json:"liquidity_pool"    pg:"fk:liquidity_pool_id"`
+}
+
+func (lp *LiquidityPool) GetTokenSymbol() string {
+	return fmt.Sprintf("P-%d", lp.Id)
 }

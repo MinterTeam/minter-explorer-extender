@@ -45,3 +45,20 @@ func (r *Repository) DeleteByCoinId(coinId uint) error {
 	_, err := r.db.Model(new(models.Balance)).Where("id = ?", coinId).Delete()
 	return err
 }
+
+func (r *Repository) Add(balance *models.Balance) error {
+	_, err := r.db.Model(&balance).OnConflict("(address_id, coin_id) DO UPDATE").Insert()
+	return err
+}
+
+func (r *Repository) GetByCoinIdAndAddressId(addressID, coinID uint) (*models.Balance, error) {
+	b := new(models.Balance)
+	err := r.db.Model(b).Where("address_id = ? and coin_id = ?", addressID, coinID).Select()
+	return b, err
+}
+
+func (r *Repository) Delete(addressID, coinID uint) error {
+	b := new(models.Balance)
+	_, err := r.db.Model(b).Where("address_id = ? and coin_id = ?", addressID, coinID).Delete()
+	return err
+}

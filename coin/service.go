@@ -1,6 +1,7 @@
 package coin
 
 import (
+	"errors"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
@@ -341,12 +342,12 @@ func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[strin
 	return err
 }
 
-func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) error {
+func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin, error) {
 
 	txTags := tx.GetTags()
 	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	c := &models.Coin{
@@ -363,8 +364,22 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) error {
 		CreatedAt: time.Now(),
 	}
 
-	var list []*models.Coin
-	list = append(list, c)
+	err = s.repository.Add(c)
 
-	return s.CreateNewCoins(list)
+	return c, err
+}
+
+func (s *Service) GetBySymbolAndVersion(symbol string, version uint) (*models.Coin, error) {
+	list, err := s.repository.GetCoinBySymbol(symbol)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range list {
+		if c.Version == version {
+			return &c, nil
+		}
+	}
+
+	return nil, errors.New("coin not found")
 }
