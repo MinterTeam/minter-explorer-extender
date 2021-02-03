@@ -166,12 +166,17 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	c, err := s.coinService.CreatePoolToken(tx)
+	_, err = s.coinService.CreatePoolToken(tx)
 	if err != nil {
 		return err
 	}
 
-	return s.balanceService.Add(helpers.RemovePrefix(tx.From), c.ID, txTags["tx.liquidity"])
+	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
+		Height:    tx.Height,
+		Addresses: []string{helpers.RemovePrefix(tx.From)},
+	}
+
+	return nil
 }
 
 func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
@@ -199,17 +204,17 @@ func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
 		secondCoinVol = txData.Volume0
 	}
 
-	lp, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	_, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
 	}
 
-	c, err := s.coinService.GetBySymbolAndVersion(lp.GetTokenSymbol(), 0)
-	if err != nil {
-		return err
+	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
+		Height:    tx.Height,
+		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
 
-	return s.balanceService.Add(helpers.RemovePrefix(tx.From), c.ID, txTags["tx.liquidity"])
+	return err
 }
 
 func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error {
@@ -299,14 +304,9 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	alp.LiquidityPoolId = lp.Id
 	alp.Liquidity = addressLiquidity.String()
 
-	c, err := s.coinService.GetBySymbolAndVersion(lp.GetTokenSymbol(), 0)
-	if err != nil {
-		return err
-	}
-
-	err = s.balanceService.Sub(helpers.RemovePrefix(tx.From), c.ID, txTags["tx.liquidity"])
-	if err != nil {
-		return err
+	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
+		Height:    tx.Height,
+		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
 
 	if addressLiquidity.Cmp(big.NewInt(0)) == 0 {
@@ -496,11 +496,12 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
-	logger *logrus.Entry) *Service {
+	balanceService *balance.Service, logger *logrus.Entry) *Service {
 	return &Service{
 		repository:             repository,
 		addressRepository:      addressRepository,
 		coinService:            coinService,
+		balanceService:         balanceService,
 		logger:                 logger,
 		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
 	}
