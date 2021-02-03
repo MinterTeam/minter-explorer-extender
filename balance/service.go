@@ -223,7 +223,7 @@ func (s *Service) Add(address string, coinID uint, value string) error {
 
 	var b *models.Balance
 
-	addressID, err := s.addressRepository.FindId(address)
+	addressID, err := s.addressRepository.FindIdOrCreate(address)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (s *Service) Sub(address string, coinID uint, value string) error {
 
 	var b *models.Balance
 
-	addressID, err := s.addressRepository.FindId(address)
+	addressID, err := s.addressRepository.FindIdOrCreate(address)
 	if err != nil {
 		return err
 	}
