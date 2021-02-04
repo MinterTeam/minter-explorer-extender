@@ -4,6 +4,8 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-go-sdk/v2/api"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
@@ -99,12 +101,13 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Events {
-		addressValues := event.AsMap()["value"].(map[string]interface{})
-		address := addressValues["address"].(string)
+		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		if err != nil {
+			return nil, mapAddresses
+		}
 
-		if address != "" {
-			addressesHash := helpers.RemovePrefix(address)
-			mapAddresses[addressesHash] = struct{}{}
+		if stake, ok := eventStruct.(api.StakeEvent); ok {
+			mapAddresses[helpers.RemovePrefix(stake.GetAddress())] = struct{}{}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
