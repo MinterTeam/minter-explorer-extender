@@ -448,7 +448,7 @@ func (s *Service) BurnToken(tx *api_pb.TransactionResponse) error {
 	coinVolume, _ := big.NewInt(0).SetString(c.Volume, 10)
 	burnVolume, _ := big.NewInt(0).SetString(txData.Value, 10)
 
-	coinVolume.Add(coinVolume, burnVolume)
+	coinVolume.Sub(coinVolume, burnVolume)
 
 	c.Volume = coinVolume.String()
 
