@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
@@ -30,6 +31,7 @@ type Service struct {
 	coinService         *coin.Service
 	balanceRepository   *balance.Repository
 	blockRepository     *block.Repository
+	broadcastService    *broadcast.Service
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	logger              *logrus.Entry
@@ -37,7 +39,8 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	blockRepository *block.Repository, balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
+	blockRepository *block.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -47,6 +50,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		coinService:         coinService,
 		balanceRepository:   balanceRepository,
 		blockRepository:     blockRepository,
+		broadcastService:    broadcastService,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 		logger:              logger,
@@ -143,6 +147,8 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 
 		case *api.UnbondEvent:
 			continue
+		case *api.UpdateCommissionsEvent:
+			s.broadcastService.PublishCommissions(eventStruct)
 		}
 
 	}
