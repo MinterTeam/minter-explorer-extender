@@ -86,12 +86,60 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 			if err = tx.GetData().UnmarshalTo(txData); err != nil {
 				return err
 			}
-			err = s.RecreateCoin(txData, tx.GetTags(), block.Height)
+
+			coinId, err := strconv.ParseUint(tx.GetTags()["tx.coin_id"], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			newCoin := &models.Coin{
+				ID:               uint(coinId),
+				Crr:              uint(txData.ConstantReserveRatio),
+				Name:             txData.Name,
+				Volume:           txData.InitialAmount,
+				Reserve:          txData.InitialReserve,
+				Symbol:           txData.Symbol,
+				MaxSupply:        txData.MaxSupply,
+				Burnable:         false,
+				Mintable:         false,
+				CreatedAtBlockId: uint(height),
+				Version:          0,
+			}
+
+			err = s.RecreateCoin(newCoin)
 			if err != nil {
 				return err
 			}
 		case transaction.TypeRecreateToken:
-			//TODO
+			txData := new(api_pb.RecreateTokenData)
+			tx.GetData()
+			if err = tx.GetData().UnmarshalTo(txData); err != nil {
+				return err
+			}
+
+			coinId, err := strconv.ParseUint(tx.GetTags()["tx.coin_id"], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			newCoin := &models.Coin{
+				ID:               uint(coinId),
+				Crr:              uint(0),
+				Name:             txData.Name,
+				Volume:           txData.InitialAmount,
+				Reserve:          "0",
+				Symbol:           txData.Symbol,
+				MaxSupply:        txData.MaxSupply,
+				Burnable:         txData.Burnable,
+				Mintable:         txData.Mintable,
+				CreatedAtBlockId: uint(height),
+				Version:          0,
+			}
+
+			err = s.RecreateCoin(newCoin)
+			if err != nil {
+				return err
+			}
 		case transaction.TypeMintToken:
 			err = s.MintToken(tx)
 		case transaction.TypeBurnToken:
@@ -291,29 +339,10 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 	return s.repository.UpdateOwnerBySymbol(symbol, id)
 }
 
-func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, txTags map[string]string, height uint64) error {
-	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
+func (s *Service) RecreateCoin(newCoin *models.Coin) error {
+	coins, err := s.repository.GetCoinBySymbol(newCoin.Symbol)
 	if err != nil {
 		return err
-	}
-
-	coinId, err := strconv.ParseUint(txTags["tx.coin_id"], 10, 64)
-	if err != nil {
-		return err
-	}
-
-	newCoin := &models.Coin{
-		ID:               uint(coinId),
-		Crr:              uint(data.ConstantReserveRatio),
-		Name:             data.Name,
-		Volume:           data.InitialAmount,
-		Reserve:          data.InitialReserve,
-		Symbol:           data.Symbol,
-		MaxSupply:        data.MaxSupply,
-		Burnable:         false,
-		Mintable:         false,
-		CreatedAtBlockId: uint(height),
-		Version:          0,
 	}
 
 	for _, c := range coins {
@@ -327,10 +356,11 @@ func (s *Service) RecreateCoin(data *api_pb.RecreateCoinData, txTags map[string]
 			break
 		}
 	}
-	s.repository.RemoveFromCacheBySymbol(data.Symbol)
+	s.repository.RemoveFromCacheBySymbol(newCoin.Symbol)
 	err = s.repository.Add(newCoin)
 	return err
 }
+
 func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[string]string, height uint64) error {
 	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
 	if err != nil {
