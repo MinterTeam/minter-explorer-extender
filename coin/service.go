@@ -12,6 +12,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -22,17 +23,20 @@ type Service struct {
 	nodeApi               *grpc_client.Client
 	repository            *Repository
 	addressRepository     *address.Repository
+	balanceUpdateChannel  chan<- models.BlockAddresses
 	logger                *logrus.Entry
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
 }
 
-func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository,
+	balanceUpdateChannel chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
 		repository:            repository,
 		addressRepository:     addressRepository,
+		balanceUpdateChannel:  balanceUpdateChannel,
 		logger:                logger,
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
@@ -55,36 +59,58 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 	return s.jobUpdateCoinsFromMap
 }
 
-func (s Service) ExtractCoinsFromTransactions(block *api_pb.BlockResponse) ([]*models.Coin, error) {
+func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 	var coins []*models.Coin
-	for _, tx := range block.Transactions {
+	var err error
+	var addresses []string
+	var height uint64
 
+	for _, tx := range block.Transactions {
 		if tx.Log != "" || tx.Code > 0 {
 			continue
 		}
 
-		if transaction.Type(tx.Type) == transaction.TypeCreateCoin || transaction.Type(tx.Type) == transaction.TypeCreateToken {
+		addresses = append(addresses, helpers.RemovePrefix(tx.From))
+		height = tx.Height
+
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeCreateCoin, transaction.TypeCreateToken:
 			coin, err := s.ExtractFromTx(tx, block.Height)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			coins = append(coins, coin)
-		}
-		if transaction.Type(tx.Type) == transaction.TypeRecreateCoin {
+		case transaction.TypeRecreateCoin:
 			txData := new(api_pb.RecreateCoinData)
 			tx.GetData()
-
-			if err := tx.GetData().UnmarshalTo(txData); err != nil {
-				s.logger.Fatal(err)
+			if err = tx.GetData().UnmarshalTo(txData); err != nil {
+				return err
 			}
-
-			err := s.RecreateCoin(txData, tx.GetTags(), block.Height)
+			err = s.RecreateCoin(txData, tx.GetTags(), block.Height)
 			if err != nil {
-				s.logger.Fatal(err)
+				return err
 			}
+		case transaction.TypeRecreateToken:
+			//TODO
+		case transaction.TypeMintToken:
+			err = s.MintToken(tx)
+		case transaction.TypeBurnToken:
+			//TODO
 		}
 	}
-	return coins, nil
+
+	if len(coins) > 0 {
+		err = s.CreateNewCoins(coins)
+	}
+
+	if len(addresses) > 0 {
+		s.balanceUpdateChannel <- models.BlockAddresses{
+			Height:    height,
+			Addresses: addresses,
+		}
+	}
+
+	return err
 }
 
 func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) (*models.Coin, error) {
@@ -383,4 +409,27 @@ func (s *Service) GetBySymbolAndVersion(symbol string, version uint) (*models.Co
 	}
 
 	return nil, errors.New("coin not found")
+}
+
+func (s *Service) MintToken(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.MintTokenData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	c, err := s.repository.GetById(uint(txData.Coin.Id))
+	if err != nil {
+		return err
+	}
+
+	coinVolume, _ := big.NewInt(0).SetString(c.Volume, 10)
+	addVolume, _ := big.NewInt(0).SetString(txData.Value, 10)
+
+	coinVolume.Add(coinVolume, addVolume)
+
+	c.Volume = coinVolume.String()
+
+	_, err = s.repository.DB.Model(c).WherePK().Update()
+
+	return err
 }

@@ -115,8 +115,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
-	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
+	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, balanceService.GetAddressesChannel(), contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, contextLogger)
 
@@ -304,17 +304,12 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 }
 
 func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
-	if len(block.Transactions) > 0 {
-		coinsList, err := ext.coinService.ExtractCoinsFromTransactions(block)
-		if err != nil {
-			ext.logger.Fatal(err)
-		}
-		if len(coinsList) > 0 {
-			err = ext.coinService.CreateNewCoins(coinsList)
-			if err != nil {
-				ext.logger.Fatal(err)
-			}
-		}
+	if len(block.Transactions) == 0 {
+		return
+	}
+	err := ext.coinService.HandleCoinsFromBlock(block)
+	if err != nil {
+		ext.logger.Fatal(err)
 	}
 }
 
