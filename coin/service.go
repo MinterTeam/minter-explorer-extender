@@ -376,11 +376,16 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 		return nil, err
 	}
 
+	volume := big.NewInt(1000)
+	txLiquidity, _ := big.NewInt(0).SetString(txTags["tx.liquidity"], 10)
+
+	volume.Add(volume, txLiquidity)
+
 	c := &models.Coin{
 		ID:               uint(coinId),
 		Name:             txTags["tx.pool_token"],
 		Symbol:           txTags["tx.pool_token"],
-		Volume:           txTags["tx.liquidity"],
+		Volume:           volume.String(),
 		Crr:              0,
 		Reserve:          "",
 		MaxSupply:        "",

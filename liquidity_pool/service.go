@@ -77,7 +77,7 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 	}
 
 	if lp.Liquidity == "" {
-		liquidity = big.NewInt(0)
+		liquidity = big.NewInt(1000)
 	} else {
 		liquidity, _ = big.NewInt(0).SetString(lp.Liquidity, 10)
 	}
