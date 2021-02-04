@@ -95,7 +95,7 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 		case transaction.TypeMintToken:
 			err = s.MintToken(tx)
 		case transaction.TypeBurnToken:
-			//TODO
+			err = s.BurnToken(tx)
 		}
 	}
 
@@ -426,6 +426,29 @@ func (s *Service) MintToken(tx *api_pb.TransactionResponse) error {
 	addVolume, _ := big.NewInt(0).SetString(txData.Value, 10)
 
 	coinVolume.Add(coinVolume, addVolume)
+
+	c.Volume = coinVolume.String()
+
+	_, err = s.repository.DB.Model(c).WherePK().Update()
+
+	return err
+}
+
+func (s *Service) BurnToken(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.BurnTokenData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	c, err := s.repository.GetById(uint(txData.Coin.Id))
+	if err != nil {
+		return err
+	}
+
+	coinVolume, _ := big.NewInt(0).SetString(c.Volume, 10)
+	burnVolume, _ := big.NewInt(0).SetString(txData.Value, 10)
+
+	coinVolume.Add(coinVolume, burnVolume)
 
 	c.Volume = coinVolume.String()
 
