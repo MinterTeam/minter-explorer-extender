@@ -161,12 +161,18 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		secondCoinVol = txData.Volume0
 	}
 
-	_, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	lp, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.coinService.CreatePoolToken(tx)
+	token, err := s.coinService.CreatePoolToken(tx)
+	if err != nil {
+		return err
+	}
+
+	lp.TokenId = uint64(token.ID)
+	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
 		return err
 	}

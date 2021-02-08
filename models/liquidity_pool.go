@@ -4,6 +4,7 @@ import "fmt"
 
 type LiquidityPool struct {
 	Id               uint64 `json:"id"`
+	TokenId          uint64 `json:"token_id"`
 	FirstCoinId      uint64 `json:"first_coin_id"  pg:",use_zero"`
 	SecondCoinId     uint64 `json:"second_coin_id" pg:",use_zero"`
 	FirstCoinVolume  string `json:"first_coin_volume"`
@@ -11,6 +12,7 @@ type LiquidityPool struct {
 	Liquidity        string `json:"liquidity"`
 	FirstCoin        *Coin  `json:"first_coin"  pg:"fk:first_coin_id"`
 	SecondCoin       *Coin  `json:"second_coin" pg:"fk:second_coin_id"`
+	Token            *Coin  `json:"token"       pg:"fk:token_id"`
 }
 
 type AddressLiquidityPool struct {
