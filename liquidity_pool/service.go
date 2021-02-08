@@ -304,7 +304,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	}
 
 	addressLiquidity, _ := big.NewInt(0).SetString(alp.Liquidity, 10)
-	addressLiquidity.Sub(addressLiquidity, liquidity)
+	addressLiquidity.Sub(addressLiquidity, txLiquidity)
 
 	alp.AddressId = uint64(addressId)
 	alp.LiquidityPoolId = lp.Id

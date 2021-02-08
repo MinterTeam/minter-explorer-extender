@@ -83,7 +83,7 @@ var transformConfig = map[uint8]TransformTxConfig{
 	uint8(transaction.TypeEditCandidatePublicKey): {Model: new(api_pb.EditCandidatePublicKeyData), Resource: data_resources.EditCandidatePublicKey{}},
 	uint8(transaction.TypeAddLiquidity):           {Model: new(api_pb.AddLiquidityData), Resource: data_resources.AddLiquidity{}},
 	uint8(transaction.TypeRemoveLiquidity):        {Model: new(api_pb.RemoveLiquidityData), Resource: data_resources.RemoveLiquidity{}},
-	uint8(transaction.TypeSellSwapPool):           {Model: new(api_pb.SellSwapPoolData), Resource: data_resources.SellAllSwapPool{}},
+	uint8(transaction.TypeSellSwapPool):           {Model: new(api_pb.SellSwapPoolData), Resource: data_resources.SellSwapPool{}},
 	uint8(transaction.TypeBuySwapPool):            {Model: new(api_pb.BuySwapPoolData), Resource: data_resources.BuySwapPool{}},
 	uint8(transaction.TypeSellAllSwapPool):        {Model: new(api_pb.SellAllSwapPoolData), Resource: data_resources.SellAllSwapPool{}},
 	uint8(transaction.TypeMoveStake):              {Model: new(api_pb.MoveStakeData), Resource: data_resources.MoveStake{}},
