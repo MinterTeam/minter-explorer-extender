@@ -98,7 +98,13 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 		return nil, err
 	}
 
+	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	lp.Id = lpId
+	lp.TokenId = coinId
 	lp.Liquidity = liquidity.String()
 	lp.FirstCoinId = firstCoinId
 	lp.SecondCoinId = secondCoinId
@@ -161,18 +167,12 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		secondCoinVol = txData.Volume0
 	}
 
-	lp, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	_, err := s.coinService.CreatePoolToken(tx)
 	if err != nil {
 		return err
 	}
 
-	token, err := s.coinService.CreatePoolToken(tx)
-	if err != nil {
-		return err
-	}
-
-	lp.TokenId = uint64(token.ID)
-	err = s.repository.UpdateLiquidityPool(lp)
+	_, err = s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
 	}
