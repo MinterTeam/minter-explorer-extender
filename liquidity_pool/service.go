@@ -54,6 +54,104 @@ func (s *Service) JobUpdateLiquidityPoolChannel() chan *api_pb.TransactionRespon
 	return s.jobUpdateLiquidityPool
 }
 
+func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.CreateSwapPoolData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	txTags := tx.GetTags()
+
+	var (
+		firstCoinId, secondCoinId   uint64
+		firstCoinVol, secondCoinVol string
+	)
+
+	if txData.Coin0.Id < txData.Coin1.Id {
+		firstCoinId = txData.Coin0.Id
+		firstCoinVol = txData.Volume0
+		secondCoinId = txData.Coin1.Id
+		secondCoinVol = txData.Volume1
+	} else {
+		firstCoinId = txData.Coin1.Id
+		firstCoinVol = txData.Volume1
+		secondCoinId = txData.Coin0.Id
+		secondCoinVol = txData.Volume0
+	}
+
+	_, err := s.coinService.CreatePoolToken(tx)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	if err != nil {
+		return err
+	}
+
+	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
+		Height:    tx.Height,
+		Addresses: []string{helpers.RemovePrefix(tx.From)},
+	}
+
+	return nil
+}
+
+func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
+	txData := new(api_pb.AddLiquidityData)
+	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+		return err
+	}
+
+	txTags := tx.GetTags()
+
+	var (
+		firstCoinId, secondCoinId   uint64
+		firstCoinVol, secondCoinVol string
+	)
+
+	if txData.Coin0.Id < txData.Coin1.Id {
+		firstCoinId = txData.Coin0.Id
+		firstCoinVol = txData.Volume0
+		secondCoinId = txData.Coin1.Id
+		secondCoinVol = txTags["tx.volume1"]
+	} else {
+		firstCoinId = txData.Coin1.Id
+		firstCoinVol = txTags["tx.volume1"]
+		secondCoinId = txData.Coin0.Id
+		secondCoinVol = txData.Volume0
+	}
+
+	_, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	if err != nil {
+		return err
+	}
+
+	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
+		Height:    tx.Height,
+		Addresses: []string{helpers.RemovePrefix(tx.From)},
+	}
+
+	txLiquidity, _ := big.NewInt(0).SetString(txTags["tx.liquidity"], 10)
+	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
+	if err != nil {
+		return err
+	}
+	c, err := s.coinService.Repository.GetById(uint(coinId))
+	if err != nil {
+		return err
+	}
+	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
+	coinLiquidity.Add(coinLiquidity, txLiquidity)
+	c.Volume = coinLiquidity.String()
+	err = s.coinService.Repository.Update(c)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
 func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, secondCoinVol, txFrom string,
 	txTags map[string]string) (*models.LiquidityPool, error) {
 
@@ -138,98 +236,11 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 	alp.Liquidity = addressLiquidity.String()
 
 	err = s.repository.UpdateAddressLiquidityPool(alp)
-
-	c, err := s.coinService.Repository.GetById(uint(coinId))
-	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
-	coinLiquidity.Add(coinLiquidity, txLiquidity)
-	c.Volume = coinLiquidity.String()
-	err = s.coinService.Repository.Update(c)
 	if err != nil {
 		return nil, err
 	}
 
 	return lp, err
-}
-
-func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
-	txData := new(api_pb.CreateSwapPoolData)
-	if err := tx.GetData().UnmarshalTo(txData); err != nil {
-		return err
-	}
-
-	txTags := tx.GetTags()
-
-	var (
-		firstCoinId, secondCoinId   uint64
-		firstCoinVol, secondCoinVol string
-	)
-
-	if txData.Coin0.Id < txData.Coin1.Id {
-		firstCoinId = txData.Coin0.Id
-		firstCoinVol = txData.Volume0
-		secondCoinId = txData.Coin1.Id
-		secondCoinVol = txData.Volume1
-	} else {
-		firstCoinId = txData.Coin1.Id
-		firstCoinVol = txData.Volume1
-		secondCoinId = txData.Coin0.Id
-		secondCoinVol = txData.Volume0
-	}
-
-	_, err := s.coinService.CreatePoolToken(tx)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
-	if err != nil {
-		return err
-	}
-
-	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
-		Height:    tx.Height,
-		Addresses: []string{helpers.RemovePrefix(tx.From)},
-	}
-
-	return nil
-}
-
-func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
-	txData := new(api_pb.AddLiquidityData)
-	if err := tx.GetData().UnmarshalTo(txData); err != nil {
-		return err
-	}
-
-	txTags := tx.GetTags()
-
-	var (
-		firstCoinId, secondCoinId   uint64
-		firstCoinVol, secondCoinVol string
-	)
-
-	if txData.Coin0.Id < txData.Coin1.Id {
-		firstCoinId = txData.Coin0.Id
-		firstCoinVol = txData.Volume0
-		secondCoinId = txData.Coin1.Id
-		secondCoinVol = txTags["tx.volume1"]
-	} else {
-		firstCoinId = txData.Coin1.Id
-		firstCoinVol = txTags["tx.volume1"]
-		secondCoinId = txData.Coin0.Id
-		secondCoinVol = txData.Volume0
-	}
-
-	_, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
-	if err != nil {
-		return err
-	}
-
-	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
-		Height:    tx.Height,
-		Addresses: []string{helpers.RemovePrefix(tx.From)},
-	}
-
-	return err
 }
 
 func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error {
@@ -328,8 +339,10 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	if err != nil {
 		return err
 	}
-
 	c, err := s.coinService.Repository.GetById(uint(coinId))
+	if err != nil {
+		return err
+	}
 	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
 	coinLiquidity.Sub(coinLiquidity, txLiquidity)
 	c.Volume = coinLiquidity.String()
