@@ -21,11 +21,10 @@ import (
 type Service struct {
 	env                   *env.ExtenderEnvironment
 	nodeApi               *grpc_client.Client
-	repository            *Repository
+	Repository            *Repository
 	addressRepository     *address.Repository
 	balanceUpdateChannel  chan<- models.BlockAddresses
 	logger                *logrus.Entry
-	updateCoinByIdChannel chan uint64
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
 }
@@ -35,11 +34,10 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
-		repository:            repository,
+		Repository:            repository,
 		addressRepository:     addressRepository,
 		balanceUpdateChannel:  balanceUpdateChannel,
 		logger:                logger,
-		updateCoinByIdChannel: make(chan uint64, 1),
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
 	}
@@ -223,7 +221,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 }
 
 func (s *Service) CreateNewCoins(coins []*models.Coin) error {
-	err := s.repository.SaveAllNewIfNotExist(coins)
+	err := s.Repository.SaveAllNewIfNotExist(coins)
 	return err
 }
 
@@ -295,7 +293,7 @@ func (s *Service) UpdateCoinsInfo(coinIds []uint64) error {
 		coins = append(coins, coin)
 	}
 	if len(coins) > 0 {
-		return s.repository.UpdateAll(coins)
+		return s.Repository.UpdateAll(coins)
 	}
 	return nil
 }
@@ -309,7 +307,7 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*mod
 	elapsed := time.Since(start)
 	s.logger.Info(fmt.Sprintf("Coin: %d Coin's data getting time: %s", coinId, elapsed))
 
-	coin, err := s.repository.GetById(uint(coinId))
+	coin, err := s.Repository.GetById(uint(coinId))
 	if err != nil && err.Error() != "pg: no rows in result set" {
 		return nil, err
 	}
@@ -338,11 +336,11 @@ func (s *Service) ChangeOwner(symbol, owner string) error {
 		return err
 	}
 
-	return s.repository.UpdateOwnerBySymbol(symbol, id)
+	return s.Repository.UpdateOwnerBySymbol(symbol, id)
 }
 
 func (s *Service) RecreateCoin(newCoin *models.Coin) error {
-	coins, err := s.repository.GetCoinBySymbol(newCoin.Symbol)
+	coins, err := s.Repository.GetCoinBySymbol(newCoin.Symbol)
 	if err != nil {
 		return err
 	}
@@ -350,7 +348,7 @@ func (s *Service) RecreateCoin(newCoin *models.Coin) error {
 	for _, c := range coins {
 		if c.Version == 0 {
 			c.Version = uint(len(coins))
-			err = s.repository.Update(&c)
+			err = s.Repository.Update(&c)
 			if err != nil {
 				return err
 			}
@@ -358,13 +356,13 @@ func (s *Service) RecreateCoin(newCoin *models.Coin) error {
 			break
 		}
 	}
-	s.repository.RemoveFromCacheBySymbol(newCoin.Symbol)
-	err = s.repository.Add(newCoin)
+	s.Repository.RemoveFromCacheBySymbol(newCoin.Symbol)
+	err = s.Repository.Add(newCoin)
 	return err
 }
 
 func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[string]string, height uint64) error {
-	coins, err := s.repository.GetCoinBySymbol(data.Symbol)
+	coins, err := s.Repository.GetCoinBySymbol(data.Symbol)
 	if err != nil {
 		return err
 	}
@@ -387,7 +385,7 @@ func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[strin
 	for _, c := range coins {
 		if c.Version == 0 {
 			c.Version = uint(len(coins))
-			err = s.repository.Update(&c)
+			err = s.Repository.Update(&c)
 			if err != nil {
 				return err
 			}
@@ -395,8 +393,8 @@ func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[strin
 			break
 		}
 	}
-	s.repository.RemoveFromCacheBySymbol(data.Symbol)
-	err = s.repository.Add(newCoin)
+	s.Repository.RemoveFromCacheBySymbol(data.Symbol)
+	err = s.Repository.Add(newCoin)
 	return err
 }
 
@@ -428,13 +426,13 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 		CreatedAt:        time.Now(),
 	}
 
-	err = s.repository.Add(c)
+	err = s.Repository.Add(c)
 
 	return c, err
 }
 
 func (s *Service) GetBySymbolAndVersion(symbol string, version uint) (*models.Coin, error) {
-	list, err := s.repository.GetCoinBySymbol(symbol)
+	list, err := s.Repository.GetCoinBySymbol(symbol)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +452,7 @@ func (s *Service) MintToken(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	c, err := s.repository.GetById(uint(txData.Coin.Id))
+	c, err := s.Repository.GetById(uint(txData.Coin.Id))
 	if err != nil {
 		return err
 	}
@@ -466,7 +464,7 @@ func (s *Service) MintToken(tx *api_pb.TransactionResponse) error {
 
 	c.Volume = coinVolume.String()
 
-	_, err = s.repository.DB.Model(c).WherePK().Update()
+	_, err = s.Repository.DB.Model(c).WherePK().Update()
 
 	return err
 }
@@ -477,7 +475,7 @@ func (s *Service) BurnToken(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	c, err := s.repository.GetById(uint(txData.Coin.Id))
+	c, err := s.Repository.GetById(uint(txData.Coin.Id))
 	if err != nil {
 		return err
 	}
@@ -489,19 +487,7 @@ func (s *Service) BurnToken(tx *api_pb.TransactionResponse) error {
 
 	c.Volume = coinVolume.String()
 
-	_, err = s.repository.DB.Model(c).WherePK().Update()
+	_, err = s.Repository.DB.Model(c).WherePK().Update()
 
 	return err
-}
-
-func (s *Service) GetUpdateCoinByIdChannel() chan uint64 {
-	return s.updateCoinByIdChannel
-}
-
-func (s *Service) UpdateCoinByIdWorker(coinId chan uint64) {
-	c := <-coinId
-	err := s.UpdateCoinsInfo([]uint64{c})
-	if err != nil {
-		s.logger.Error(err)
-	}
 }

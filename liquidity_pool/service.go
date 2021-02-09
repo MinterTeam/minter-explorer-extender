@@ -139,7 +139,14 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 
 	err = s.repository.UpdateAddressLiquidityPool(alp)
 
-	s.coinService.GetUpdateCoinByIdChannel() <- coinId
+	c, err := s.coinService.Repository.GetById(uint(coinId))
+	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
+	coinLiquidity.Add(coinLiquidity, txLiquidity)
+	c.Volume = coinLiquidity.String()
+	err = s.coinService.Repository.Update(c)
+	if err != nil {
+		return nil, err
+	}
 
 	return lp, err
 }
@@ -321,7 +328,15 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	if err != nil {
 		return err
 	}
-	s.coinService.GetUpdateCoinByIdChannel() <- coinId
+
+	c, err := s.coinService.Repository.GetById(uint(coinId))
+	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
+	coinLiquidity.Sub(coinLiquidity, txLiquidity)
+	c.Volume = coinLiquidity.String()
+	err = s.coinService.Repository.Update(c)
+	if err != nil {
+		return err
+	}
 
 	if addressLiquidity.Cmp(big.NewInt(0)) == 0 {
 		return s.repository.DeleteAddressLiquidityPool(addressId, lp.Id)
