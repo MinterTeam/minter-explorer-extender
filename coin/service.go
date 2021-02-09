@@ -25,6 +25,7 @@ type Service struct {
 	addressRepository     *address.Repository
 	balanceUpdateChannel  chan<- models.BlockAddresses
 	logger                *logrus.Entry
+	updateCoinByIdChannel chan uint64
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
 }
@@ -38,6 +39,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:     addressRepository,
 		balanceUpdateChannel:  balanceUpdateChannel,
 		logger:                logger,
+		updateCoinByIdChannel: make(chan uint64, 1),
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
 	}
@@ -413,12 +415,12 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 
 	c := &models.Coin{
 		ID:               uint(coinId),
-		Name:             txTags["tx.pool_token"],
+		Name:             fmt.Sprintf("Swap Pool %s", txTags["tx.pair_ids"]),
 		Symbol:           txTags["tx.pool_token"],
 		Volume:           volume.String(),
 		Crr:              0,
 		Reserve:          "",
-		MaxSupply:        "",
+		MaxSupply:        "1000000000000000000000000000000000",
 		Version:          0,
 		Burnable:         false,
 		Mintable:         false,
@@ -490,4 +492,16 @@ func (s *Service) BurnToken(tx *api_pb.TransactionResponse) error {
 	_, err = s.repository.DB.Model(c).WherePK().Update()
 
 	return err
+}
+
+func (s *Service) GetUpdateCoinByIdChannel() chan uint64 {
+	return s.updateCoinByIdChannel
+}
+
+func (s *Service) UpdateCoinByIdWorker(coinId chan uint64) {
+	c := <-coinId
+	err := s.UpdateCoinsInfo([]uint64{c})
+	if err != nil {
+		s.logger.Error(err)
+	}
 }
