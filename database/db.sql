@@ -68,6 +68,7 @@ CREATE INDEX block_validator_validator_id_index ON block_validator USING btree (
 CREATE TABLE coins
 (
     id                  serial primary key,
+    type                integer,
     name                character varying(255),
     symbol              character varying(20) NOT NULL,
     volume              numeric(70, 0),

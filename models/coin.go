@@ -5,8 +5,18 @@ import (
 	"time"
 )
 
+type CoinType byte
+
+const (
+	_ CoinType = iota
+	CoinTypeBase
+	CoinTypeToken
+	CoinTypePoolToken
+)
+
 type Coin struct {
 	ID               uint       `json:"id" pg:",use_zero"`
+	Type             CoinType   `json:"type"`
 	Name             string     `json:"name"`
 	Symbol           string     `json:"symbol"`
 	Volume           string     `json:"volume"     pg:"type:numeric(70)"`

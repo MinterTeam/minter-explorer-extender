@@ -179,6 +179,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 		}
 		coin = &models.Coin{
 			ID:               uint(coinId),
+			Type:             models.CoinTypeBase,
 			Crr:              uint(txData.ConstantReserveRatio),
 			Volume:           txData.InitialAmount,
 			Reserve:          txData.InitialReserve,
@@ -198,6 +199,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 		}
 		coin = &models.Coin{
 			ID:               uint(coinId),
+			Type:             models.CoinTypeToken,
 			Volume:           txData.InitialAmount,
 			MaxSupply:        txData.MaxSupply,
 			Name:             txData.Name,
@@ -413,6 +415,7 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 
 	c := &models.Coin{
 		ID:               uint(coinId),
+		Type:             models.CoinTypePoolToken,
 		Name:             fmt.Sprintf("Swap Pool %s", txTags["tx.pair_ids"]),
 		Symbol:           txTags["tx.pool_token"],
 		Volume:           volume.String(),
