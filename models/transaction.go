@@ -26,6 +26,7 @@ type Transaction struct {
 	Nonce         uint64               `json:"nonce"`
 	GasPrice      uint64               `json:"gas_price"`
 	Gas           uint64               `json:"gas"`
+	Commission    string               `json:"commission"`
 	BlockID       uint64               `json:"block_id"`
 	GasCoinID     uint64               `json:"gas_coin_id" pg:",use_zero"`
 	CreatedAt     time.Time            `json:"created_at"`

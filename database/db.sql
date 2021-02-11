@@ -105,6 +105,7 @@ CREATE TABLE transactions
     nonce           bigint                   NOT NULL,
     gas_price       bigint                   NOT NULL,
     gas             bigint                   NOT NULL,
+    commission      numeric(70, 0),
     block_id        integer                  NOT NULL references blocks (id),
     gas_coin_id     integer                  NOT NULL references coins (id),
     created_at      timestamp with time zone NOT NULL,

@@ -3,7 +3,6 @@ package transaction
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
@@ -392,16 +391,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.TransactionResponse, blockHe
 		return nil, err
 	}
 
-	txTagsJson, err := json.Marshal(tx.Tags)
-	if err != nil {
-		return nil, err
-	}
-
-	txTags := make(map[string]string)
-	err = json.Unmarshal(txTagsJson, &txTags)
-	if err != nil {
-		return nil, err
-	}
+	txTags := tx.GetTags()
 
 	txDataJson, err := txDataJson(tx.Type, tx.Data)
 	if err != nil {
@@ -415,6 +405,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.TransactionResponse, blockHe
 		GasPrice:      tx.GasPrice,
 		Gas:           tx.Gas,
 		GasCoinID:     tx.GasCoin.Id,
+		Commission:    txTags["tx.commission_in_base_coin"],
 		CreatedAt:     blockCreatedAt,
 		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
