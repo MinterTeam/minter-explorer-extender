@@ -52,6 +52,12 @@ type TransactionValidator struct {
 	ValidatorID   uint64
 }
 
+type TransactionLiquidityPool struct {
+	tableName       struct{} `pg:"transaction_liquidity_pool"`
+	TransactionID   uint64
+	LiquidityPoolID uint64
+}
+
 type SendTxData struct {
 	Coin  string `json:"coin"`
 	To    string `json:"to"`

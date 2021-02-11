@@ -261,3 +261,13 @@ CREATE TABLE address_liquidity_pools
 
 CREATE INDEX address_liquidity_address_id_index ON address_liquidity_pools USING btree (address_id);
 CREATE INDEX address_liquidity_liquidity_pool_id_index ON address_liquidity_pools USING btree (liquidity_pool_id);
+
+
+CREATE TABLE transaction_liquidity_pool
+(
+    transaction_id    bigint          not null references transactions (id),
+    liquidity_pool_id int             not null references liquidity_pools (id),
+    unique (transaction_id, liquidity_pool_id)
+);
+CREATE INDEX transaction_liquidity_pool_tx_id_index ON transaction_liquidity_pool USING btree (transaction_id);
+CREATE INDEX transaction_liquidity_pool_lp_id_index ON transaction_liquidity_pool USING btree (liquidity_pool_id);

@@ -537,6 +537,23 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	return s.repository.UpdateLiquidityPool(lp)
 }
 
+func (s *Service) GetPoolByPairString(pair string) (*models.LiquidityPool, error) {
+	ids := strings.Split(pair, "-")
+	firstCoinId, err := strconv.ParseUint(ids[0], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	secondCoinId, err := strconv.ParseUint(ids[1], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	if firstCoinId < secondCoinId {
+		return s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+	} else {
+		return s.repository.getLiquidityPoolByCoinIds(secondCoinId, firstCoinId)
+	}
+}
+
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, logger *logrus.Entry) *Service {
 	return &Service{

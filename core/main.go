@@ -128,7 +128,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		eventService:         events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger),
 		blockRepository:      blockRepository,
 		validatorService:     validatorService,
-		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService.JobUpdateLiquidityPoolChannel()),
+		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
 		addressService:       address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
 		validatorRepository:  validatorRepository,
 		balanceService:       balanceService,
