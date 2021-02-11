@@ -425,14 +425,14 @@ func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) erro
 
 	if txData.CoinToSell.Id < txData.CoinToBuy.Id {
 		firstCoinId = txData.CoinToSell.Id
-		firstCoinVol = txTags["tx.return"]
+		firstCoinVol = txData.ValueToSell
 		secondCoinId = txData.CoinToBuy.Id
-		secondCoinVol = txData.ValueToSell
+		secondCoinVol = txTags["tx.return"]
 	} else {
 		firstCoinId = txData.CoinToBuy.Id
-		firstCoinVol = txData.ValueToSell
+		firstCoinVol = txTags["tx.return"]
 		secondCoinId = txData.CoinToSell.Id
-		secondCoinVol = txTags["tx.return"]
+		secondCoinVol = txData.ValueToSell
 	}
 
 	lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
@@ -447,11 +447,11 @@ func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) erro
 	txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
 	if txData.CoinToBuy.Id < txData.CoinToSell.Id {
-		lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
-		lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
-	} else {
 		lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 		lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+	} else {
+		lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+		lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
 	}
 
 	lp.FirstCoinVolume = lpFirstCoinVol.String()
@@ -498,11 +498,11 @@ func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) e
 	txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
 	if txData.CoinToBuy.Id < txData.CoinToSell.Id {
-		lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
-		lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
-	} else {
 		lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 		lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+	} else {
+		lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+		lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
 	}
 
 	lp.FirstCoinVolume = lpFirstCoinVol.String()
