@@ -374,6 +374,7 @@ func (s *Service) RecreateToken(data *api_pb.RecreateTokenData, txTags map[strin
 	}
 	newCoin := &models.Coin{
 		ID:               uint(coinId),
+		Type:             coins[0].Type,
 		Name:             data.Name,
 		Volume:           data.InitialAmount,
 		Symbol:           data.Symbol,
