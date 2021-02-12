@@ -10,9 +10,15 @@ type Repository struct {
 }
 
 func (r *Repository) getLiquidityPoolByCoinIds(firstCoinId, secondCoinId uint64) (*models.LiquidityPool, error) {
-	var pl = new(models.LiquidityPool)
-	err := r.db.Model(pl).Where("first_coin_id = ? AND second_coin_id = ?", firstCoinId, secondCoinId).Select()
-	return pl, err
+	var lp = new(models.LiquidityPool)
+	err := r.db.Model(lp).Where("first_coin_id = ? AND second_coin_id = ?", firstCoinId, secondCoinId).Select()
+	return lp, err
+}
+
+func (r *Repository) getLiquidityPoolByTokenId(id uint64) (*models.LiquidityPool, error) {
+	var lp = new(models.LiquidityPool)
+	err := r.db.Model(lp).Where("token_id = ?", id).Select()
+	return lp, err
 }
 
 func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
@@ -35,6 +41,12 @@ func (r *Repository) GetAddressLiquidityPool(addressId uint, liquidityPoolId uin
 	return alp, err
 }
 
+func (r *Repository) GetAddressLiquidityPoolByCoinId(addressId uint, liquidityPoolId uint64) (*models.AddressLiquidityPool, error) {
+	var alp = new(models.AddressLiquidityPool)
+	err := r.db.Model(alp).Where("address_id = ? AND liquidity_pool_id = ?", addressId, liquidityPoolId).Select()
+	return alp, err
+}
+
 func (r *Repository) UpdateAddressLiquidityPool(alp *models.AddressLiquidityPool) error {
 	_, err := r.db.Model(alp).OnConflict("(address_id, liquidity_pool_id) DO UPDATE").Insert()
 	return err
@@ -44,6 +56,11 @@ func (r *Repository) DeleteAddressLiquidityPool(addressId uint, liquidityPoolId 
 	_, err := r.db.Model().Exec(`
 		DELETE FROM address_liquidity_pools WHERE address_id = ? and liquidity_pool_id = ?;
 	`, addressId, liquidityPoolId)
+	return err
+}
+
+func (r *Repository) UpdateAllLiquidityPool(pools []*models.AddressLiquidityPool) error {
+	_, err := r.db.Model(&pools).OnConflict("(address_id, liquidity_pool_id) DO UPDATE").Insert()
 	return err
 }
 

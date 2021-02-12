@@ -103,7 +103,9 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				transaction.TypeSellAllSwapPool,
 				transaction.TypeAddLiquidity,
 				transaction.TypeCreateSwapPool,
-				transaction.TypeRemoveLiquidity:
+				transaction.TypeRemoveLiquidity,
+				transaction.TypeSend,
+				transaction.TypeMultisend:
 				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			}
 		} else {

@@ -79,6 +79,14 @@ func (r *Repository) DeleteLastBlockData() error {
 	if err != nil {
 		return err
 	}
+	_, err = tx.Query(nil, `delete from address_liquidity_pools where liquidity_pool_id in (select id from liquidity_pools where token_id in (select id from coins where created_at_block_id >= (select id from blocks order by id desc limit 1)));`)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Query(nil, `delete from liquidity_pools where token_id in (select id from coins where created_at_block_id >= (select id from blocks order by id desc limit 1));`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from coins where created_at_block_id >= (select id from blocks order by id desc limit 1);`)
 	if err != nil {
 		return err

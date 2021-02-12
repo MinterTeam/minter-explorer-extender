@@ -11,6 +11,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math/big"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -40,6 +41,8 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 			err = s.createLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
+		case transaction.TypeSend, transaction.TypeMultisend:
+			err = s.updateAddressPoolVolumes(tx)
 		default:
 			err = s.updateVolumesByCommission(tx)
 		}
@@ -552,6 +555,82 @@ func (s *Service) GetPoolByPairString(pair string) (*models.LiquidityPool, error
 	} else {
 		return s.repository.getLiquidityPoolByCoinIds(secondCoinId, firstCoinId)
 	}
+}
+
+func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error {
+	var err error
+
+	fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+	if err != nil {
+		return err
+	}
+
+	switch transaction.Type(tx.Type) {
+	case transaction.TypeSend:
+		txData := new(api_pb.SendData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+
+		var re = regexp.MustCompile(`(?mi)p-\d+`)
+		if re.MatchString(txData.Coin.Symbol) {
+			err = s.updateAddressPoolVolumesByTxData(fromAddressId, txData)
+		}
+
+	case transaction.TypeMultisend:
+		txData := new(api_pb.MultiSendData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+		for _, data := range txData.List {
+			var re = regexp.MustCompile(`(?mi)p-\d+`)
+			if re.MatchString(data.Coin.Symbol) {
+				err = s.updateAddressPoolVolumesByTxData(fromAddressId, data)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return err
+}
+
+func (s *Service) updateAddressPoolVolumesByTxData(fromAddressId uint, txData *api_pb.SendData) error {
+	toAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
+	if err != nil {
+		return err
+	}
+
+	lp, err := s.repository.getLiquidityPoolByTokenId(txData.Coin.Id)
+	if err != nil {
+		return err
+	}
+	alpFrom, err := s.repository.GetAddressLiquidityPool(fromAddressId, lp.Id)
+	if err != nil {
+		return err
+	}
+	txValue, _ := big.NewInt(0).SetString(txData.Value, 10)
+	addressFromLiquidity, _ := big.NewInt(0).SetString(alpFrom.Liquidity, 10)
+	addressFromLiquidity.Sub(addressFromLiquidity, txValue)
+	alpFrom.Liquidity = addressFromLiquidity.String()
+
+	alpTo, err := s.repository.GetAddressLiquidityPool(toAddressId, lp.Id)
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	} else if err != nil && err == pg.ErrNoRows {
+		alpTo = &models.AddressLiquidityPool{
+			LiquidityPoolId: lp.Id,
+			AddressId:       uint64(toAddressId),
+			Liquidity:       txData.Value,
+		}
+	} else {
+		addressToLiquidity, _ := big.NewInt(0).SetString(alpTo.Liquidity, 10)
+		addressToLiquidity.Add(addressToLiquidity, txValue)
+		alpTo.Liquidity = addressFromLiquidity.String()
+	}
+
+	return s.repository.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alpFrom, alpTo})
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
