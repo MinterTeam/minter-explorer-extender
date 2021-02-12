@@ -96,6 +96,7 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 				ID:               uint(coinId),
 				Crr:              uint(txData.ConstantReserveRatio),
 				Name:             txData.Name,
+				Type:             models.CoinTypeBase,
 				Volume:           txData.InitialAmount,
 				Reserve:          txData.InitialReserve,
 				Symbol:           txData.Symbol,
@@ -125,6 +126,7 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 			newCoin := &models.Coin{
 				ID:               uint(coinId),
 				Crr:              uint(0),
+				Type:             models.CoinTypeToken,
 				Name:             txData.Name,
 				Volume:           txData.InitialAmount,
 				Reserve:          "0",
