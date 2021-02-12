@@ -87,7 +87,7 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	_, err = s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	lp, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,23 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
 
-	return nil
+	var re = regexp.MustCompile(`(?mi)p-\d+`)
+	if re.MatchString(txData.Coin0.Symbol) {
+		fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+		if err != nil {
+			return err
+		}
+		err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume0)
+	}
+	if re.MatchString(txData.Coin1.Symbol) {
+		fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+		if err != nil {
+			return err
+		}
+		err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume1)
+	}
+
+	return err
 }
 
 func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
@@ -631,6 +647,18 @@ func (s *Service) updateAddressPoolVolumesByTxData(fromAddressId uint, txData *a
 	}
 
 	return s.repository.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alpFrom, alpTo})
+}
+
+func (s *Service) updateAddressPoolVolumesWhenCreate(fromAddressId uint, lpId uint64, value string) error {
+	alpFrom, err := s.repository.GetAddressLiquidityPool(fromAddressId, lpId)
+	if err != nil {
+		return err
+	}
+	txValue, _ := big.NewInt(0).SetString(value, 10)
+	addressFromLiquidity, _ := big.NewInt(0).SetString(alpFrom.Liquidity, 10)
+	addressFromLiquidity.Sub(addressFromLiquidity, txValue)
+	alpFrom.Liquidity = addressFromLiquidity.String()
+	return s.repository.UpdateAddressLiquidityPool(alpFrom)
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
