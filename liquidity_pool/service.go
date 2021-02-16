@@ -637,6 +637,18 @@ func (s *Service) GetPoolByPairString(pair string) (*models.LiquidityPool, error
 	}
 }
 
+func (s *Service) GetPoolsByTxTags(tags map[string]string) ([]models.LiquidityPool, error) {
+	pools, err := s.getPoolChainFromTags(tags)
+	if err != nil {
+		return nil, err
+	}
+	var idList []uint64
+	for id, _ := range pools {
+		idList = append(idList, id)
+	}
+	return s.repository.GetAllByIds(idList)
+}
+
 func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error {
 	var err error
 

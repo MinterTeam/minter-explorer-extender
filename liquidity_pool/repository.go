@@ -64,6 +64,12 @@ func (r *Repository) UpdateAllLiquidityPool(pools []*models.AddressLiquidityPool
 	return err
 }
 
+func (r *Repository) GetAllByIds(ids []uint64) ([]models.LiquidityPool, error) {
+	var list []models.LiquidityPool
+	err := r.db.Model(&list).Where("id in (?)", pg.In(ids)).Select()
+	return list, err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
