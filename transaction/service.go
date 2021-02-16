@@ -214,6 +214,12 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	)
 
 	for _, tx := range txList {
+		if tx.ID == 0 {
+			return errors.New("no transaction id")
+		}
+
+		idsList = append(idsList, tx.ID)
+
 		if transaction.Type(tx.Type) != transaction.TypeSend &&
 			transaction.Type(tx.Type) != transaction.TypeMultisend &&
 			transaction.Type(tx.Type) != transaction.TypeRedeemCheck &&
@@ -223,12 +229,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			transaction.Type(tx.Type) != transaction.TypeDelegate {
 			continue
 		}
-
-		if tx.ID == 0 {
-			return errors.New("no transaction id")
-		}
-
-		idsList = append(idsList, tx.ID)
 
 		if transaction.Type(tx.Type) == transaction.TypeSend {
 			txData := new(api_pb.SendData)
