@@ -32,12 +32,12 @@ func (r *Repository) SaveAll(balances []*models.Balance) error {
 }
 
 func (r *Repository) UpdateAll(balances []*models.Balance) error {
-	_, err := r.db.Model(&balances).Update()
+	_, err := r.db.Model(&balances).WherePK().Update()
 	return err
 }
 
 func (r *Repository) DeleteAll(balances []*models.Balance) error {
-	_, err := r.db.Model(&balances).Delete()
+	_, err := r.db.Model(&balances).WherePK().Delete()
 	return err
 }
 

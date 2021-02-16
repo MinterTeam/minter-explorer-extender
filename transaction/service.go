@@ -157,7 +157,9 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		err = s.txRepository.LinkWithLiquidityPool(lpLinks)
+		if len(lpLinks) > 0 {
+			err = s.txRepository.LinkWithLiquidityPool(lpLinks)
+		}
 		if err != nil {
 			s.logger.Error(err)
 		}
@@ -523,12 +525,12 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 	var links []*models.TransactionLiquidityPool
 	for _, tx := range transactions {
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeBuySwapPool,
+		case transaction.TypeAddLiquidity,
+			transaction.TypeRemoveLiquidity,
 			transaction.TypeSellSwapPool,
+			transaction.TypeBuySwapPool,
 			transaction.TypeSellAllSwapPool,
-			transaction.TypeAddLiquidity,
-			transaction.TypeCreateSwapPool,
-			transaction.TypeRemoveLiquidity:
+			transaction.TypeCreateSwapPool:
 			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
 			if err != nil {
 				return nil, err
