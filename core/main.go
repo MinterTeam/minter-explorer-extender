@@ -19,7 +19,6 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
-	pg9 "github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
@@ -80,13 +79,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		Database: env.DbName,
 	})
 
-	db9 := pg9.Connect(&pg9.Options{
-		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
-	})
-
 	uploader := genesisUploader.New()
 	err := uploader.Do()
 	if err != nil {
@@ -111,7 +103,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	liquidityPoolRepository := liquidity_pool.NewRepository(db)
 
-	coins.GlobalRepository = coins.NewRepository(db9) //temporary solution
+	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
 
 	// Services
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
