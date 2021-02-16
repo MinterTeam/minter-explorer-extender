@@ -407,7 +407,7 @@ func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error
 			return err
 		}
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			firstCoinId = coinId0
 			firstCoinVol = poolData[0]["volume"]
 			secondCoinId = coinId1
@@ -430,7 +430,7 @@ func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error
 		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
 		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 		} else {
@@ -479,7 +479,7 @@ func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) erro
 			return err
 		}
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			firstCoinId = coinId0
 			firstCoinVol = poolData[0]["volume"]
 			secondCoinId = coinId1
@@ -502,7 +502,7 @@ func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) erro
 		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
 		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 		} else {
@@ -551,7 +551,7 @@ func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) e
 			return err
 		}
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			firstCoinId = coinId0
 			firstCoinVol = poolData[0]["volume"]
 			secondCoinId = coinId1
@@ -574,7 +574,7 @@ func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) e
 		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
 		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
-		if coinId0 < coinId0 {
+		if coinId0 < coinId1 {
 			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 		} else {

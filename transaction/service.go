@@ -525,12 +525,9 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 	var links []*models.TransactionLiquidityPool
 	for _, tx := range transactions {
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeAddLiquidity,
-			transaction.TypeRemoveLiquidity,
-			transaction.TypeSellSwapPool,
+		case transaction.TypeSellSwapPool,
 			transaction.TypeBuySwapPool,
-			transaction.TypeSellAllSwapPool,
-			transaction.TypeCreateSwapPool:
+			transaction.TypeSellAllSwapPool:
 			lpList, err := s.liquidityPoolService.GetPoolsByTxTags(tx.Tags)
 			if err != nil {
 				return nil, err
@@ -541,6 +538,17 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 					LiquidityPoolID: lp.Id,
 				})
 			}
+		case transaction.TypeRemoveLiquidity,
+			transaction.TypeAddLiquidity,
+			transaction.TypeCreateSwapPool:
+			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+			if err != nil {
+				return nil, err
+			}
+			links = append(links, &models.TransactionLiquidityPool{
+				TransactionID:   tx.ID,
+				LiquidityPoolID: lp.Id,
+			})
 		}
 	}
 	return links, nil
