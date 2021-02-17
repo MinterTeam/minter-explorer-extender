@@ -87,7 +87,7 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	lp, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
+	_, err = s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
 	}
@@ -97,21 +97,22 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
 
-	var re = regexp.MustCompile(`(?mi)p-\d+`)
-	if re.MatchString(txData.Coin0.Symbol) {
-		fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
-		if err != nil {
-			return err
-		}
-		err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume0)
-	}
-	if re.MatchString(txData.Coin1.Symbol) {
-		fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
-		if err != nil {
-			return err
-		}
-		err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume1)
-	}
+	//TODO: temporary disabled
+	//var re = regexp.MustCompile(`(?mi)p-\d+`)
+	//if re.MatchString(txData.Coin0.Symbol) {
+	//	fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume0)
+	//}
+	//if re.MatchString(txData.Coin1.Symbol) {
+	//	fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume1)
+	//}
 
 	return err
 }
@@ -430,7 +431,7 @@ func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error
 		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
 		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
-		if coinId0 < coinId1 {
+		if coinId0 > coinId1 {
 			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 		} else {
@@ -731,9 +732,13 @@ func (s *Service) updateAddressPoolVolumesWhenCreate(fromAddressId uint, lpId ui
 		return err
 	}
 	txValue, _ := big.NewInt(0).SetString(value, 10)
+	//delta := big.NewInt(1000)
+	//txValue.Sub(txValue, delta)
+
 	addressFromLiquidity, _ := big.NewInt(0).SetString(alpFrom.Liquidity, 10)
 	addressFromLiquidity.Sub(addressFromLiquidity, txValue)
 	alpFrom.Liquidity = addressFromLiquidity.String()
+
 	return s.repository.UpdateAddressLiquidityPool(alpFrom)
 }
 
