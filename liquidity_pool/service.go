@@ -195,7 +195,7 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 	}
 
 	if lp.Liquidity == "" {
-		liquidity = big.NewInt(1000)
+		liquidity = big.NewInt(models.LockedLiquidityVolume)
 	} else {
 		liquidity, _ = big.NewInt(0).SetString(lp.Liquidity, 10)
 	}
@@ -732,7 +732,7 @@ func (s *Service) updateAddressPoolVolumesWhenCreate(fromAddressId uint, lpId ui
 		return err
 	}
 	txValue, _ := big.NewInt(0).SetString(value, 10)
-	delta := big.NewInt(1000)
+	delta := big.NewInt(models.LockedLiquidityVolume)
 	txValue.Sub(txValue, delta)
 
 	addressFromLiquidity, _ := big.NewInt(0).SetString(alpFrom.Liquidity, 10)

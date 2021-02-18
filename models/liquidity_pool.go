@@ -2,6 +2,8 @@ package models
 
 import "fmt"
 
+const LockedLiquidityVolume = 1000
+
 type LiquidityPool struct {
 	Id               uint64 `json:"id"`
 	TokenId          uint64 `json:"token_id"`
