@@ -126,7 +126,7 @@ func New() *ExtenderEnvironment {
 	envData.DbName = os.Getenv("DB_NAME")
 	envData.DbUser = os.Getenv("DB_USER")
 	envData.DbPassword = os.Getenv("DB_PASSWORD")
-	envData.NodeApi = os.Getenv("NODE_API")
+	envData.NodeApi = os.Getenv("NODE_GRPC")
 	envData.WsLink = os.Getenv("CENTRIFUGO_LINK")
 	envData.WsKey = os.Getenv("CENTRIFUGO_SECRET")
 	envData.RewardAggregateTimeInterval = os.Getenv("APP_REWARDS_TIME_INTERVAL")
