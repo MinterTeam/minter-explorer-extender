@@ -5,21 +5,6 @@ import (
 	"time"
 )
 
-const TxTypeSend = 1
-const TxTypeSellCoin = 2
-const TxTypeSellAllCoin = 3
-const TxTypeBuyCoin = 4
-const TxTypeCreateCoin = 5
-const TxTypeDeclareCandidacy = 6
-const TxTypeDelegate = 7
-const TxTypeUnbound = 8
-const TxTypeRedeemCheck = 9
-const TxTypeSetCandidateOnline = 10
-const TxTypeSetCandidateOffline = 11
-const TxTypeMultiSig = 12
-const TxTypeMultiSend = 13
-const TxTypeEditCandidate = 14
-
 type Transaction struct {
 	ID                  uint64               `json:"id" pg:",pk"`
 	FromAddressID       uint64               `json:"from_address_id"`
