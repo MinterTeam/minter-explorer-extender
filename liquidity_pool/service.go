@@ -417,7 +417,7 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 		}
 
 		lp.Liquidity = nodeLp.Liquidity
-		if coinId0 < coinId1 {
+		if coinId0 > coinId1 {
 			lp.FirstCoinVolume = nodeLp.Amount0
 			lp.SecondCoinVolume = nodeLp.Amount1
 		} else {
