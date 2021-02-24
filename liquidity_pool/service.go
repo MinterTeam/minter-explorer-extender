@@ -212,6 +212,15 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 	lp.FirstCoinVolume = firstCoinVolume.String()
 	lp.SecondCoinVolume = secondCoinVolume.String()
 
+	nodeLp, err := s.nodeApi.SwapPool(firstCoinId, secondCoinId)
+	if err != nil {
+		return nil, err
+	} else {
+		lp.Liquidity = nodeLp.Liquidity
+		lp.FirstCoinVolume = nodeLp.Amount0
+		lp.SecondCoinVolume = nodeLp.Amount1
+	}
+
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
 		return nil, err
