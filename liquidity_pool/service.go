@@ -313,8 +313,14 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	lp.Liquidity = nodeLp.Liquidity
 	lp.FirstCoinId = firstCoinId
 	lp.SecondCoinId = secondCoinId
-	lp.FirstCoinVolume = nodeLp.Amount0
-	lp.SecondCoinVolume = nodeLp.Amount1
+
+	if txData.Coin0.Id < txData.Coin1.Id {
+		lp.FirstCoinVolume = nodeLp.Amount0
+		lp.SecondCoinVolume = nodeLp.Amount1
+	} else {
+		lp.FirstCoinVolume = nodeLp.Amount1
+		lp.SecondCoinVolume = nodeLp.Amount0
+	}
 
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
@@ -401,9 +407,14 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 			return err
 		}
 
-		lp.FirstCoinVolume = nodeLp.Amount0
-		lp.SecondCoinVolume = nodeLp.Amount1
 		lp.Liquidity = nodeLp.Liquidity
+		if coinId0 < coinId1 {
+			lp.FirstCoinVolume = nodeLp.Amount0
+			lp.SecondCoinVolume = nodeLp.Amount1
+		} else {
+			lp.FirstCoinVolume = nodeLp.Amount1
+			lp.SecondCoinVolume = nodeLp.Amount0
+		}
 
 		err = s.repository.UpdateLiquidityPool(lp)
 		if err != nil {
