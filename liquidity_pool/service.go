@@ -322,14 +322,8 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	lp.Liquidity = nodeLp.Liquidity
 	lp.FirstCoinId = firstCoinId
 	lp.SecondCoinId = secondCoinId
-
-	if txData.Coin0.Id < txData.Coin1.Id {
-		lp.FirstCoinVolume = nodeLp.Amount0
-		lp.SecondCoinVolume = nodeLp.Amount1
-	} else {
-		lp.FirstCoinVolume = nodeLp.Amount1
-		lp.SecondCoinVolume = nodeLp.Amount0
-	}
+	lp.FirstCoinVolume = nodeLp.Amount0
+	lp.SecondCoinVolume = nodeLp.Amount1
 
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
@@ -417,13 +411,8 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 		}
 
 		lp.Liquidity = nodeLp.Liquidity
-		if coinId0 > coinId1 {
-			lp.FirstCoinVolume = nodeLp.Amount0
-			lp.SecondCoinVolume = nodeLp.Amount1
-		} else {
-			lp.FirstCoinVolume = nodeLp.Amount1
-			lp.SecondCoinVolume = nodeLp.Amount0
-		}
+		lp.FirstCoinVolume = nodeLp.Amount0
+		lp.SecondCoinVolume = nodeLp.Amount1
 
 		err = s.repository.UpdateLiquidityPool(lp)
 		if err != nil {
@@ -433,222 +422,222 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 	return nil
 }
 
-func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error {
-
-	txData := new(api_pb.BuySwapPoolData)
-	if err := tx.GetData().UnmarshalTo(txData); err != nil {
-		return err
-	}
-
-	txTags := tx.GetTags()
-
-	var (
-		firstCoinId, secondCoinId   uint64
-		firstCoinVol, secondCoinVol string
-	)
-
-	list, err := s.getPoolChainFromTags(txTags)
-	if err != nil {
-		return err
-	}
-
-	for _, poolData := range list {
-
-		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-
-		if coinId0 < coinId1 {
-			firstCoinId = coinId0
-			firstCoinVol = poolData[0]["volume"]
-			secondCoinId = coinId1
-			secondCoinVol = poolData[1]["volume"]
-		} else {
-			firstCoinId = coinId1
-			firstCoinVol = poolData[1]["volume"]
-			secondCoinId = coinId0
-			secondCoinVol = poolData[0]["volume"]
-		}
-
-		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
-		if err != nil {
-			return err
-		}
-
-		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
-		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
-
-		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
-		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
-
-		if coinId0 > coinId1 {
-			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
-		} else {
-			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
-		}
-
-		lp.FirstCoinVolume = lpFirstCoinVol.String()
-		lp.SecondCoinVolume = lpSecondCoinVol.String()
-
-		err = s.repository.UpdateLiquidityPool(lp)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) error {
-
-	txData := new(api_pb.SellSwapPoolData)
-	if err := tx.GetData().UnmarshalTo(txData); err != nil {
-		return err
-	}
-
-	txTags := tx.GetTags()
-
-	var (
-		firstCoinId, secondCoinId   uint64
-		firstCoinVol, secondCoinVol string
-	)
-
-	list, err := s.getPoolChainFromTags(txTags)
-	if err != nil {
-		return err
-	}
-
-	for _, poolData := range list {
-
-		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-
-		if coinId0 < coinId1 {
-			firstCoinId = coinId0
-			firstCoinVol = poolData[0]["volume"]
-			secondCoinId = coinId1
-			secondCoinVol = poolData[1]["volume"]
-		} else {
-			firstCoinId = coinId1
-			firstCoinVol = poolData[1]["volume"]
-			secondCoinId = coinId0
-			secondCoinVol = poolData[0]["volume"]
-		}
-
-		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
-		if err != nil {
-			return err
-		}
-
-		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
-		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
-
-		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
-		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
-
-		if coinId0 < coinId1 {
-			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
-		} else {
-			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
-		}
-
-		lp.FirstCoinVolume = lpFirstCoinVol.String()
-		lp.SecondCoinVolume = lpSecondCoinVol.String()
-
-		err = s.repository.UpdateLiquidityPool(lp)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) error {
-
-	txData := new(api_pb.SellAllSwapPoolData)
-	if err := tx.GetData().UnmarshalTo(txData); err != nil {
-		return err
-	}
-
-	txTags := tx.GetTags()
-
-	var (
-		firstCoinId, secondCoinId   uint64
-		firstCoinVol, secondCoinVol string
-	)
-
-	list, err := s.getPoolChainFromTags(txTags)
-	if err != nil {
-		return err
-	}
-
-	for _, poolData := range list {
-
-		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
-		if err != nil {
-			return err
-		}
-
-		if coinId0 < coinId1 {
-			firstCoinId = coinId0
-			firstCoinVol = poolData[0]["volume"]
-			secondCoinId = coinId1
-			secondCoinVol = poolData[1]["volume"]
-		} else {
-			firstCoinId = coinId1
-			firstCoinVol = poolData[1]["volume"]
-			secondCoinId = coinId0
-			secondCoinVol = poolData[0]["volume"]
-		}
-
-		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
-		if err != nil {
-			return err
-		}
-
-		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
-		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
-
-		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
-		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
-
-		if coinId0 < coinId1 {
-			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
-		} else {
-			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
-			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
-		}
-
-		lp.FirstCoinVolume = lpFirstCoinVol.String()
-		lp.SecondCoinVolume = lpSecondCoinVol.String()
-
-		err = s.repository.UpdateLiquidityPool(lp)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+//func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error {
+//
+//	txData := new(api_pb.BuySwapPoolData)
+//	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+//		return err
+//	}
+//
+//	txTags := tx.GetTags()
+//
+//	var (
+//		firstCoinId, secondCoinId   uint64
+//		firstCoinVol, secondCoinVol string
+//	)
+//
+//	list, err := s.getPoolChainFromTags(txTags)
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, poolData := range list {
+//
+//		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//
+//		if coinId0 < coinId1 {
+//			firstCoinId = coinId0
+//			firstCoinVol = poolData[0]["volume"]
+//			secondCoinId = coinId1
+//			secondCoinVol = poolData[1]["volume"]
+//		} else {
+//			firstCoinId = coinId1
+//			firstCoinVol = poolData[1]["volume"]
+//			secondCoinId = coinId0
+//			secondCoinVol = poolData[0]["volume"]
+//		}
+//
+//		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+//		if err != nil {
+//			return err
+//		}
+//
+//		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+//		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
+//
+//		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+//		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
+//
+//		if coinId0 > coinId1 {
+//			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+//		} else {
+//			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
+//		}
+//
+//		lp.FirstCoinVolume = lpFirstCoinVol.String()
+//		lp.SecondCoinVolume = lpSecondCoinVol.String()
+//
+//		err = s.repository.UpdateLiquidityPool(lp)
+//		if err != nil {
+//			return err
+//		}
+//	}
+//	return nil
+//}
+//
+//func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) error {
+//
+//	txData := new(api_pb.SellSwapPoolData)
+//	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+//		return err
+//	}
+//
+//	txTags := tx.GetTags()
+//
+//	var (
+//		firstCoinId, secondCoinId   uint64
+//		firstCoinVol, secondCoinVol string
+//	)
+//
+//	list, err := s.getPoolChainFromTags(txTags)
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, poolData := range list {
+//
+//		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//
+//		if coinId0 < coinId1 {
+//			firstCoinId = coinId0
+//			firstCoinVol = poolData[0]["volume"]
+//			secondCoinId = coinId1
+//			secondCoinVol = poolData[1]["volume"]
+//		} else {
+//			firstCoinId = coinId1
+//			firstCoinVol = poolData[1]["volume"]
+//			secondCoinId = coinId0
+//			secondCoinVol = poolData[0]["volume"]
+//		}
+//
+//		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+//		if err != nil {
+//			return err
+//		}
+//
+//		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+//		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
+//
+//		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+//		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
+//
+//		if coinId0 < coinId1 {
+//			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+//		} else {
+//			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
+//		}
+//
+//		lp.FirstCoinVolume = lpFirstCoinVol.String()
+//		lp.SecondCoinVolume = lpSecondCoinVol.String()
+//
+//		err = s.repository.UpdateLiquidityPool(lp)
+//		if err != nil {
+//			return err
+//		}
+//	}
+//	return nil
+//}
+//
+//func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) error {
+//
+//	txData := new(api_pb.SellAllSwapPoolData)
+//	if err := tx.GetData().UnmarshalTo(txData); err != nil {
+//		return err
+//	}
+//
+//	txTags := tx.GetTags()
+//
+//	var (
+//		firstCoinId, secondCoinId   uint64
+//		firstCoinVol, secondCoinVol string
+//	)
+//
+//	list, err := s.getPoolChainFromTags(txTags)
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, poolData := range list {
+//
+//		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
+//		if err != nil {
+//			return err
+//		}
+//
+//		if coinId0 < coinId1 {
+//			firstCoinId = coinId0
+//			firstCoinVol = poolData[0]["volume"]
+//			secondCoinId = coinId1
+//			secondCoinVol = poolData[1]["volume"]
+//		} else {
+//			firstCoinId = coinId1
+//			firstCoinVol = poolData[1]["volume"]
+//			secondCoinId = coinId0
+//			secondCoinVol = poolData[0]["volume"]
+//		}
+//
+//		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+//		if err != nil {
+//			return err
+//		}
+//
+//		lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+//		txFirstCoinVol, _ := big.NewInt(0).SetString(firstCoinVol, 10)
+//
+//		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+//		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
+//
+//		if coinId0 < coinId1 {
+//			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
+//		} else {
+//			lpFirstCoinVol.Add(lpFirstCoinVol, txFirstCoinVol)
+//			lpSecondCoinVol.Sub(lpSecondCoinVol, txSecondCoinVol)
+//		}
+//
+//		lp.FirstCoinVolume = lpFirstCoinVol.String()
+//		lp.SecondCoinVolume = lpSecondCoinVol.String()
+//
+//		err = s.repository.UpdateLiquidityPool(lp)
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
 
 func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) error {
 	tags := tx.GetTags()
