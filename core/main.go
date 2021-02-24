@@ -110,7 +110,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, balanceService.GetAddressesChannel(), contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
-	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, contextLogger)
+	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, nodeApi, contextLogger)
 
 	return &Extender{
 		//Metrics:             metrics.New(),

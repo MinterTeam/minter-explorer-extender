@@ -6,6 +6,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
+	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
@@ -22,6 +23,7 @@ type Service struct {
 	coinService            *coin.Service
 	balanceService         *balance.Service
 	logger                 *logrus.Entry
+	nodeApi                *grpc_client.Client
 	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
 }
 
@@ -29,12 +31,10 @@ func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionRespo
 	for tx := range jobs {
 		var err error
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeBuySwapPool:
-			err = s.updateVolumesBuySwapPool(tx)
-		case transaction.TypeSellSwapPool:
-			err = s.updateVolumesSellSwapPool(tx)
-		case transaction.TypeSellAllSwapPool:
-			err = s.updateVolumesSellAllSwapPool(tx)
+		case transaction.TypeBuySwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeSellAllSwapPool:
+			err = s.updateVolumesSwapPool(tx)
 		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeCreateSwapPool:
@@ -96,23 +96,6 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		Height:    tx.Height,
 		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
-
-	////TODO: temporary disabled
-	//var re = regexp.MustCompile(`(?mi)p-\d+`)
-	//if re.MatchString(txData.Coin0.Symbol) {
-	//	fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
-	//	if err != nil {
-	//		return err
-	//	}
-	//	err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume0)
-	//}
-	//if re.MatchString(txData.Coin1.Symbol) {
-	//	fromAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
-	//	if err != nil {
-	//		return err
-	//	}
-	//	err = s.updateAddressPoolVolumesWhenCreate(fromAddressId, lp.Id, txData.Volume1)
-	//}
 
 	return err
 }
@@ -322,11 +305,16 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	txLiquidity, _ := big.NewInt(0).SetString(txData.Liquidity, 10)
 	liquidity.Sub(liquidity, txLiquidity)
 
-	lp.Liquidity = liquidity.String()
+	nodeLp, err := s.nodeApi.SwapPool(firstCoinId, secondCoinId)
+	if err != nil {
+		return err
+	}
+
+	lp.Liquidity = nodeLp.Liquidity
 	lp.FirstCoinId = firstCoinId
 	lp.SecondCoinId = secondCoinId
-	lp.FirstCoinVolume = firstCoinVolume.String()
-	lp.SecondCoinVolume = secondCoinVolume.String()
+	lp.FirstCoinVolume = nodeLp.Amount0
+	lp.SecondCoinVolume = nodeLp.Amount1
 
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
@@ -376,6 +364,53 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	} else {
 		return s.repository.UpdateAddressLiquidityPool(alp)
 	}
+}
+
+func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
+	var firstCoinId, secondCoinId uint64
+	txTags := tx.GetTags()
+	list, err := s.getPoolChainFromTags(txTags)
+	if err != nil {
+		return err
+	}
+	for _, poolData := range list {
+		coinId0, err := strconv.ParseUint(poolData[0]["coinId"], 10, 64)
+		if err != nil {
+			return err
+		}
+		coinId1, err := strconv.ParseUint(poolData[1]["coinId"], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		if coinId0 < coinId1 {
+			firstCoinId = coinId0
+			secondCoinId = coinId1
+		} else {
+			firstCoinId = coinId1
+			secondCoinId = coinId0
+		}
+
+		lp, err := s.repository.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+		if err != nil {
+			return err
+		}
+
+		nodeLp, err := s.nodeApi.SwapPool(firstCoinId, secondCoinId)
+		if err != nil {
+			return err
+		}
+
+		lp.FirstCoinVolume = nodeLp.Amount0
+		lp.SecondCoinVolume = nodeLp.Amount1
+		lp.Liquidity = nodeLp.Liquidity
+
+		err = s.repository.UpdateLiquidityPool(lp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) updateVolumesBuySwapPool(tx *api_pb.TransactionResponse) error {
@@ -503,7 +538,7 @@ func (s *Service) updateVolumesSellSwapPool(tx *api_pb.TransactionResponse) erro
 		lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
 		txSecondCoinVol, _ := big.NewInt(0).SetString(secondCoinVol, 10)
 
-		if coinId0 > coinId1 {
+		if coinId0 < coinId1 {
 			lpFirstCoinVol.Sub(lpFirstCoinVol, txFirstCoinVol)
 			lpSecondCoinVol.Add(lpSecondCoinVol, txSecondCoinVol)
 		} else {
@@ -552,7 +587,7 @@ func (s *Service) updateVolumesSellAllSwapPool(tx *api_pb.TransactionResponse) e
 			return err
 		}
 
-		if coinId0 > coinId1 {
+		if coinId0 < coinId1 {
 			firstCoinId = coinId0
 			firstCoinVol = poolData[0]["volume"]
 			secondCoinId = coinId1
@@ -606,17 +641,26 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 		return err
 	}
 
-	bipCommission, _ := big.NewInt(0).SetString(tags["tx.commission_in_base_coin"], 10)
-	coinCommission, _ := big.NewInt(0).SetString(tags["tx.commission_amount"], 10)
+	nodeLp, err := s.nodeApi.SwapPool(0, tx.GasCoin.Id)
+	if err != nil {
+		return err
+	}
 
-	lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
-	lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+	//bipCommission, _ := big.NewInt(0).SetString(tags["tx.commission_in_base_coin"], 10)
+	//coinCommission, _ := big.NewInt(0).SetString(tags["tx.commission_amount"], 10)
+	//
+	//lpFirstCoinVol, _ := big.NewInt(0).SetString(lp.FirstCoinVolume, 10)
+	//lpSecondCoinVol, _ := big.NewInt(0).SetString(lp.SecondCoinVolume, 10)
+	//
+	//lpFirstCoinVol.Sub(lpFirstCoinVol, bipCommission)
+	//lpSecondCoinVol.Add(lpSecondCoinVol, coinCommission)
+	//
+	//lp.FirstCoinVolume = lpFirstCoinVol.String()
+	//lp.SecondCoinVolume = lpSecondCoinVol.String()
 
-	lpFirstCoinVol.Sub(lpFirstCoinVol, bipCommission)
-	lpSecondCoinVol.Add(lpSecondCoinVol, coinCommission)
-
-	lp.FirstCoinVolume = lpFirstCoinVol.String()
-	lp.SecondCoinVolume = lpSecondCoinVol.String()
+	lp.FirstCoinVolume = nodeLp.Amount0
+	lp.SecondCoinVolume = nodeLp.Amount1
+	lp.Liquidity = nodeLp.Liquidity
 
 	return s.repository.UpdateLiquidityPool(lp)
 }
@@ -773,12 +817,13 @@ func (s *Service) getCoinVolumesFromTags(str string) (map[string]string, error) 
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
-	balanceService *balance.Service, logger *logrus.Entry) *Service {
+	balanceService *balance.Service, nodeApi *grpc_client.Client, logger *logrus.Entry) *Service {
 	return &Service{
 		repository:             repository,
 		addressRepository:      addressRepository,
 		coinService:            coinService,
 		balanceService:         balanceService,
+		nodeApi:                nodeApi,
 		logger:                 logger,
 		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
 	}
