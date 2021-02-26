@@ -543,6 +543,11 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 			transaction.TypeCreateSwapPool:
 			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
 			if err != nil {
+				//TODO: quick fix will be removed
+				time.Sleep(500 * time.Millisecond)
+				lp, err = s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+			}
+			if err != nil {
 				return nil, err
 			}
 			links = append(links, &models.TransactionLiquidityPool{
