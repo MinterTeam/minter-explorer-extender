@@ -125,6 +125,7 @@ CREATE TABLE invalid_transactions
     created_at      timestamp with time zone NOT NULL,
     type            smallint                 NOT NULL,
     hash            character varying(64)    NOT NULL,
+    log             character varying,
     tx_data         jsonb                    NOT NULL
 );
 CREATE INDEX invalid_transactions_block_id_from_address_id_index ON invalid_transactions USING btree (block_id DESC, from_address_id);
