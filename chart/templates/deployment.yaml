@@ -99,6 +99,8 @@ spec:
               value: {{ .Values.env.extenderApiPort | quote }}
             - name: UPDATE_BALANCES_WHEN_CHASING
               value: {{ .Values.env.updateBalancesWhenChasing | quote }}
+            - name: START_BLOCK
+              value: {{ .Values.env.startBlock | quote }}
           resources:
       {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

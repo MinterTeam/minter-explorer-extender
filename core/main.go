@@ -22,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -161,7 +162,10 @@ func (ext *Extender) Run() {
 		height = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
-		height = 1
+		height, err = strconv.ParseUint(os.Getenv("START_BLOCK"), 10, 64)
+		if err != nil {
+			height = 1
+		}
 	}
 
 	for {
