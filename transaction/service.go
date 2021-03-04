@@ -742,16 +742,6 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypePriceVote:
-		txData := new(api_pb.PriceVoteData)
-		if err := data.UnmarshalTo(txData); err != nil {
-			return nil, err
-		}
-		txDataJson, err := mo.Marshal(txData)
-		if err != nil {
-			return nil, err
-		}
-		return txDataJson, nil
 	case transaction.TypeEditCandidatePublicKey:
 		txData := new(api_pb.EditCandidatePublicKeyData)
 		if err := data.UnmarshalTo(txData); err != nil {
@@ -814,16 +804,6 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		return txDataJson, nil
 	case transaction.TypeEditCommissionCandidate:
 		txData := new(api_pb.EditCandidateCommission)
-		if err := data.UnmarshalTo(txData); err != nil {
-			return nil, err
-		}
-		txDataJson, err := mo.Marshal(txData)
-		if err != nil {
-			return nil, err
-		}
-		return txDataJson, nil
-	case transaction.TypeMoveStake:
-		txData := new(api_pb.MoveStakeData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
