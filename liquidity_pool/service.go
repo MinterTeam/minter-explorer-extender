@@ -1,6 +1,8 @@
 package liquidity_pool
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -796,23 +798,23 @@ func (s *Service) updateAddressPoolVolumesWhenCreate(fromAddressId uint, lpId ui
 }
 
 func (s *Service) getPoolChainFromTags(tags map[string]string) (map[uint64][]map[string]string, error) {
-	poolsData := strings.Split(tags["tx.pools"], ",")
+	var poolsData []models.TagLiquidityPool
+	err := json.Unmarshal([]byte(tags["tx.pools"]), &poolsData)
+	if err != nil {
+		return nil, err
+	}
+
 	data := make(map[uint64][]map[string]string)
 	for _, p := range poolsData {
-		pData := strings.Split(p, ":")
-		poolId, err := strconv.ParseUint(pData[0], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		firstCoinData, err := s.getCoinVolumesFromTags(pData[1])
-		if err != nil {
-			return nil, err
-		}
-		secondCoinData, err := s.getCoinVolumesFromTags(pData[2])
-		if err != nil {
-			return nil, err
-		}
-		data[poolId] = []map[string]string{firstCoinData, secondCoinData}
+		firstCoinData := make(map[string]string)
+		firstCoinData["coinId"] = fmt.Sprintf("%d", p.CoinIn)
+		firstCoinData["volume"] = p.ValueIn.String()
+
+		secondCoinData := make(map[string]string)
+		secondCoinData["coinId"] = fmt.Sprintf("%d", p.CoinOut)
+		secondCoinData["volume"] = p.ValueIn.String()
+
+		data[p.PoolID] = []map[string]string{firstCoinData, secondCoinData}
 	}
 	return data, nil
 }

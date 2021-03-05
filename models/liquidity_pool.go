@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 const LockedLiquidityVolume = 1000
 
@@ -23,6 +26,14 @@ type AddressLiquidityPool struct {
 	Liquidity       string         `json:"liquidity"`
 	Address         *Address       `json:"first_coin"        pg:"fk:address_id"`
 	LiquidityPool   *LiquidityPool `json:"liquidity_pool"    pg:"fk:liquidity_pool_id"`
+}
+
+type TagLiquidityPool struct {
+	PoolID   uint64      `json:"pool_id"`
+	CoinIn   uint64      `json:"coin_in"`
+	ValueIn  json.Number `json:"value_in"`
+	CoinOut  uint64      `json:"coin_out"`
+	ValueOut json.Number `json:"value_out"`
 }
 
 func (lp *LiquidityPool) GetTokenSymbol() string {
