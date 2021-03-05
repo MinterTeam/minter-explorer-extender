@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -29,11 +28,11 @@ type AddressLiquidityPool struct {
 }
 
 type TagLiquidityPool struct {
-	PoolID   uint64      `json:"pool_id"`
-	CoinIn   uint64      `json:"coin_in"`
-	ValueIn  json.Number `json:"value_in"`
-	CoinOut  uint64      `json:"coin_out"`
-	ValueOut json.Number `json:"value_out"`
+	PoolID   uint64 `json:"pool_id"`
+	CoinIn   uint64 `json:"coin_in"`
+	ValueIn  string `json:"value_in"`
+	CoinOut  uint64 `json:"coin_out"`
+	ValueOut string `json:"value_out"`
 }
 
 func (lp *LiquidityPool) GetTokenSymbol() string {
