@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
+	"os"
 	"strconv"
 	"time"
 )
@@ -200,9 +201,17 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 		}
 
 		if (err != nil && err == pg.ErrNoRows) || len(exist) == 0 {
+
+			firstBlock, err := strconv.ParseUint(os.Getenv("START_BLOCK"), 10, 64)
+			if err != nil {
+				firstBlock = 1
+			}
+
 			startBlock := rewards[0].BlockID - 120
 			if startBlock == 0 {
 				startBlock = 1
+			} else if startBlock < firstBlock {
+				startBlock = firstBlock
 			}
 
 			var aggregated []*models.AggregatedReward
