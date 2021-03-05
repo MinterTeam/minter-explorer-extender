@@ -808,11 +808,11 @@ func (s *Service) getPoolChainFromTags(tags map[string]string) (map[uint64][]map
 	for _, p := range poolsData {
 		firstCoinData := make(map[string]string)
 		firstCoinData["coinId"] = fmt.Sprintf("%d", p.CoinIn)
-		firstCoinData["volume"] = p.ValueIn.String()
+		firstCoinData["volume"] = p.ValueIn
 
 		secondCoinData := make(map[string]string)
 		secondCoinData["coinId"] = fmt.Sprintf("%d", p.CoinOut)
-		secondCoinData["volume"] = p.ValueIn.String()
+		secondCoinData["volume"] = p.ValueIn
 
 		data[p.PoolID] = []map[string]string{firstCoinData, secondCoinData}
 	}
