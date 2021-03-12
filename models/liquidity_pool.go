@@ -36,5 +36,5 @@ type TagLiquidityPool struct {
 }
 
 func (lp *LiquidityPool) GetTokenSymbol() string {
-	return fmt.Sprintf("P-%d", lp.Id)
+	return fmt.Sprintf("LP-%d", lp.Id)
 }

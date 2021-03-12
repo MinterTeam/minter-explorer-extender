@@ -12,6 +12,6 @@ type AggregatedReward struct {
 	TimeID      time.Time  `json:"time_id"`
 	FromBlock   *Block     `pg:"fk:from_block_id"` //Relation has one to Blocks
 	ToBlock     *Block     `pg:"fk:to_block_id"`   //Relation has one to Blocks
-	Address     *Address   `pg:"fk:address_id"  `  //Relation has one to Addresses
-	Validator   *Validator `pg:"fk:validator_id"`  //Relation has one to Validators
+	Address     *Address   `pg:"rel:has-one"`      //Relation has one to Addresses
+	Validator   *Validator `pg:"rel:has-one"`      //Relation has one to Validators
 }

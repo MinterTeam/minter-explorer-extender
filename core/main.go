@@ -50,6 +50,16 @@ type Extender struct {
 	logger               *logrus.Entry
 }
 
+type ExtenderElapsedTime struct {
+	Height                       uint64
+	GettingBlock                 time.Duration
+	GettingEvents                time.Duration
+	HandleCoinsFromTransactions  time.Duration
+	HandleAddressesFromResponses time.Duration
+	HandleBlockResponse          time.Duration
+	Total                        time.Duration
+}
+
 func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	//Init Logger
 	logger := logrus.New()
@@ -169,21 +179,31 @@ func (ext *Extender) Run() {
 	}
 
 	for {
+		eet := ExtenderElapsedTime{
+			Height:                       height,
+			GettingBlock:                 0,
+			GettingEvents:                0,
+			HandleCoinsFromTransactions:  0,
+			HandleAddressesFromResponses: 0,
+			HandleBlockResponse:          0,
+			Total:                        0,
+		}
+
 		start := time.Now()
 		ext.findOutChasingMode(height)
 
 		//Pulling block data
-		startGettingBlock := time.Now()
+		countStart := time.Now()
 		blockResponse, err := ext.nodeApi.BlockExtended(height, true)
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		elapsedGettingBlock := time.Since(startGettingBlock)
-		ext.logger.Info(fmt.Sprintf("Block: %d Block's data getting time: %s", height, elapsedGettingBlock))
+
+		eet.GettingBlock = time.Since(countStart)
 
 		//Pulling events
-		startGettingEvents := time.Now()
+		countStart = time.Now()
 		eventsHeight := height - 1
 		if eventsHeight <= 0 {
 			eventsHeight = 1
@@ -192,17 +212,24 @@ func (ext *Extender) Run() {
 		if err != nil {
 			ext.logger.Panic(err)
 		}
-		elapsedGettingEvents := time.Since(startGettingEvents)
-		ext.logger.Info(fmt.Sprintf("Block: %d Events's data getting time: %s", height, elapsedGettingEvents))
+		eet.GettingEvents = time.Since(countStart)
 
+		countStart = time.Now()
 		ext.handleCoinsFromTransactions(blockResponse)
+		eet.HandleCoinsFromTransactions = time.Since(countStart)
+
+		countStart = time.Now()
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
+		eet.HandleAddressesFromResponses = time.Since(countStart)
+
+		countStart = time.Now()
 		ext.handleBlockResponse(blockResponse)
+		eet.HandleBlockResponse = time.Since(countStart)
 
 		go ext.handleEventResponse(height, eventsResponse)
+		eet.Total = time.Since(start)
+		ext.printSpentTimeLog(eet)
 
-		elapsed := time.Since(start)
-		ext.logger.Info(fmt.Sprintf("Block: %d Processing time: %s", height, elapsed))
 		height++
 	}
 }
@@ -399,4 +426,15 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	ext.validatorService.SetChasingMode(ext.chasingMode)
 	ext.broadcastService.SetChasingMode(ext.chasingMode)
 	ext.balanceService.SetChasingMode(ext.chasingMode)
+}
+
+func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
+
+	ext.logger.WithFields(logrus.Fields{
+		"getting block time":  eet.GettingBlock,
+		"getting events time": eet.GettingEvents,
+		"handle addresses":    eet.HandleAddressesFromResponses,
+		"handle coins":        eet.HandleCoinsFromTransactions,
+		"handle block":        eet.HandleBlockResponse,
+	}).Info(fmt.Sprintf("Block: %d Processing time: %s", eet.Height, eet.Total))
 }

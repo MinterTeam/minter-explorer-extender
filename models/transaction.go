@@ -28,8 +28,8 @@ type Transaction struct {
 	FromAddress         *Address             `json:"from_address" pg:"fk:from_address_id"`              //Relation has one to Address
 	GasCoin             *Coin                `json:"gas_coin"     pg:"fk:gas_coin_id"`                  //Relation has one to Coin
 	Validators          []*Validator         `json:"validators"   pg:"many2many:transaction_validator"` //Relation has many to Validators
-	TxOutputs           []*TransactionOutput `json:"tx_outputs"`
-	TxOutput            *TransactionOutput   `json:"tx_output"`
+	TxOutputs           []*TransactionOutput `json:"tx_outputs"   pg:"fk:id"`
+	TxOutput            *TransactionOutput   `json:"tx_output"    pg:"fk:id"`
 }
 
 type TransactionValidator struct {
