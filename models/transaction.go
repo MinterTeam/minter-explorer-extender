@@ -25,11 +25,11 @@ type Transaction struct {
 	RawTx               []byte               `json:"raw_tx"`
 	CommissionPriceCoin interface{}          `json:"commission_price_coin" pg:"-"`
 	Block               *Block               `json:"block"        pg:"rel:has-one"`                     //Relation has one to Blocks
-	FromAddress         *Address             `json:"from_address" pg:"fk:from_address_id"`              //Relation has one to Address
-	GasCoin             *Coin                `json:"gas_coin"     pg:"fk:gas_coin_id"`                  //Relation has one to Coin
+	FromAddress         *Address             `json:"from_address" pg:"rel:has-one,fk:from_address_id"`  //Relation has one to Address
+	GasCoin             *Coin                `json:"gas_coin"     pg:"rel:has-one,fk:gas_coin_id"`      //Relation has one to Coin
 	Validators          []*Validator         `json:"validators"   pg:"many2many:transaction_validator"` //Relation has many to Validators
-	TxOutputs           []*TransactionOutput `json:"tx_outputs"   pg:"fk:id"`
-	TxOutput            *TransactionOutput   `json:"tx_output"    pg:"fk:id"`
+	TxOutputs           []*TransactionOutput `json:"tx_outputs"   pg:"rel:has-many,fk:id"`
+	TxOutput            *TransactionOutput   `json:"tx_output"    pg:"rel:has-one,fk:id"`
 }
 
 type TransactionValidator struct {

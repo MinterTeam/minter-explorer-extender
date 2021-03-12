@@ -14,17 +14,17 @@ type LiquidityPool struct {
 	FirstCoinVolume  string `json:"first_coin_volume"`
 	SecondCoinVolume string `json:"second_coin_volume"`
 	Liquidity        string `json:"liquidity"`
-	FirstCoin        *Coin  `json:"first_coin"  pg:"fk:first_coin_id"`
-	SecondCoin       *Coin  `json:"second_coin" pg:"fk:second_coin_id"`
-	Token            *Coin  `json:"token"       pg:"fk:token_id"`
+	FirstCoin        *Coin  `json:"first_coin"  pg:"rel:has-one,fk:first_coin_id"`
+	SecondCoin       *Coin  `json:"second_coin" pg:"rel:has-one,fk:second_coin_id"`
+	Token            *Coin  `json:"token"       pg:"rel:has-one,fk:token_id"`
 }
 
 type AddressLiquidityPool struct {
 	LiquidityPoolId uint64         `json:"liquidity_pool_id" pg:",pk"`
 	AddressId       uint64         `json:"address_id"        pg:",pk"`
 	Liquidity       string         `json:"liquidity"`
-	Address         *Address       `json:"first_coin"        pg:"fk:address_id"`
-	LiquidityPool   *LiquidityPool `json:"liquidity_pool"    pg:"fk:liquidity_pool_id"`
+	Address         *Address       `json:"first_coin"        pg:"rel:has-one,fk:address_id"`
+	LiquidityPool   *LiquidityPool `json:"liquidity_pool"    pg:"rel:has-one,fk:liquidity_pool_id"`
 }
 
 type TagLiquidityPool struct {

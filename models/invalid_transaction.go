@@ -10,8 +10,8 @@ type InvalidTransaction struct {
 	Type          uint8     `json:"type"`
 	Hash          string    `json:"hash"`
 	TxData        string    `json:"tx_data"`
-	Block         *Block    `pg:"rel:has-one"`        //Relation has one to Blocks
-	FromAddress   *Address  `pg:"fk:from_address_id"` //Relation has one to Addresses
+	Block         *Block    `pg:"rel:has-one"`                    //Relation has one to Blocks
+	FromAddress   *Address  `pg:"rel:has-one,fk:from_address_id"` //Relation has one to Addresses
 }
 
 //Return transactions hash with prefix

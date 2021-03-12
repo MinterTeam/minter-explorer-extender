@@ -430,6 +430,15 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 
+	critical := 5 * time.Second
+
+	if eet.Total > critical {
+		ext.logger.WithFields(logrus.Fields{
+			"block": eet.Height,
+			"time":  eet.Height,
+		}).Error("Processing time is too height")
+	}
+
 	ext.logger.WithFields(logrus.Fields{
 		"getting block time":  eet.GettingBlock,
 		"getting events time": eet.GettingEvents,
