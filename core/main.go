@@ -493,7 +493,7 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 	if eet.Total > critical {
 		ext.logger.WithFields(logrus.Fields{
 			"block": eet.Height,
-			"time":  eet.Height,
+			"time":  fmt.Sprintf("%s", eet.Total),
 		}).Error("Processing time is too height")
 	}
 
