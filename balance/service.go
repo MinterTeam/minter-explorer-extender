@@ -26,8 +26,8 @@ type Service struct {
 	addressRepository      *address.Repository
 	coinRepository         *coin.Repository
 	broadcastService       *broadcast.Service
-	jobGetBalancesFromNode chan models.BlockAddresses
 	jobUpdateBalance       chan AddressesBalancesContainer
+	jobGetBalancesFromNode chan models.BlockAddresses
 	chAddresses            chan models.BlockAddresses
 	wgBalances             sync.WaitGroup
 	logger                 *logrus.Entry

@@ -9,7 +9,7 @@ require (
 	github.com/MinterTeam/minter-go-sdk/v2 v2.2.0-alpha1.0.20210303135204-27811167e36c
 	github.com/MinterTeam/node-grpc-gateway v1.2.2-0.20210303134153-03f03059d078
 	github.com/centrifugal/gocent v2.1.0+incompatible
-	github.com/go-pg/pg/v10 v10.4.0
+	github.com/go-pg/pg/v10 v10.8.0
 	github.com/golang/protobuf v1.4.3
 	github.com/joho/godotenv v1.3.0
 	github.com/prometheus/client_golang v1.4.1

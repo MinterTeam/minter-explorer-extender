@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
@@ -22,7 +23,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -60,6 +63,55 @@ type ExtenderElapsedTime struct {
 	Total                        time.Duration
 }
 
+type eventHook struct {
+	beforeTime time.Time
+	logger     *logrus.Logger
+}
+
+func (e eventHook) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
+	if event.Stash == nil {
+		event.Stash = make(map[interface{}]interface{})
+	}
+	event.Stash["query_time"] = time.Now()
+	return ctx, nil
+}
+func (e eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
+	critical := time.Second
+	result := time.Duration(0)
+	if event.Stash != nil {
+		if v, ok := event.Stash["query_time"]; ok {
+			result = time.Now().Sub(v.(time.Time))
+		}
+	}
+
+	if result > critical {
+		accessLog, err := os.OpenFile("big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			e.logger.Error("error opening file: %v", err)
+		}
+		// don't forget to close it
+		defer accessLog.Close()
+
+		e.logger.SetOutput(accessLog)
+		e.logger.SetReportCaller(false)
+		e.logger.SetFormatter(&logrus.JSONFormatter{})
+
+		q, err := event.UnformattedQuery()
+		if err != nil {
+			e.logger.Error(err)
+		}
+
+		r := regexp.MustCompile("\\s+")
+		replace := r.ReplaceAllString(fmt.Sprintf("%v", string(q)), " ")
+
+		e.logger.WithFields(logrus.Fields{
+			"query": strings.TrimSpace(replace),
+			"time":  fmt.Sprintf("%s", result),
+		}).Error("DB query time is too height")
+	}
+	return nil
+}
+
 func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	//Init Logger
 	logger := logrus.New()
@@ -88,7 +140,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
+		PoolSize: 30,
 	})
+	hookImpl := eventHook{
+		logger:     logrus.New(),
+		beforeTime: time.Now(),
+	}
+	db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
