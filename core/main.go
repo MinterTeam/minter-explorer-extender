@@ -85,17 +85,15 @@ func (e eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
 	}
 
 	if result > critical {
-		accessLog, err := os.OpenFile("big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		bigQueryLog, err := os.OpenFile("./tmp/big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			e.logger.Error("error opening file: %v", err)
 		}
 		// don't forget to close it
-		defer accessLog.Close()
-
-		e.logger.SetOutput(accessLog)
+		defer bigQueryLog.Close()
 		e.logger.SetReportCaller(false)
 		e.logger.SetFormatter(&logrus.JSONFormatter{})
-
+		e.logger.SetOutput(bigQueryLog)
 		q, err := event.UnformattedQuery()
 		if err != nil {
 			e.logger.Error(err)
@@ -175,9 +173,10 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
 
 	// Services
+	addressService := address.NewService(env, addressRepository, contextLogger)
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
-	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
-	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, balanceService.GetAddressesChannel(), contextLogger)
+	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressService, coinRepository, broadcastService, contextLogger)
+	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, nodeApi, contextLogger)
 
@@ -190,7 +189,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		blockRepository:      blockRepository,
 		validatorService:     validatorService,
 		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
-		addressService:       address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
+		addressService:       addressService,
 		validatorRepository:  validatorRepository,
 		balanceService:       balanceService,
 		coinService:          coinService,
@@ -284,6 +283,9 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
+		ext.balanceService.ChannelDataForUpdate() <- blockResponse
+		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
+
 		go ext.handleEventResponse(height, eventsResponse)
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
@@ -327,13 +329,14 @@ func (ext *Extender) runWorkers() {
 	}
 
 	// Balances
-	go ext.balanceService.Run()
-	for w := 1; w <= ext.env.WrkGetBalancesFromNodeCount; w++ {
-		go ext.balanceService.GetBalancesFromNodeWorker(ext.balanceService.GetBalancesFromNodeChannel(), ext.balanceService.GetUpdateBalancesJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkUpdateBalanceCount; w++ {
-		go ext.balanceService.UpdateBalancesWorker(ext.balanceService.GetUpdateBalancesJobChannel())
-	}
+	go ext.balanceService.BalanceManager()
+	//go ext.balanceService.Run()
+	//for w := 1; w <= ext.env.WrkGetBalancesFromNodeCount; w++ {
+	//	go ext.balanceService.GetBalancesFromNodeWorker(ext.balanceService.GetBalancesFromNodeChannel(), ext.balanceService.GetUpdateBalancesJobChannel())
+	//}
+	//for w := 1; w <= ext.env.WrkUpdateBalanceCount; w++ {
+	//	go ext.balanceService.UpdateBalancesWorker(ext.balanceService.GetUpdateBalancesJobChannel())
+	//}
 
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
@@ -350,7 +353,7 @@ func (ext *Extender) runWorkers() {
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
-	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
+	err := ext.addressService.SaveAddressesFromResponses(blockResponse, eventsResponse)
 	if err != nil {
 		ext.logger.Panic(err)
 	}

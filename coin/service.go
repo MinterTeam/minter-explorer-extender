@@ -23,20 +23,18 @@ type Service struct {
 	nodeApi               *grpc_client.Client
 	Repository            *Repository
 	addressRepository     *address.Repository
-	balanceUpdateChannel  chan<- models.BlockAddresses
 	logger                *logrus.Entry
 	jobUpdateCoins        chan []*models.Transaction
 	jobUpdateCoinsFromMap chan map[uint64]struct{}
 }
 
-func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository,
-	balanceUpdateChannel chan<- models.BlockAddresses, logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository,
+	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
 		nodeApi:               nodeApi,
 		Repository:            repository,
 		addressRepository:     addressRepository,
-		balanceUpdateChannel:  balanceUpdateChannel,
 		logger:                logger,
 		jobUpdateCoins:        make(chan []*models.Transaction, 1),
 		jobUpdateCoinsFromMap: make(chan map[uint64]struct{}, 1),
@@ -62,7 +60,6 @@ func (s *Service) GetUpdateCoinsFromCoinsMapJobChannel() chan map[uint64]struct{
 func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 	var coins []*models.Coin
 	var err error
-	var addresses []string
 	var height uint64
 
 	for _, tx := range block.Transactions {
@@ -70,7 +67,6 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 			continue
 		}
 
-		addresses = append(addresses, helpers.RemovePrefix(tx.From))
 		height = tx.Height
 
 		switch transaction.Type(tx.Type) {
@@ -151,13 +147,6 @@ func (s Service) HandleCoinsFromBlock(block *api_pb.BlockResponse) error {
 
 	if len(coins) > 0 {
 		err = s.CreateNewCoins(coins)
-	}
-
-	if len(addresses) > 0 {
-		s.balanceUpdateChannel <- models.BlockAddresses{
-			Height:    height,
-			Addresses: addresses,
-		}
 	}
 
 	return err

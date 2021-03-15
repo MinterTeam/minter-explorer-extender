@@ -1,8 +1,10 @@
 package balance
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v10"
+	"strings"
 )
 
 type Repository struct {
@@ -61,4 +63,23 @@ func (r *Repository) Delete(addressID, coinID uint) error {
 	b := new(models.Balance)
 	_, err := r.db.Model(b).Where("address_id = ? and coin_id = ?", addressID, coinID).Delete()
 	return err
+}
+
+// Exist is a map with a key is AddressId and value is a slice of coin ids
+func (r *Repository) DeleteUselessCoins(exist map[uint][]uint64) error {
+	var condition []string
+	for addressId, coins := range exist {
+		condition = append(condition, fmt.Sprintf("(address_id = %d and coin_id not in (%s))", addressId, uintJoin(coins, ",")))
+	}
+	query := fmt.Sprintf("DELETE from balances WHERE %s", strings.Join(condition, " or "))
+	_, err := r.db.Model((*models.Balance)(nil)).Exec(query)
+	return err
+}
+
+func uintJoin(array []uint64, sep string) string {
+	var strArray []string
+	for i := range array {
+		strArray = append(strArray, fmt.Sprintf("%d", array[i]))
+	}
+	return strings.Join(strArray, sep)
 }

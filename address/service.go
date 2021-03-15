@@ -2,7 +2,6 @@ package address
 
 import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
-	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
@@ -14,22 +13,19 @@ import (
 )
 
 type Service struct {
-	env                *env.ExtenderEnvironment
-	repository         *Repository
-	chBalanceAddresses chan<- models.BlockAddresses
-	jobSaveAddresses   chan []string
-	wgAddresses        sync.WaitGroup
-	logger             *logrus.Entry
+	env              *env.ExtenderEnvironment
+	Storage          *Repository
+	jobSaveAddresses chan []string
+	wgAddresses      sync.WaitGroup
+	logger           *logrus.Entry
 }
 
-func NewService(env *env.ExtenderEnvironment, repository *Repository, chBalanceAddresses chan<- models.BlockAddresses,
-	logger *logrus.Entry) *Service {
+func NewService(env *env.ExtenderEnvironment, repository *Repository, logger *logrus.Entry) *Service {
 	return &Service{
-		env:                env,
-		repository:         repository,
-		chBalanceAddresses: chBalanceAddresses,
-		jobSaveAddresses:   make(chan []string, env.WrkSaveAddressesCount),
-		logger:             logger,
+		env:              env,
+		Storage:          repository,
+		jobSaveAddresses: make(chan []string, env.WrkSaveAddressesCount),
+		logger:           logger,
 	}
 }
 
@@ -39,7 +35,7 @@ func (s *Service) GetSaveAddressesJobChannel() chan []string {
 
 func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 	for addresses := range jobs {
-		err := s.repository.SaveAllIfNotExist(addresses)
+		err := s.Storage.SaveAllIfNotExist(addresses)
 		s.wgAddresses.Done()
 		if err != nil {
 			s.logger.Panic(err)
@@ -52,17 +48,14 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 	for _, tx := range transactions {
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 
-		txType := transaction.Type(tx.Type)
-
-		if txType == transaction.TypeSend {
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeSend:
 			txData := new(api_pb.SendData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
 			}
 			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
-		}
-
-		if txType == transaction.TypeMultisend {
+		case transaction.TypeMultisend:
 			txData := new(api_pb.MultiSendData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
@@ -70,9 +63,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
-		}
-
-		if txType == transaction.TypeRedeemCheck {
+		case transaction.TypeRedeemCheck:
 			txData := new(api_pb.RedeemCheckData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
 				return nil, err, nil
@@ -115,17 +106,13 @@ func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse
 }
 
 // Find all addresses in block response and save it
-func (s *Service) HandleResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) error {
+func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) error {
 	var (
 		err                error
-		height             uint64
 		blockAddressesMap  = make(map[string]struct{})
 		eventsAddressesMap = make(map[string]struct{})
 	)
 
-	if blockResponse != nil {
-		height = blockResponse.Height
-	}
 	if blockResponse != nil && len(blockResponse.Transactions) > 0 {
 		_, err, blockAddressesMap = s.ExtractAddressesFromTransactions(blockResponse.Transactions)
 		if err != nil {
@@ -154,10 +141,6 @@ func (s *Service) HandleResponses(blockResponse *api_pb.BlockResponse, eventsRes
 			s.GetSaveAddressesJobChannel() <- addresses[start:end]
 		}
 		s.wgAddresses.Wait()
-
-		if height != 0 {
-			s.chBalanceAddresses <- models.BlockAddresses{Height: height, Addresses: addresses}
-		}
 	}
 	return nil
 }

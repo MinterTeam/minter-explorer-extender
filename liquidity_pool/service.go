@@ -94,11 +94,6 @@ func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
-		Height:    tx.Height,
-		Addresses: []string{helpers.RemovePrefix(tx.From)},
-	}
-
 	return err
 }
 
@@ -130,11 +125,6 @@ func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
 	_, err := s.addToPool(firstCoinId, secondCoinId, firstCoinVol, secondCoinVol, helpers.RemovePrefix(tx.From), txTags)
 	if err != nil {
 		return err
-	}
-
-	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
-		Height:    tx.Height,
-		Addresses: []string{helpers.RemovePrefix(tx.From)},
 	}
 
 	txLiquidity, _ := big.NewInt(0).SetString(txTags["tx.liquidity"], 10)
@@ -348,11 +338,6 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	alp.AddressId = uint64(addressId)
 	alp.LiquidityPoolId = lp.Id
 	alp.Liquidity = addressLiquidity.String()
-
-	s.balanceService.GetAddressesChannel() <- models.BlockAddresses{
-		Height:    tx.Height,
-		Addresses: []string{helpers.RemovePrefix(tx.From)},
-	}
 
 	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {

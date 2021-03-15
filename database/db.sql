@@ -89,7 +89,6 @@ CREATE INDEX coins_symbol_index ON coins USING btree (symbol);
 
 CREATE TABLE balances
 (
-    id         bigserial      NOT NULL,
     address_id bigint         NOT NULL REFERENCES addresses (id) on delete cascade,
     coin_id    integer        NOT NULL REFERENCES coins (id) on delete cascade,
     value      numeric(70, 0) NOT NULL,
