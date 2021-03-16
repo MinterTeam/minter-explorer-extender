@@ -11,17 +11,12 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
-	"os"
 	"sync"
 )
 
 func (s *Service) BalanceManager() {
 	var err error
 	for {
-
-		if s.chasingMode && os.Getenv("UPDATE_BALANCES_WHEN_CHASING") != "true" {
-			continue
-		}
 
 		data := <-s.channelDataForUpdate
 
