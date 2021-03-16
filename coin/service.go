@@ -251,6 +251,47 @@ func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction
 				}
 				coinsMap[txData.CoinToBuy.Id] = struct{}{}
 				coinsMap[txData.CoinToSell.Id] = struct{}{}
+			case transaction.TypeBuySwapPool:
+				txData := new(api_pb.BuySwapPoolData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+					s.logger.Error(err)
+					continue
+				}
+				for _, c := range txData.Coins {
+					coinsMap[c.Id] = struct{}{}
+				}
+			case transaction.TypeSellSwapPool:
+				txData := new(api_pb.SellSwapPoolData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+					s.logger.Error(err)
+					continue
+				}
+				for _, c := range txData.Coins {
+					coinsMap[c.Id] = struct{}{}
+				}
+			case transaction.TypeSellAllSwapPool:
+				txData := new(api_pb.SellAllSwapPoolData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+					s.logger.Error(err)
+					continue
+				}
+				for _, c := range txData.Coins {
+					coinsMap[c.Id] = struct{}{}
+				}
+			case transaction.TypeMintToken:
+				txData := new(api_pb.MintTokenData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+					s.logger.Error(err)
+					continue
+				}
+				coinsMap[txData.Coin.Id] = struct{}{}
+			case transaction.TypeBurnToken:
+				txData := new(api_pb.BurnTokenData)
+				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+					s.logger.Error(err)
+					continue
+				}
+				coinsMap[txData.Coin.Id] = struct{}{}
 			}
 		}
 		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap
