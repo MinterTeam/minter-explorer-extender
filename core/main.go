@@ -138,7 +138,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
-		PoolSize: 30,
+		PoolSize: 100,
 	})
 	hookImpl := eventHook{
 		logger:     logrus.New(),

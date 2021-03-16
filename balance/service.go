@@ -92,13 +92,13 @@ func (s *Service) updateAddresses(list []string) error {
 		exist[addressId] = existCoins
 	}
 
-	err = s.repository.DeleteUselessCoins(exist)
+	err = s.repository.SaveAll(balances)
 	if err != nil {
 		s.logger.Error(err)
 		return err
 	}
 
-	err = s.repository.SaveAll(balances)
+	err = s.repository.DeleteUselessCoins(exist)
 	if err != nil {
 		s.logger.Error(err)
 		return err
