@@ -115,12 +115,12 @@ func (s *Service) updateBalancesByBlockData(block *api_pb.BlockResponse) error {
 			if end > len(list) {
 				end = len(list)
 			}
-			go func() {
-				err = s.updateAddresses(list[start:end])
+			go func(l []string) {
+				err = s.updateAddresses(l)
 				if err != nil {
 					s.logger.Error(err)
 				}
-			}()
+			}(list[start:end])
 		}
 	}
 	return nil
