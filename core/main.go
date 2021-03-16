@@ -85,7 +85,7 @@ func (e eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
 	}
 
 	if result > critical {
-		bigQueryLog, err := os.OpenFile("./tmp/big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		bigQueryLog, err := os.OpenFile("big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			e.logger.Error("error opening file: %v", err)
 		}
