@@ -42,6 +42,19 @@ func (s *Service) BalanceManager() {
 	}
 }
 
+func (s *Service) BalanceUpdater() {
+	var err error
+	for {
+		data := <-s.channelUpdate
+		if len(data) > 0 {
+			err = s.updateAddresses(data)
+			if err != nil {
+				s.logger.Error(err)
+			}
+		}
+	}
+}
+
 func (s *Service) ChannelDataForUpdate() chan interface{} {
 	return s.channelDataForUpdate
 }
@@ -87,13 +100,11 @@ func (s *Service) updateAddresses(list []string) error {
 
 	err = s.repository.DeleteByAddressIds(ids)
 	if err != nil {
-		s.logger.Error(err)
 		return err
 	}
 
 	err = s.repository.SaveAll(balances)
 	if err != nil {
-		s.logger.Error(err)
 		return err
 	}
 
@@ -113,11 +124,11 @@ func (s *Service) updateBalancesByBlockData(block *api_pb.BlockResponse) error {
 			if end > len(list) {
 				end = len(list)
 			}
+
+			s.channelUpdate <- list[start:end]
+
 			go func(l []string) {
-				err = s.updateAddresses(l)
-				if err != nil {
-					s.logger.Error(err)
-				}
+
 			}(list[start:end])
 		}
 	}
@@ -141,6 +152,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		coinRepository:       coinRepository,
 		broadcastService:     broadcastService,
 		channelDataForUpdate: make(chan interface{}),
+		channelUpdate:        make(chan []string),
 		logger:               logger,
 		chasingMode:          false,
 	}
@@ -157,4 +169,5 @@ type Service struct {
 	logger               *logrus.Entry
 	chasingMode          bool
 	channelDataForUpdate chan interface{}
+	channelUpdate        chan []string
 }
