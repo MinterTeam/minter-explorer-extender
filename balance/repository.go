@@ -29,7 +29,7 @@ func (r *Repository) FindAllByAddress(addresses []string) ([]*models.Balance, er
 }
 
 func (r *Repository) SaveAll(balances []*models.Balance) error {
-	_, err := r.db.Model(&balances).OnConflict("(address_id, coin_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&balances).Insert()
 	return err
 }
 
@@ -73,6 +73,13 @@ func (r *Repository) DeleteUselessCoins(exist map[uint][]uint64) error {
 	}
 	query := fmt.Sprintf("DELETE from balances WHERE %s", strings.Join(condition, " or "))
 	_, err := r.db.Model((*models.Balance)(nil)).Exec(query)
+	return err
+}
+
+func (r *Repository) DeleteByAddressIds(addressIds []uint) error {
+	_, err := r.db.Exec(`
+		DELETE FROM balances WHERE address_id in (?)
+	`, pg.In(addressIds))
 	return err
 }
 

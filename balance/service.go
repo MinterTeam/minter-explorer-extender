@@ -63,37 +63,35 @@ func (s *Service) updateAddresses(list []string) error {
 		return err
 	}
 
-	exist := make(map[uint][]uint64)
+	var ids []uint
 
 	for adr, item := range response.Addresses {
-		var existCoins []uint64
 		addressId, err := s.addressService.Storage.FindId(helpers.RemovePrefix(adr))
 		if err != nil {
 			return err
 		}
+		ids = append(ids, addressId)
 		for _, val := range item.Balance {
 			_, err := s.coinRepository.GetById(uint(val.Coin.Id))
 			if err != nil {
 				continue
 			}
-
-			existCoins = append(existCoins, val.Coin.Id)
 			balances = append(balances, &models.Balance{
 				AddressID: addressId,
 				CoinID:    uint(val.Coin.Id),
 				Value:     val.Value,
 			})
 		}
-		exist[addressId] = existCoins
+
 	}
 
-	err = s.repository.SaveAll(balances)
+	err = s.repository.DeleteByAddressIds(ids)
 	if err != nil {
 		s.logger.Error(err)
 		return err
 	}
 
-	err = s.repository.DeleteUselessCoins(exist)
+	err = s.repository.SaveAll(balances)
 	if err != nil {
 		s.logger.Error(err)
 		return err
