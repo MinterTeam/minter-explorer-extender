@@ -107,7 +107,7 @@ func (s *Service) updateAddresses(list []string) error {
 	if err != nil {
 		return err
 	}
-
+	s.broadcastService.PublishBalances(balances)
 	return err
 }
 
@@ -124,12 +124,7 @@ func (s *Service) updateBalancesByBlockData(block *api_pb.BlockResponse) error {
 			if end > len(list) {
 				end = len(list)
 			}
-
 			s.channelUpdate <- list[start:end]
-
-			go func(l []string) {
-
-			}(list[start:end])
 		}
 	}
 	return nil
