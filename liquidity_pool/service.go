@@ -327,17 +327,20 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 		return err
 	}
 
-	alp, err := s.repository.GetAddressLiquidityPool(addressId, lp.Id)
+	nodeALP, err := s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, tx.From)
 	if err != nil {
 		return err
 	}
-
-	addressLiquidity, _ := big.NewInt(0).SetString(alp.Liquidity, 10)
-	addressLiquidity.Sub(addressLiquidity, txLiquidity)
+	var alp *models.AddressLiquidityPool
+	alp, err = s.repository.GetAddressLiquidityPool(addressId, lp.Id)
+	if err != nil {
+		s.logger.Error(err)
+		alp = new(models.AddressLiquidityPool)
+	}
 
 	alp.AddressId = uint64(addressId)
 	alp.LiquidityPoolId = lp.Id
-	alp.Liquidity = addressLiquidity.String()
+	alp.Liquidity = nodeALP.Liquidity
 
 	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {
@@ -347,6 +350,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	if err != nil {
 		return err
 	}
+
 	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
 	coinLiquidity.Sub(coinLiquidity, txLiquidity)
 	c.Volume = coinLiquidity.String()
@@ -355,6 +359,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 		return err
 	}
 
+	addressLiquidity, _ := big.NewInt(0).SetString(nodeALP.Liquidity, 10)
 	if addressLiquidity.Cmp(big.NewInt(0)) == 0 {
 		return s.repository.DeleteAddressLiquidityPool(addressId, lp.Id)
 	} else {
