@@ -11,15 +11,14 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
+	"os"
 	"sync"
 )
 
 func (s *Service) BalanceManager() {
 	var err error
 	for {
-
 		data := <-s.channelDataForUpdate
-
 		block, ok := data.(*api_pb.BlockResponse)
 		if ok {
 			err = s.updateBalancesByBlockData(block)
@@ -46,7 +45,7 @@ func (s *Service) BalanceUpdater() {
 	var err error
 	for {
 		data := <-s.channelUpdate
-		if len(data) > 0 {
+		if len(data) > 0 && !(os.Getenv("UPDATE_BALANCES_WHEN_CHASING") == "true" && s.chasingMode) {
 			err = s.updateAddresses(data)
 			if err != nil {
 				s.logger.Error(err)

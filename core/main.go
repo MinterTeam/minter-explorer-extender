@@ -24,7 +24,6 @@ import (
 	"math"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -49,8 +48,9 @@ type Extender struct {
 	broadcastService     *broadcast.Service
 	liquidityPoolService *liquidity_pool.Service
 	chasingMode          bool
+	startBlockHeight     uint64
 	currentNodeHeight    uint64
-	logger               *logrus.Entry
+	log                  *logrus.Entry
 }
 
 type ExtenderElapsedTime struct {
@@ -65,17 +65,17 @@ type ExtenderElapsedTime struct {
 
 type eventHook struct {
 	beforeTime time.Time
-	logger     *logrus.Logger
+	log        *logrus.Logger
 }
 
-func (e eventHook) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
+func (eh eventHook) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
 	if event.Stash == nil {
 		event.Stash = make(map[interface{}]interface{})
 	}
 	event.Stash["query_time"] = time.Now()
 	return ctx, nil
 }
-func (e eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
+func (eh eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
 	critical := time.Second
 	result := time.Duration(0)
 	if event.Stash != nil {
@@ -87,22 +87,22 @@ func (e eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
 	if result > critical {
 		bigQueryLog, err := os.OpenFile("big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			e.logger.Error("error opening file: %v", err)
+			eh.log.Error("error opening file: %v", err)
 		}
 		// don't forget to close it
 		defer bigQueryLog.Close()
-		e.logger.SetReportCaller(false)
-		e.logger.SetFormatter(&logrus.JSONFormatter{})
-		e.logger.SetOutput(bigQueryLog)
-		q, err := event.UnformattedQuery()
+		eh.log.SetReportCaller(false)
+		eh.log.SetFormatter(&logrus.JSONFormatter{})
+		eh.log.SetOutput(bigQueryLog)
+		q, err := event.FormattedQuery()
 		if err != nil {
-			e.logger.Error(err)
+			eh.log.Error(err)
 		}
 
 		r := regexp.MustCompile("\\s+")
 		replace := r.ReplaceAllString(fmt.Sprintf("%v", string(q)), " ")
 
-		e.logger.WithFields(logrus.Fields{
+		eh.log.WithFields(logrus.Fields{
 			"query": strings.TrimSpace(replace),
 			"time":  fmt.Sprintf("%s", result),
 		}).Error("DB query time is too height")
@@ -141,7 +141,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		PoolSize: 100,
 	})
 	hookImpl := eventHook{
-		logger:     logrus.New(),
+		log:        logrus.New(),
 		beforeTime: time.Now(),
 	}
 	db.AddQueryHook(hookImpl)
@@ -197,7 +197,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		liquidityPoolService: liquidityPoolService,
 		chasingMode:          true,
 		currentNodeHeight:    0,
-		logger:               contextLogger,
+		startBlockHeight:     uploader.StartBlock() + 1,
+		log:                  contextLogger,
 	}
 }
 
@@ -212,7 +213,7 @@ func (ext *Extender) Run() {
 		err = ext.blockRepository.DeleteLastBlockData()
 	}
 	if err != nil {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 
 	var height uint64
@@ -222,17 +223,14 @@ func (ext *Extender) Run() {
 
 	lastExplorerBlock, err := ext.blockRepository.GetLastFromDB()
 	if err != nil && err != pg.ErrNoRows {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 
 	if lastExplorerBlock != nil {
 		height = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
-		height, err = strconv.ParseUint(os.Getenv("START_BLOCK"), 10, 64)
-		if err != nil {
-			height = 1
-		}
+		height = ext.startBlockHeight
 	}
 
 	for {
@@ -267,7 +265,7 @@ func (ext *Extender) Run() {
 		}
 		eventsResponse, err := ext.nodeApi.Events(height)
 		if err != nil {
-			ext.logger.Panic(err)
+			ext.log.Panic(err)
 		}
 		eet.GettingEvents = time.Since(countStart)
 
@@ -351,7 +349,7 @@ func (ext *Extender) runWorkers() {
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
 	err := ext.addressService.SaveAddressesFromResponses(blockResponse, eventsResponse)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 }
 
@@ -359,13 +357,13 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	// Save validators if not exist
 	err := ext.validatorService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 
 	ext.linkBlockValidator(response)
@@ -389,7 +387,7 @@ func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
 	}
 	err := ext.coinService.HandleCoinsFromBlock(block)
 	if err != nil {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 }
 
@@ -405,7 +403,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 		layout := "2006-01-02T15:04:05Z"
 		blockTime, err := time.Parse(layout, response.Time)
 		if err != nil {
-			ext.logger.Panic(err)
+			ext.log.Panic(err)
 		}
 
 		ext.saveTransactions(response.Height, blockTime, response.Transactions[start:end])
@@ -417,7 +415,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.Ev
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response)
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 	}
 }
@@ -430,7 +428,7 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	for _, v := range response.Validators {
 		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PublicKey))
 		if err != nil {
-			ext.logger.Error(err)
+			ext.log.Error(err)
 		}
 		helpers.HandleError(err)
 		link := models.BlockValidator{
@@ -442,7 +440,7 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	}
 	err := ext.blockRepository.LinkWithValidators(links)
 	if err != nil {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 }
 
@@ -450,14 +448,14 @@ func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Ti
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 }
 
 func (ext *Extender) getNodeLastBlockId() (uint64, error) {
 	statusResponse, err := ext.nodeApi.Status()
 	if err != nil {
-		ext.logger.Error(err)
+		ext.log.Error(err)
 		return 0, err
 	}
 	return statusResponse.LatestBlockHeight, err
@@ -468,14 +466,14 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 	}
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
@@ -490,13 +488,13 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 	critical := 5 * time.Second
 
 	if eet.Total > critical {
-		ext.logger.WithFields(logrus.Fields{
+		ext.log.WithFields(logrus.Fields{
 			"block": eet.Height,
 			"time":  fmt.Sprintf("%s", eet.Total),
 		}).Error("Processing time is too height")
 	}
 
-	ext.logger.WithFields(logrus.Fields{
+	ext.log.WithFields(logrus.Fields{
 		"getting block time":  eet.GettingBlock,
 		"getting events time": eet.GettingEvents,
 		"handle addresses":    eet.HandleAddressesFromResponses,

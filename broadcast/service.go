@@ -81,10 +81,6 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-	if s.chasingMode {
-		return
-	}
-
 	defer func() {
 		if err := recover(); err != nil {
 			var list []models.Balance
