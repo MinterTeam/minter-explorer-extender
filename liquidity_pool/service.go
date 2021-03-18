@@ -155,7 +155,7 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 		return nil, err
 	}
 
-	var firstCoinVolume, secondCoinVolume, liquidity, addressLiquidity *big.Int
+	var firstCoinVolume, secondCoinVolume, liquidity *big.Int
 
 	if lp.FirstCoinVolume == "" {
 		firstCoinVolume = big.NewInt(0)
@@ -223,21 +223,21 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 		return nil, err
 	}
 
-	alp, err := s.repository.GetAddressLiquidityPool(addressId, lp.Id)
-	if err != nil && err != pg.ErrNoRows {
+	nodeALP, err := s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom))
+	if err != nil {
 		return nil, err
 	}
 
-	if alp.Liquidity == "" {
-		addressLiquidity = big.NewInt(0)
-	} else {
-		addressLiquidity, _ = big.NewInt(0).SetString(alp.Liquidity, 10)
+	var alp *models.AddressLiquidityPool
+	alp, err = s.repository.GetAddressLiquidityPool(addressId, lp.Id)
+	if err != nil {
+		s.logger.Error(err)
+		alp = new(models.AddressLiquidityPool)
 	}
 
-	addressLiquidity.Add(addressLiquidity, txLiquidity)
 	alp.AddressId = uint64(addressId)
+	alp.Liquidity = nodeALP.Liquidity
 	alp.LiquidityPoolId = lp.Id
-	alp.Liquidity = addressLiquidity.String()
 
 	err = s.repository.UpdateAddressLiquidityPool(alp)
 	if err != nil {
