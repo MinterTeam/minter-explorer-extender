@@ -10,6 +10,7 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
+	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math/big"
@@ -342,7 +343,7 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*mod
 	s.logger.Info(fmt.Sprintf("Coin: %d Coin's data getting time: %s", coinId, elapsed))
 
 	coin, err := s.Storage.GetById(uint(coinId))
-	if err != nil && err.Error() != "pg: no rows in result set" {
+	if err != nil && err != pg.ErrNoRows {
 		return nil, err
 	}
 
@@ -353,8 +354,13 @@ func (s *Service) GetCoinFromNode(coinId uint64, optionalHeight ...uint64) (*mod
 
 	symbol := strings.Split(coinResp.Symbol, "-")
 
+	if symbol[0] == "LP" {
+		coin.Symbol = coinResp.Symbol
+	} else {
+		coin.Symbol = symbol[0]
+	}
+
 	coin.Name = coinResp.Name
-	coin.Symbol = symbol[0]
 	coin.Crr = uint(coinResp.Crr)
 	coin.Reserve = coinResp.ReserveBalance
 	coin.Volume = coinResp.Volume
@@ -449,7 +455,7 @@ func (s *Service) CreatePoolToken(tx *api_pb.TransactionResponse) (*models.Coin,
 	c := &models.Coin{
 		ID:               uint(coinId),
 		Type:             models.CoinTypePoolToken,
-		Name:             fmt.Sprintf("Swap Pool %s", txTags["tx.pair_ids"]),
+		Name:             fmt.Sprintf("Liquidity Pool %s", txTags["tx.pair_ids"]),
 		Symbol:           txTags["tx.pool_token"],
 		Volume:           volume.String(),
 		Crr:              0,
