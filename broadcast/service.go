@@ -10,6 +10,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
@@ -80,10 +81,6 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-	if s.chasingMode {
-		return
-	}
-
 	defer func() {
 		if err := recover(); err != nil {
 			var list []models.Balance
@@ -158,4 +155,13 @@ func (s *Service) publish(ch string, msg []byte) {
 	if err != nil {
 		s.logger.Warn(err)
 	}
+}
+
+func (s *Service) PublishCommissions(data api.Event) {
+	channel := `commissions`
+	msg, err := json.Marshal(data)
+	if err != nil {
+		s.logger.Error(err)
+	}
+	s.publish(channel, msg)
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
@@ -11,6 +12,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
+	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
@@ -18,10 +20,11 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
-	pg9 "github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
 	"math"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -31,21 +34,80 @@ var Version string
 
 type Extender struct {
 	//Metrics             *metrics.Metrics
-	env                 *env.ExtenderEnvironment
-	nodeApi             *grpc_client.Client
-	blockService        *block.Service
-	addressService      *address.Service
-	blockRepository     *block.Repository
-	validatorService    *validator.Service
-	validatorRepository *validator.Repository
-	transactionService  *transaction.Service
-	eventService        *events.Service
-	balanceService      *balance.Service
-	coinService         *coin.Service
-	broadcastService    *broadcast.Service
-	chasingMode         bool
-	currentNodeHeight   uint64
-	logger              *logrus.Entry
+	env                  *env.ExtenderEnvironment
+	nodeApi              *grpc_client.Client
+	blockService         *block.Service
+	addressService       *address.Service
+	blockRepository      *block.Repository
+	validatorService     *validator.Service
+	validatorRepository  *validator.Repository
+	transactionService   *transaction.Service
+	eventService         *events.Service
+	balanceService       *balance.Service
+	coinService          *coin.Service
+	broadcastService     *broadcast.Service
+	liquidityPoolService *liquidity_pool.Service
+	chasingMode          bool
+	startBlockHeight     uint64
+	currentNodeHeight    uint64
+	log                  *logrus.Entry
+}
+
+type ExtenderElapsedTime struct {
+	Height                       uint64
+	GettingBlock                 time.Duration
+	GettingEvents                time.Duration
+	HandleCoinsFromTransactions  time.Duration
+	HandleAddressesFromResponses time.Duration
+	HandleBlockResponse          time.Duration
+	Total                        time.Duration
+}
+
+type eventHook struct {
+	beforeTime time.Time
+	log        *logrus.Logger
+}
+
+func (eh eventHook) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
+	if event.Stash == nil {
+		event.Stash = make(map[interface{}]interface{})
+	}
+	event.Stash["query_time"] = time.Now()
+	return ctx, nil
+}
+func (eh eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
+	critical := time.Second
+	result := time.Duration(0)
+	if event.Stash != nil {
+		if v, ok := event.Stash["query_time"]; ok {
+			result = time.Now().Sub(v.(time.Time))
+		}
+	}
+
+	if result > critical {
+		bigQueryLog, err := os.OpenFile("big_query.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			eh.log.Error("error opening file: %v", err)
+		}
+		// don't forget to close it
+		defer bigQueryLog.Close()
+		eh.log.SetReportCaller(false)
+		eh.log.SetFormatter(&logrus.JSONFormatter{})
+		eh.log.SetOutput(bigQueryLog)
+		q, err := event.FormattedQuery()
+		if err != nil {
+			eh.log.Error(err)
+		}
+
+		r := regexp.MustCompile("\\s+")
+		replace := r.ReplaceAllString(fmt.Sprintf("%v", string(q)), " ")
+
+		eh.log.WithFields(logrus.Fields{
+			"query": strings.TrimSpace(replace),
+			"time":  fmt.Sprintf("%s", result),
+		}).Error("DB query time is too height")
+	}
+	return nil
 }
 
 func NewExtender(env *env.ExtenderEnvironment) *Extender {
@@ -76,14 +138,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
+		PoolSize: 100,
 	})
-
-	db9 := pg9.Connect(&pg9.Options{
-		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
-	})
+	hookImpl := eventHook{
+		log:        logrus.New(),
+		beforeTime: time.Now(),
+	}
+	db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
@@ -107,31 +168,37 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	eventsRepository := events.NewRepository(db)
 	balanceRepository := balance.NewRepository(db)
 
-	coins.GlobalRepository = coins.NewRepository(db9) //temporary solution
+	liquidityPoolRepository := liquidity_pool.NewRepository(db)
+
+	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
 
 	// Services
+	addressService := address.NewService(env, addressRepository, contextLogger)
 	broadcastService := broadcast.NewService(env, addressRepository, coinRepository, nodeApi, contextLogger)
+	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressService, coinRepository, broadcastService, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
-	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressRepository, coinRepository, broadcastService, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
+	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, nodeApi, contextLogger)
 
 	return &Extender{
 		//Metrics:             metrics.New(),
-		env:                 env,
-		nodeApi:             nodeApi,
-		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:        events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, contextLogger),
-		blockRepository:     blockRepository,
-		validatorService:    validatorService,
-		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel()),
-		addressService:      address.NewService(env, addressRepository, balanceService.GetAddressesChannel(), contextLogger),
-		validatorRepository: validatorRepository,
-		balanceService:      balanceService,
-		coinService:         coinService,
-		broadcastService:    broadcastService,
-		chasingMode:         true,
-		currentNodeHeight:   0,
-		logger:              contextLogger,
+		env:                  env,
+		nodeApi:              nodeApi,
+		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
+		eventService:         events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger),
+		blockRepository:      blockRepository,
+		validatorService:     validatorService,
+		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
+		addressService:       addressService,
+		validatorRepository:  validatorRepository,
+		balanceService:       balanceService,
+		coinService:          coinService,
+		broadcastService:     broadcastService,
+		liquidityPoolService: liquidityPoolService,
+		chasingMode:          true,
+		currentNodeHeight:    0,
+		startBlockHeight:     uploader.StartBlock() + 1,
+		log:                  contextLogger,
 	}
 }
 
@@ -146,7 +213,7 @@ func (ext *Extender) Run() {
 		err = ext.blockRepository.DeleteLastBlockData()
 	}
 	if err != nil {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 
 	var height uint64
@@ -156,7 +223,7 @@ func (ext *Extender) Run() {
 
 	lastExplorerBlock, err := ext.blockRepository.GetLastFromDB()
 	if err != nil && err != pg.ErrNoRows {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 
 	if lastExplorerBlock != nil {
@@ -167,40 +234,60 @@ func (ext *Extender) Run() {
 	}
 
 	for {
+		eet := ExtenderElapsedTime{
+			Height:                       height,
+			GettingBlock:                 0,
+			GettingEvents:                0,
+			HandleCoinsFromTransactions:  0,
+			HandleAddressesFromResponses: 0,
+			HandleBlockResponse:          0,
+			Total:                        0,
+		}
+
 		start := time.Now()
 		ext.findOutChasingMode(height)
 
 		//Pulling block data
-		startGettingBlock := time.Now()
-		blockResponse, err := ext.nodeApi.Block(height)
+		countStart := time.Now()
+		blockResponse, err := ext.nodeApi.BlockExtended(height, true)
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		elapsedGettingBlock := time.Since(startGettingBlock)
-		ext.logger.Info(fmt.Sprintf("Block: %d Block's data getting time: %s", height, elapsedGettingBlock))
+
+		eet.GettingBlock = time.Since(countStart)
 
 		//Pulling events
-		startGettingEvents := time.Now()
+		countStart = time.Now()
 		eventsHeight := height - 1
 		if eventsHeight <= 0 {
 			eventsHeight = 1
 		}
 		eventsResponse, err := ext.nodeApi.Events(eventsHeight)
 		if err != nil {
-			ext.logger.Panic(err)
+			ext.log.Panic(err)
 		}
-		elapsedGettingEvents := time.Since(startGettingEvents)
-		ext.logger.Info(fmt.Sprintf("Block: %d Events's data getting time: %s", height, elapsedGettingEvents))
+		eet.GettingEvents = time.Since(countStart)
 
+		countStart = time.Now()
 		ext.handleCoinsFromTransactions(blockResponse)
+		eet.HandleCoinsFromTransactions = time.Since(countStart)
+
+		countStart = time.Now()
 		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
+		eet.HandleAddressesFromResponses = time.Since(countStart)
+
+		countStart = time.Now()
 		ext.handleBlockResponse(blockResponse)
+		eet.HandleBlockResponse = time.Since(countStart)
+
+		ext.balanceService.ChannelDataForUpdate() <- blockResponse
+		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
 
 		go ext.handleEventResponse(height, eventsResponse)
+		eet.Total = time.Since(start)
+		ext.printSpentTimeLog(eet)
 
-		elapsed := time.Since(start)
-		ext.logger.Info(fmt.Sprintf("Block: %d Processing time: %s", height, elapsed))
 		height++
 	}
 }
@@ -240,12 +327,9 @@ func (ext *Extender) runWorkers() {
 	}
 
 	// Balances
-	go ext.balanceService.Run()
-	for w := 1; w <= ext.env.WrkGetBalancesFromNodeCount; w++ {
-		go ext.balanceService.GetBalancesFromNodeWorker(ext.balanceService.GetBalancesFromNodeChannel(), ext.balanceService.GetUpdateBalancesJobChannel())
-	}
-	for w := 1; w <= ext.env.WrkUpdateBalanceCount; w++ {
-		go ext.balanceService.UpdateBalancesWorker(ext.balanceService.GetUpdateBalancesJobChannel())
+	go ext.balanceService.BalanceManager()
+	for w := 1; w <= 3; w++ {
+		go ext.balanceService.BalanceUpdater()
 	}
 
 	//Coins
@@ -257,12 +341,15 @@ func (ext *Extender) runWorkers() {
 
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
+
+	//LiquidityPool
+	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
-	err := ext.addressService.HandleResponses(blockResponse, eventsResponse)
+	err := ext.addressService.SaveAddressesFromResponses(blockResponse, eventsResponse)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 }
 
@@ -270,13 +357,13 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 	// Save validators if not exist
 	err := ext.validatorService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 
 	// Save block
 	err = ext.blockService.HandleBlockResponse(response)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 
 	ext.linkBlockValidator(response)
@@ -295,17 +382,12 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 }
 
 func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
-	if len(block.Transactions) > 0 {
-		coinsList, err := ext.coinService.ExtractCoinsFromTransactions(block)
-		if err != nil {
-			ext.logger.Fatal(err)
-		}
-		if len(coinsList) > 0 {
-			err = ext.coinService.CreateNewCoins(coinsList)
-			if err != nil {
-				ext.logger.Fatal(err)
-			}
-		}
+	if len(block.Transactions) == 0 {
+		return
+	}
+	err := ext.coinService.HandleCoinsFromBlock(block)
+	if err != nil {
+		ext.log.Fatal(err)
 	}
 }
 
@@ -321,7 +403,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 		layout := "2006-01-02T15:04:05Z"
 		blockTime, err := time.Parse(layout, response.Time)
 		if err != nil {
-			ext.logger.Panic(err)
+			ext.log.Panic(err)
 		}
 
 		ext.saveTransactions(response.Height, blockTime, response.Transactions[start:end])
@@ -333,7 +415,7 @@ func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.Ev
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response)
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 	}
 }
@@ -346,7 +428,7 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	for _, v := range response.Validators {
 		vId, err := ext.validatorRepository.FindIdByPk(helpers.RemovePrefix(v.PublicKey))
 		if err != nil {
-			ext.logger.Error(err)
+			ext.log.Error(err)
 		}
 		helpers.HandleError(err)
 		link := models.BlockValidator{
@@ -358,22 +440,22 @@ func (ext *Extender) linkBlockValidator(response *api_pb.BlockResponse) {
 	}
 	err := ext.blockRepository.LinkWithValidators(links)
 	if err != nil {
-		ext.logger.Fatal(err)
+		ext.log.Fatal(err)
 	}
 }
 
-func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) {
+func (ext *Extender) saveTransactions(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.TransactionResponse) {
 	// Save transactions
 	err := ext.transactionService.HandleTransactionsFromBlockResponse(blockHeight, blockCreatedAt, transactions)
 	if err != nil {
-		ext.logger.Panic(err)
+		ext.log.Panic(err)
 	}
 }
 
 func (ext *Extender) getNodeLastBlockId() (uint64, error) {
 	statusResponse, err := ext.nodeApi.Status()
 	if err != nil {
-		ext.logger.Error(err)
+		ext.log.Error(err)
 		return 0, err
 	}
 	return statusResponse.LatestBlockHeight, err
@@ -384,14 +466,14 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 	}
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
-			ext.logger.Fatal(err)
+			ext.log.Fatal(err)
 		}
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
@@ -399,4 +481,24 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	ext.validatorService.SetChasingMode(ext.chasingMode)
 	ext.broadcastService.SetChasingMode(ext.chasingMode)
 	ext.balanceService.SetChasingMode(ext.chasingMode)
+}
+
+func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
+
+	critical := 5 * time.Second
+
+	if eet.Total > critical {
+		ext.log.WithFields(logrus.Fields{
+			"block": eet.Height,
+			"time":  fmt.Sprintf("%s", eet.Total),
+		}).Error("Processing time is too height")
+	}
+
+	ext.log.WithFields(logrus.Fields{
+		"getting block time":  eet.GettingBlock,
+		"getting events time": eet.GettingEvents,
+		"handle addresses":    eet.HandleAddressesFromResponses,
+		"handle coins":        eet.HandleCoinsFromTransactions,
+		"handle block":        eet.HandleBlockResponse,
+	}).Info(fmt.Sprintf("Block: %d Processing time: %s", eet.Height, eet.Total))
 }

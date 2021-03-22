@@ -1,0 +1,51 @@
+name: M2
+
+on:
+  push:
+    branches: [ m2 ]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Version
+        uses: pCYSl5EDgo/cat@master
+        id: version
+        with:
+          path: VERSION
+          trim: true
+
+      - name: Build & Push to Docker Hub
+        uses: opspresso/action-docker@master
+        env:
+          USERNAME: ${{ secrets.MINTER_REGISTRY_USERNAME }}
+          PASSWORD: ${{ secrets.MINTER_REGISTRY_PASSWORD }}
+          IMAGE_NAME: "explorer-extender"
+          REGISTRY: "registry.minter.network"
+          DOCKERFILE: ".docker/Dockerfile"
+          LATEST: "true"
+          VERSION: "${{ steps.version.outputs.text }}"
+          TAG_NAME: ${{ github.sha }}
+          DOCKER_BUILD_ARGS: --build-arg VERSION=${{ github.sha }}
+
+      - name: Deploy
+        uses: wahyd4/kubectl-helm-action@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_STAGE_CONFIG_DATA }}
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          args: helm upgrade -i m2-extender chart/ --reuse-values --atomic --timeout 100s --set image.tag=$IMAGE_TAG
+
+      - name: notification
+        if: cancelled() == false
+        uses: xinthink/action-telegram@v1.1
+        with:
+          botToken: ${{ secrets.TELEGRAM_CI_TOKEN }}
+          chatId: ${{ secrets.TELEGRAM_CI_TO }}
+          jobStatus: ${{ job.status }}
+          skipSuccess: false

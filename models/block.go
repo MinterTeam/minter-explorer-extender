@@ -12,12 +12,12 @@ type Block struct {
 	UpdatedAt           time.Time             `json:"updated_at"`
 	BlockReward         string                `json:"block_reward"         pg:"type:numeric(70)"`
 	Hash                string                `json:"hash"`
-	Proposer            *Validator            `json:"proposer"             pg:"fk:proposer_validator_id"`  //relation has one to Validators
-	Validators          []*Validator          `json:"validators"           pg:"many2many:block_validator"` //relation has many to Validators
-	Transactions        []*Transaction        `json:"transactions"         pg:"rel:has-many"`              //relation has many to Transactions
-	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions" pg:"rel:has-many"`              //relation has many to InvalidTransactions
-	Rewards             []*Reward             `json:"rewards"              pg:"rel:has-many"`              //relation has many to Rewards
-	Slashes             []*Slash              `json:"slashes"              pg:"rel:has-many"`              //relation has many to Slashes
+	Proposer            *Validator            `json:"proposer"             pg:"rel:has-one,fk:proposer_validator_id"` //relation has one to Validators
+	Validators          []*Validator          `json:"validators"           pg:"many2many:block_validator"`            //relation has many to Validators
+	Transactions        []*Transaction        `json:"transactions"         pg:"rel:has-many"`                         //relation has many to Transactions
+	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions" pg:"rel:has-many"`                         //relation has many to InvalidTransactions
+	Rewards             []*Reward             `json:"rewards"              pg:"rel:has-many"`                         //relation has many to Rewards
+	Slashes             []*Slash              `json:"slashes"              pg:"rel:has-many"`                         //relation has many to Slashes
 	BlockValidators     []BlockValidator      `json:"block_validators"     pg:"rel:has-many"`
 }
 

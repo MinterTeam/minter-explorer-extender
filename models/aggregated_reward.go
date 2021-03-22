@@ -10,8 +10,8 @@ type AggregatedReward struct {
 	Role        string     `json:"role"          pg:",pk"`
 	Amount      string     `json:"amount"        pg:"type:numeric(70)"`
 	TimeID      time.Time  `json:"time_id"`
-	FromBlock   *Block     //Relation has one to Blocks
-	ToBlock     *Block     //Relation has one to Blocks
-	Address     *Address   //Relation has one to Addresses
-	Validator   *Validator //Relation has one to Validators
+	FromBlock   *Block     `pg:"rel:has-one,fk:from_block_id"` //Relation has one to Blocks
+	ToBlock     *Block     `pg:"rel:has-one,fk:to_block_id"`   //Relation has one to Blocks
+	Address     *Address   `pg:"rel:has-one"`                  //Relation has one to Addresses
+	Validator   *Validator `pg:"rel:has-one"`                  //Relation has one to Validators
 }
