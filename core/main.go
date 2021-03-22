@@ -230,7 +230,7 @@ func (ext *Extender) Run() {
 		height = lastExplorerBlock.ID + 1
 		ext.blockService.SetBlockCache(lastExplorerBlock)
 	} else {
-		height = 1
+		height = ext.startBlockHeight
 	}
 
 	for {
