@@ -38,7 +38,7 @@ jobs:
           clusterName: k8s-prod-do
 
       - name: Install helm
-        run: wget https://get.helm.sh/helm-v3.3.4-linux-amd64.tar.gz &> /dev/null && tar xvzf helm-v3.3.4-linux-amd64.tar.gz && chmod 777 linux-amd64/helm && ./linux-amd64/helm ls -n mainnet-reserved
+        run: wget https://get.helm.sh/helm-v3.3.4-linux-amd64.tar.gz &> /dev/null && tar xvzf helm-v3.3.4-linux-amd64.tar.gz && chmod 777 linux-amd64/helm && ./linux-amd64/helm ls -n testnet-reserved
 
       - name: Deploy to DO
         env:
