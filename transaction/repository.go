@@ -82,3 +82,8 @@ ON CONFLICT DO NOTHING;
 	`, txsNumber, txsNumber)
 	return err
 }
+
+func (r *Repository) LinkWithLiquidityPool(links []*models.TransactionLiquidityPool) error {
+	_, err := r.db.Model(&links).Insert()
+	return err
+}

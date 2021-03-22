@@ -3,12 +3,12 @@ package transaction
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
@@ -23,41 +23,43 @@ import (
 )
 
 type Service struct {
-	env                 *env.ExtenderEnvironment
-	txRepository        *Repository
-	addressRepository   *address.Repository
-	validatorRepository *validator.Repository
-	coinRepository      *coin.Repository
-	coinService         *coin.Service
-	broadcastService    *broadcast.Service
-	jobSaveTxs          chan []*models.Transaction
-	jobSaveTxsOutput    chan []*models.Transaction
-	jobSaveValidatorTxs chan []*models.TransactionValidator
-	jobSaveInvalidTxs   chan []*models.InvalidTransaction
-	jobUpdateWaitList   chan *models.Transaction
-	jobUnbondSaver      chan *models.Transaction
-	logger              *logrus.Entry
+	env                  *env.ExtenderEnvironment
+	txRepository         *Repository
+	addressRepository    *address.Repository
+	validatorRepository  *validator.Repository
+	coinRepository       *coin.Repository
+	coinService          *coin.Service
+	liquidityPoolService *liquidity_pool.Service
+	broadcastService     *broadcast.Service
+	jobSaveTxs           chan []*models.Transaction
+	jobSaveTxsOutput     chan []*models.Transaction
+	jobSaveValidatorTxs  chan []*models.TransactionValidator
+	jobSaveInvalidTxs    chan []*models.InvalidTransaction
+	jobUpdateWaitList    chan *models.Transaction
+	jobUnbondSaver       chan *models.Transaction
+	logger               *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
-	jobUnbondSaver chan *models.Transaction) *Service {
+	jobUnbondSaver chan *models.Transaction, liquidityPoolService *liquidity_pool.Service) *Service {
 	return &Service{
-		env:                 env,
-		txRepository:        repository,
-		coinRepository:      coinRepository,
-		addressRepository:   addressRepository,
-		coinService:         coinService,
-		validatorRepository: validatorRepository,
-		broadcastService:    broadcastService,
-		jobSaveTxs:          make(chan []*models.Transaction, env.WrkSaveTxsCount),
-		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
-		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
-		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
-		jobUpdateWaitList:   jobUpdateWaitList,
-		jobUnbondSaver:      jobUnbondSaver,
-		logger:              logger,
+		env:                  env,
+		txRepository:         repository,
+		coinRepository:       coinRepository,
+		addressRepository:    addressRepository,
+		coinService:          coinService,
+		validatorRepository:  validatorRepository,
+		liquidityPoolService: liquidityPoolService,
+		broadcastService:     broadcastService,
+		jobSaveTxs:           make(chan []*models.Transaction, env.WrkSaveTxsCount),
+		jobSaveTxsOutput:     make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
+		jobSaveValidatorTxs:  make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
+		jobSaveInvalidTxs:    make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
+		jobUpdateWaitList:    jobUpdateWaitList,
+		jobUnbondSaver:       jobUnbondSaver,
+		logger:               logger,
 	}
 }
 
@@ -75,7 +77,8 @@ func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValid
 }
 
 //Handle response and save block to DB
-func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time, transactions []*api_pb.BlockResponse_Transaction) error {
+func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
+	transactions []*api_pb.TransactionResponse) error {
 
 	var txList []*models.Transaction
 	var invalidTxList []*models.InvalidTransaction
@@ -88,6 +91,23 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				return err
 			}
 			txList = append(txList, txn)
+
+			tags := tx.GetTags()
+			if tx.GasCoin.Id != 0 && tags["tx.commission_conversion"] == "pool" {
+				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
+			}
+
+			switch transaction.Type(tx.Type) {
+			case transaction.TypeBuySwapPool,
+				transaction.TypeSellSwapPool,
+				transaction.TypeSellAllSwapPool,
+				transaction.TypeAddLiquidity,
+				transaction.TypeCreateSwapPool,
+				transaction.TypeRemoveLiquidity,
+				transaction.TypeSend,
+				transaction.TypeMultisend:
+				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
+			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
 			if err != nil {
@@ -131,6 +151,17 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 				}
 				s.GetSaveTxValidatorJobChannel() <- links[start:end]
 			}
+		}
+
+		lpLinks, err := s.getLinksLiquidityPool(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		if len(lpLinks) > 0 {
+			err = s.txRepository.LinkWithLiquidityPool(lpLinks)
+		}
+		if err != nil {
+			s.logger.Error(err)
 		}
 
 		s.GetSaveTxsOutputJobChannel() <- transactions
@@ -268,8 +299,8 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 			checkList = append(checkList, &models.Check{
 				TransactionID: tx.ID,
 				Data:          hex.EncodeToString(rawCheck),
-				ToAddressId:   toId,
-				FromAddressId: uint(tx.FromAddressID),
+				ToAddressId:   uint(tx.FromAddressID),
+				FromAddressId: toId,
 			})
 
 			list = append(list, &models.TransactionOutput{
@@ -362,7 +393,7 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 	return nil
 }
 
-func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
+func (s *Service) handleValidTransaction(tx *api_pb.TransactionResponse, blockHeight uint64, blockCreatedAt time.Time) (*models.Transaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -374,16 +405,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 		return nil, err
 	}
 
-	txTagsJson, err := json.Marshal(tx.Tags)
-	if err != nil {
-		return nil, err
-	}
-
-	txTags := make(map[string]string)
-	err = json.Unmarshal(txTagsJson, &txTags)
-	if err != nil {
-		return nil, err
-	}
+	txTags := tx.GetTags()
 
 	txDataJson, err := txDataJson(tx.Type, tx.Data)
 	if err != nil {
@@ -397,6 +419,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 		GasPrice:      tx.GasPrice,
 		Gas:           tx.Gas,
 		GasCoinID:     tx.GasCoin.Id,
+		Commission:    txTags["tx.commission_in_base_coin"],
 		CreatedAt:     blockCreatedAt,
 		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
@@ -409,7 +432,7 @@ func (s *Service) handleValidTransaction(tx *api_pb.BlockResponse_Transaction, b
 	}, nil
 }
 
-func (s *Service) handleInvalidTransaction(tx *api_pb.BlockResponse_Transaction, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
+func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, blockHeight uint64, blockCreatedAt time.Time) (*models.InvalidTransaction, error) {
 	fromId, err := s.addressRepository.FindId(helpers.RemovePrefix(tx.From))
 	if err != nil {
 		return nil, err
@@ -495,6 +518,44 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 		}
 	}
 
+	return links, nil
+}
+
+func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*models.TransactionLiquidityPool, error) {
+	var links []*models.TransactionLiquidityPool
+	for _, tx := range transactions {
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeSellSwapPool,
+			transaction.TypeBuySwapPool,
+			transaction.TypeSellAllSwapPool:
+			lpList, err := s.liquidityPoolService.GetPoolsByTxTags(tx.Tags)
+			if err != nil {
+				return nil, err
+			}
+			for _, lp := range lpList {
+				links = append(links, &models.TransactionLiquidityPool{
+					TransactionID:   tx.ID,
+					LiquidityPoolID: lp.Id,
+				})
+			}
+		case transaction.TypeRemoveLiquidity,
+			transaction.TypeAddLiquidity,
+			transaction.TypeCreateSwapPool:
+			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+			if err != nil {
+				//TODO: quick fix will be removed
+				time.Sleep(500 * time.Millisecond)
+				lp, err = s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+			}
+			if err != nil {
+				return nil, err
+			}
+			links = append(links, &models.TransactionLiquidityPool{
+				TransactionID:   tx.ID,
+				LiquidityPoolID: lp.Id,
+			})
+		}
+	}
 	return links, nil
 }
 
@@ -681,8 +742,8 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypePriceVote:
-		txData := new(api_pb.PriceVoteData)
+	case transaction.TypeEditCandidatePublicKey:
+		txData := new(api_pb.EditCandidatePublicKeyData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}
@@ -691,8 +752,128 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
-	case transaction.TypeEditCandidatePublicKey:
-		txData := new(api_pb.EditCandidatePublicKeyData)
+	case transaction.TypeAddLiquidity:
+		txData := new(api_pb.AddLiquidityData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeRemoveLiquidity:
+		txData := new(api_pb.RemoveLiquidityData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeSellSwapPool:
+		txData := new(api_pb.SellSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeBuySwapPool:
+		txData := new(api_pb.BuySwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeSellAllSwapPool:
+		txData := new(api_pb.SellAllSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeEditCommissionCandidate:
+		txData := new(api_pb.EditCandidateCommission)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeMintToken:
+		txData := new(api_pb.MintTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeBurnToken:
+		txData := new(api_pb.BurnTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeCreateToken:
+		txData := new(api_pb.CreateTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeRecreateToken:
+		txData := new(api_pb.RecreateTokenData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeCreateSwapPool:
+		txData := new(api_pb.CreateSwapPoolData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeVoteCommission:
+		txData := new(api_pb.VoteCommissionData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeVoteUpdate:
+		txData := new(api_pb.VoteUpdateData)
 		if err := data.UnmarshalTo(txData); err != nil {
 			return nil, err
 		}

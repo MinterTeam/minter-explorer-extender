@@ -30,7 +30,7 @@ env:
   pgPassword: {DB_PASSWORD}
   pgHost: {DB_HOST}
   pgPort: { DB_PORT }
-  nodeApi: {NODE_API}
+  nodeGrpc: {NODE_GRPC}
   сentrifugoSecret: {CENTRIFUGO_SECRET}
   сentrifugoLink: {CENTRIFUGO_LINK}
   minterBaseCoin: {MINTER_BASE_COIN}
@@ -60,3 +60,4 @@ env:
   txsIndexPeriod: "60"
   extenderApiPort: "8011"
   updateBalancesWhenChasing: "true"
+  startBlock: "1"
