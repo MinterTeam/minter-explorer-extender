@@ -94,7 +94,7 @@ func (eh eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error 
 		eh.log.SetReportCaller(false)
 		eh.log.SetFormatter(&logrus.JSONFormatter{})
 		eh.log.SetOutput(bigQueryLog)
-		q, err := event.FormattedQuery()
+		q, err := event.UnformattedQuery()
 		if err != nil {
 			eh.log.Error(err)
 		}
