@@ -29,8 +29,8 @@ type Service struct {
 	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
 }
 
-func (s *Service) UpdateLiquidityPoolWorker(jobs <-chan *api_pb.TransactionResponse) {
-	for tx := range jobs {
+func (s *Service) UpdateLiquidityPoolWorker(data <-chan *api_pb.TransactionResponse) {
+	for tx := range data {
 		var err error
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeBuySwapPool,
@@ -230,8 +230,10 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 
 	var alp *models.AddressLiquidityPool
 	alp, err = s.repository.GetAddressLiquidityPool(addressId, lp.Id)
-	if err != nil {
+	if err != nil && err != pg.ErrNoRows {
 		s.logger.Error(err)
+	}
+	if err != nil {
 		alp = new(models.AddressLiquidityPool)
 	}
 
