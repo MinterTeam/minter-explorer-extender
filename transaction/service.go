@@ -107,6 +107,9 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				transaction.TypeSend,
 				transaction.TypeMultisend:
 				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
+			case transaction.TypeDelegate,
+				transaction.TypeUnbond:
+				s.broadcastService.StakeChannel() <- tx
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
