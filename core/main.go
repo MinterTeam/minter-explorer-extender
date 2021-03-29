@@ -344,6 +344,9 @@ func (ext *Extender) runWorkers() {
 
 	//LiquidityPool
 	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
+
+	//Broadcast
+	go ext.broadcastService.PublishStakeWorker()
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {

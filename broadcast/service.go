@@ -12,9 +12,12 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
 	"log"
+	"math/big"
 	"time"
 )
 
@@ -25,6 +28,7 @@ type Service struct {
 	addressRepository *address.Repository
 	coinRepository    *coin.Repository
 	logger            *logrus.Entry
+	stakeChannel      chan *api_pb.TransactionResponse
 	chasingMode       bool
 }
 
@@ -41,9 +45,14 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		ctx:               context.Background(),
 		addressRepository: addressRepository,
 		coinRepository:    coinRepository,
+		stakeChannel:      make(chan *api_pb.TransactionResponse),
 		logger:            logger,
 		chasingMode:       false,
 	}
+}
+
+func (s *Service) StakeChannel() chan *api_pb.TransactionResponse {
+	return s.stakeChannel
 }
 
 func (s *Service) SetChasingMode(chasingMode bool) {
@@ -164,4 +173,56 @@ func (s *Service) PublishCommissions(data api.Event) {
 		s.logger.Error(err)
 	}
 	s.publish(channel, msg)
+}
+
+func (s *Service) PublishStakeWorker() {
+	channel := `stake/%s`
+	addressCache := make(map[string]*big.Int)
+
+	for {
+		tx := <-s.stakeChannel
+
+		var val *big.Int
+
+		if transaction.Type(tx.Type) == transaction.TypeDelegate {
+			txData := new(api_pb.DelegateData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			val, _ = big.NewInt(0).SetString(txData.Value, 10)
+		}
+
+		if transaction.Type(tx.Type) == transaction.TypeUnbond {
+			txData := new(api_pb.UnbondData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			val, _ = big.NewInt(0).SetString(txData.Value, 10)
+		}
+
+		if tx.Height%120 == 0 {
+			if len(addressCache) > 0 {
+				for a := range addressCache {
+					s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, a)))
+					delete(addressCache, a)
+				}
+			}
+			s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, val.String())))
+		} else {
+
+			if addressCache[tx.From] == nil {
+				addressCache[tx.From] = big.NewInt(0)
+			}
+
+			if transaction.Type(tx.Type) == transaction.TypeDelegate {
+				addressCache[tx.From].Add(addressCache[tx.From], val)
+			}
+
+			if transaction.Type(tx.Type) == transaction.TypeUnbond {
+				addressCache[tx.From].Sub(addressCache[tx.From], val)
+			}
+		}
+	}
 }
