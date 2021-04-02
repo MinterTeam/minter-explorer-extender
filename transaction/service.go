@@ -578,87 +578,13 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]*models.LiquidityPoolTrade, error) {
 	var links []*models.LiquidityPoolTrade
 	for _, tx := range transactions {
-		if transaction.Type(tx.Type) != transaction.TypeCreateSwapPool &&
-			transaction.Type(tx.Type) != transaction.TypeAddLiquidity &&
-			transaction.Type(tx.Type) != transaction.TypeRemoveLiquidity &&
-			transaction.Type(tx.Type) != transaction.TypeSellAllSwapPool &&
+		if transaction.Type(tx.Type) != transaction.TypeSellAllSwapPool &&
 			transaction.Type(tx.Type) != transaction.TypeSellSwapPool &&
 			transaction.Type(tx.Type) != transaction.TypeBuySwapPool {
 			continue
 		}
 
-		lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
-		if err != nil {
-			//TODO: quick fix will be removed
-			time.Sleep(500 * time.Millisecond)
-			lp, err = s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
-		}
-		if err != nil {
-			return nil, err
-		}
-
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeRemoveLiquidity:
-			var txData *api_pb.RemoveLiquidityData
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			lpt := &models.LiquidityPoolTrade{
-				BlockId:         tx.BlockID,
-				LiquidityPoolId: lp.Id,
-				TransactionId:   tx.ID,
-			}
-			if txData.Coin0.Id < txData.Coin1.Id {
-				lpt.FirstCoinVolume = tx.Tags["tx.volume0"]
-				lpt.SecondCoinVolume = tx.Tags["tx.volume1"]
-			} else {
-				lpt.FirstCoinVolume = tx.Tags["tx.volume1"]
-				lpt.SecondCoinVolume = tx.Tags["tx.volume0"]
-			}
-			links = append(links, lpt)
-		case transaction.TypeAddLiquidity:
-			var txData *api_pb.AddLiquidityData
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			lpt := &models.LiquidityPoolTrade{
-				BlockId:         tx.BlockID,
-				LiquidityPoolId: lp.Id,
-				TransactionId:   tx.ID,
-			}
-
-			if txData.Coin0.Id < txData.Coin1.Id {
-				lpt.FirstCoinVolume = txData.Volume0
-				lpt.SecondCoinVolume = tx.Tags["tx.return"]
-			} else {
-				lpt.FirstCoinVolume = tx.Tags["tx.return"]
-				lpt.SecondCoinVolume = txData.Volume0
-			}
-			links = append(links, lpt)
-		case transaction.TypeCreateSwapPool:
-			var txData *api_pb.CreateSwapPoolData
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			lpt := &models.LiquidityPoolTrade{
-				BlockId:         tx.BlockID,
-				LiquidityPoolId: lp.Id,
-				TransactionId:   tx.ID,
-			}
-			if txData.Coin0.Id < txData.Coin1.Id {
-				lpt.FirstCoinVolume = txData.Volume0
-				lpt.SecondCoinVolume = txData.Volume1
-			} else {
-				lpt.FirstCoinVolume = txData.Volume1
-				lpt.SecondCoinVolume = txData.Volume0
-			}
-			links = append(links, lpt)
 		case transaction.TypeSellAllSwapPool:
 			var txData *api_pb.SellAllSwapPoolData
 			err := json.Unmarshal(tx.Data, &txData)
