@@ -70,6 +70,11 @@ func (r *Repository) GetAllByIds(ids []uint64) ([]models.LiquidityPool, error) {
 	return list, err
 }
 
+func (r *Repository) SaveAllLiquidityPoolTrades(links []*models.LiquidityPoolTrade) error {
+	_, err := r.db.Model(&links).Insert()
+	return err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,

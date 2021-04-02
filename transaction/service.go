@@ -3,6 +3,7 @@ package transaction
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
@@ -98,12 +99,13 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			}
 
 			switch transaction.Type(tx.Type) {
+			case transaction.TypeCreateSwapPool,
+				transaction.TypeRemoveLiquidity,
+				transaction.TypeAddLiquidity:
+				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			case transaction.TypeBuySwapPool,
 				transaction.TypeSellSwapPool,
 				transaction.TypeSellAllSwapPool,
-				transaction.TypeAddLiquidity,
-				transaction.TypeCreateSwapPool,
-				transaction.TypeRemoveLiquidity,
 				transaction.TypeSend,
 				transaction.TypeMultisend:
 				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
@@ -162,6 +164,17 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		}
 		if len(lpLinks) > 0 {
 			err = s.txRepository.LinkWithLiquidityPool(lpLinks)
+		}
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		lptLinks, err := s.getLiquidityPoolTrades(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		if len(lptLinks) > 0 {
+			err = s.liquidityPoolService.SaveLiquidityPoolTrades(lptLinks)
 		}
 		if err != nil {
 			s.logger.Error(err)
@@ -557,6 +570,92 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 				TransactionID:   tx.ID,
 				LiquidityPoolID: lp.Id,
 			})
+		}
+	}
+	return links, nil
+}
+
+func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]*models.LiquidityPoolTrade, error) {
+	var links []*models.LiquidityPoolTrade
+	for _, tx := range transactions {
+		if transaction.Type(tx.Type) != transaction.TypeCreateSwapPool &&
+			transaction.Type(tx.Type) != transaction.TypeAddLiquidity &&
+			transaction.Type(tx.Type) != transaction.TypeRemoveLiquidity {
+			continue
+		}
+
+		lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+		if err != nil {
+			//TODO: quick fix will be removed
+			time.Sleep(500 * time.Millisecond)
+			lp, err = s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeRemoveLiquidity:
+			var txData *api_pb.RemoveLiquidityData
+			err := json.Unmarshal(tx.Data, &txData)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			lpt := &models.LiquidityPoolTrade{
+				BlockId:         tx.BlockID,
+				LiquidityPoolId: lp.Id,
+				TransactionId:   tx.ID,
+			}
+			if txData.Coin0.Id < txData.Coin1.Id {
+				lpt.FirstCoinVolume = tx.Tags["tx.volume0"]
+				lpt.SecondCoinVolume = tx.Tags["tx.volume1"]
+			} else {
+				lpt.FirstCoinVolume = tx.Tags["tx.volume1"]
+				lpt.SecondCoinVolume = tx.Tags["tx.volume0"]
+			}
+			links = append(links, lpt)
+		case transaction.TypeAddLiquidity:
+			var txData *api_pb.AddLiquidityData
+			err := json.Unmarshal(tx.Data, &txData)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			lpt := &models.LiquidityPoolTrade{
+				BlockId:         tx.BlockID,
+				LiquidityPoolId: lp.Id,
+				TransactionId:   tx.ID,
+			}
+
+			if txData.Coin0.Id < txData.Coin1.Id {
+				lpt.FirstCoinVolume = txData.Volume0
+				lpt.SecondCoinVolume = tx.Tags["tx.return"]
+			} else {
+				lpt.FirstCoinVolume = tx.Tags["tx.return"]
+				lpt.SecondCoinVolume = txData.Volume0
+			}
+			links = append(links, lpt)
+		case transaction.TypeCreateSwapPool:
+			var txData *api_pb.CreateSwapPoolData
+			err := json.Unmarshal(tx.Data, &txData)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			lpt := &models.LiquidityPoolTrade{
+				BlockId:         tx.BlockID,
+				LiquidityPoolId: lp.Id,
+				TransactionId:   tx.ID,
+			}
+			if txData.Coin0.Id < txData.Coin1.Id {
+				lpt.FirstCoinVolume = txData.Volume0
+				lpt.SecondCoinVolume = txData.Volume1
+			} else {
+				lpt.FirstCoinVolume = txData.Volume1
+				lpt.SecondCoinVolume = txData.Volume0
+			}
+			links = append(links, lpt)
 		}
 	}
 	return links, nil

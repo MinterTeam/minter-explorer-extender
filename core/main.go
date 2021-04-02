@@ -154,7 +154,11 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	//api
 	nodeApi, err := grpc_client.New(env.NodeApi)
+	if err != nil {
+		panic(err)
+	}
 
+	status, err := nodeApi.Status()
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +201,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		liquidityPoolService: liquidityPoolService,
 		chasingMode:          true,
 		currentNodeHeight:    0,
-		startBlockHeight:     uploader.StartBlock() + 1,
+		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
 	}
 }

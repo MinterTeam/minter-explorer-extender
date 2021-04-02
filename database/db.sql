@@ -58,7 +58,7 @@ CREATE INDEX blocks_created_at_index ON blocks (created_at DESC);
 
 CREATE TABLE block_validator
 (
-    block_id     bigint  NOT NULL references blocks (id)  on delete cascade,
+    block_id     bigint  NOT NULL references blocks (id) on delete cascade,
     validator_id integer NOT NULL references validators (id) on delete cascade,
     signed       boolean NOT NULL DEFAULT false
 );
@@ -262,12 +262,25 @@ CREATE TABLE address_liquidity_pools
 CREATE INDEX address_liquidity_address_id_index ON address_liquidity_pools USING btree (address_id);
 CREATE INDEX address_liquidity_liquidity_pool_id_index ON address_liquidity_pools USING btree (liquidity_pool_id);
 
-
 CREATE TABLE transaction_liquidity_pool
 (
-    transaction_id    bigint          not null references transactions (id) on delete cascade,
-    liquidity_pool_id int             not null references liquidity_pools (id) on delete cascade,
+    transaction_id    bigint not null references transactions (id) on delete cascade,
+    liquidity_pool_id int    not null references liquidity_pools (id) on delete cascade,
     unique (transaction_id, liquidity_pool_id)
 );
 CREATE INDEX transaction_liquidity_pool_tx_id_index ON transaction_liquidity_pool USING btree (transaction_id);
 CREATE INDEX transaction_liquidity_pool_lp_id_index ON transaction_liquidity_pool USING btree (liquidity_pool_id);
+
+CREATE TABLE liquidity_pool_trades
+(
+    block_id           bigint          not null references blocks (id) on delete cascade,
+    liquidity_pool_id  bigint          not null references liquidity_pools (id) on delete cascade,
+    transaction_id     bigint          not null references transactions (id) on delete cascade,
+    first_coin_volume  numeric(100, 0) not null,
+    second_coin_volume numeric(100, 0) not null,
+    created_at         timestamp with time zone DEFAULT current_timestamp
+);
+
+CREATE INDEX pool_trades_block_id_index ON liquidity_pool_trades USING btree (block_id);
+CREATE INDEX pool_trades_liquidity_pool_id_index ON liquidity_pool_trades USING btree (liquidity_pool_id);
+CREATE INDEX pool_trades_transaction_id_index ON liquidity_pool_trades USING btree (transaction_id);

@@ -590,6 +590,10 @@ func (s *Service) getCoinVolumesFromTags(str string) (map[string]string, error) 
 	return result, nil
 }
 
+func (s *Service) SaveLiquidityPoolTrades(links []*models.LiquidityPoolTrade) error {
+	return s.repository.SaveAllLiquidityPoolTrades(links)
+}
+
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, nodeApi *grpc_client.Client, logger *logrus.Entry) *Service {
 	return &Service{
