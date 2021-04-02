@@ -22,13 +22,13 @@ type Validator struct {
 	IconUrl              *string               `json:"icon_url"`
 	Description          *string               `json:"description"`
 	MetaUpdatedAtBlockID *uint64               `json:"meta_updated_at_block_id"`
-	BanedTill            uint64                `json:"baned_till"`
 	UpdateAt             *time.Time            `json:"update_at"`
 	ControlAddress       *Address              `json:"control_address" pg:"rel:has-one,fk:control_address_id"`
 	RewardAddress        *Address              `json:"reward_address"  pg:"rel:has-one,fk:reward_address_id"`
 	OwnerAddress         *Address              `json:"owner_address"   pg:"rel:has-one,fk:owner_address_id"`
 	Stakes               []*Stake              `json:"stakes"          pg:"rel:has-many"`
 	PublicKeys           []ValidatorPublicKeys `json:"public_keys"     pg:"rel:has-many"`
+	Bans                 []ValidatorBan        `json:"bans"            pg:"rel:has-many"`
 }
 
 //Return validators PK with prefix

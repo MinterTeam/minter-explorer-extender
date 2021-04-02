@@ -196,10 +196,7 @@ func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	return err
 }
 
-func (r *Repository) SetBanned(validatorId uint, until string) error {
-	_, err := r.db.Model().Exec(`
-		UPDATE validators SET baned_till = ?
-		WHERE id = ?;
-	`, until, validatorId)
+func (r *Repository) SaveBan(ban *models.ValidatorBan) error {
+	_, err := r.db.Model(ban).Insert()
 	return err
 }

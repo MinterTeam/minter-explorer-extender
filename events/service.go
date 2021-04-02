@@ -155,7 +155,19 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				s.logger.Error(err)
 				continue
 			}
-			err = s.validatorRepository.SetBanned(validatorId, e.JailedUntil)
+
+			blockId, err := strconv.ParseUint(e.JailedUntil, 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			ban := &models.ValidatorBan{
+				ValidatorId: validatorId,
+				BlockId:     blockId,
+			}
+
+			err = s.validatorRepository.SaveBan(ban)
 			if err != nil {
 				s.logger.Error(err)
 			}

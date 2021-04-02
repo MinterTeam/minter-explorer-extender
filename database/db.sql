@@ -27,7 +27,6 @@ CREATE TABLE validators
     site_url                 varchar,
     icon_url                 varchar,
     meta_updated_at_block_id bigint,
-    baned_till               bigint                   default null,
     update_at                timestamp with time zone DEFAULT current_timestamp
 );
 
@@ -285,3 +284,11 @@ CREATE TABLE liquidity_pool_trades
 CREATE INDEX pool_trades_block_id_index ON liquidity_pool_trades USING btree (block_id);
 CREATE INDEX pool_trades_liquidity_pool_id_index ON liquidity_pool_trades USING btree (liquidity_pool_id);
 CREATE INDEX pool_trades_transaction_id_index ON liquidity_pool_trades USING btree (transaction_id);
+
+CREATE TABLE validator_bans
+(
+    validator_id bigint not null references validators (id) on delete cascade,
+    block_id     bigint not null references blocks (id) on delete cascade
+);
+CREATE INDEX validator_bans_block_id_index ON validator_bans USING btree (block_id);
+CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (validator_id);
