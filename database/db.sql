@@ -27,6 +27,7 @@ CREATE TABLE validators
     site_url                 varchar,
     icon_url                 varchar,
     meta_updated_at_block_id bigint,
+    baned_till               bigint                   default null,
     update_at                timestamp with time zone DEFAULT current_timestamp
 );
 

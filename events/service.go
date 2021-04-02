@@ -145,13 +145,21 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			if err != nil {
 				s.logger.Error(err)
 			}
-
 		case *api.UnbondEvent:
 			continue
 		case *api.UpdateCommissionsEvent:
 			s.broadcastService.PublishCommissions(eventStruct)
+		case *api.JailEvent:
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			err = s.validatorRepository.SetBanned(validatorId, e.JailedUntil)
+			if err != nil {
+				s.logger.Error(err)
+			}
 		}
-
 	}
 
 	if len(coinsForUpdateMap) > 0 {
