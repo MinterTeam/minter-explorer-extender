@@ -576,120 +576,75 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 }
 
 func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]*models.LiquidityPoolTrade, error) {
-	var links []*models.LiquidityPoolTrade
+	var trades []*models.LiquidityPoolTrade
 	for _, tx := range transactions {
-		if transaction.Type(tx.Type) != transaction.TypeSellAllSwapPool &&
-			transaction.Type(tx.Type) != transaction.TypeSellSwapPool &&
-			transaction.Type(tx.Type) != transaction.TypeBuySwapPool {
-			continue
-		}
-
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeSellAllSwapPool:
 			var txData *api_pb.SellAllSwapPoolData
+			var poolsData []models.TagLiquidityPool
 			err := json.Unmarshal(tx.Data, &txData)
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
-
-			var poolsData []models.TagLiquidityPool
 			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
 			if err != nil {
 				return nil, err
 			}
-
-			for _, p := range poolsData {
-
-				var fcv, scv string
-
-				if p.CoinIn < p.CoinOut {
-					fcv = p.ValueIn
-					scv = p.ValueOut
-				} else {
-					fcv = p.ValueOut
-					scv = p.ValueIn
-				}
-
-				links = append(links, &models.LiquidityPoolTrade{
-					BlockId:          tx.BlockID,
-					LiquidityPoolId:  p.PoolID,
-					TransactionId:    tx.ID,
-					FirstCoinVolume:  fcv,
-					SecondCoinVolume: scv,
-				})
-			}
+			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
 		case transaction.TypeSellSwapPool:
 			var txData *api_pb.SellSwapPoolData
+			var poolsData []models.TagLiquidityPool
+
 			err := json.Unmarshal(tx.Data, &txData)
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
-
-			var poolsData []models.TagLiquidityPool
 			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
 			if err != nil {
 				return nil, err
 			}
-
-			for _, p := range poolsData {
-
-				var fcv, scv string
-
-				if p.CoinIn < p.CoinOut {
-					fcv = p.ValueIn
-					scv = p.ValueOut
-				} else {
-					fcv = p.ValueOut
-					scv = p.ValueIn
-				}
-
-				links = append(links, &models.LiquidityPoolTrade{
-					BlockId:          tx.BlockID,
-					LiquidityPoolId:  p.PoolID,
-					TransactionId:    tx.ID,
-					FirstCoinVolume:  fcv,
-					SecondCoinVolume: scv,
-				})
-			}
+			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
 		case transaction.TypeBuySwapPool:
 			var txData *api_pb.BuySwapPoolData
+			var poolsData []models.TagLiquidityPool
+
 			err := json.Unmarshal(tx.Data, &txData)
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
-
-			var poolsData []models.TagLiquidityPool
 			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
 			if err != nil {
 				return nil, err
 			}
-
-			for _, p := range poolsData {
-
-				var fcv, scv string
-
-				if p.CoinIn < p.CoinOut {
-					fcv = p.ValueIn
-					scv = p.ValueOut
-				} else {
-					fcv = p.ValueOut
-					scv = p.ValueIn
-				}
-
-				links = append(links, &models.LiquidityPoolTrade{
-					BlockId:          tx.BlockID,
-					LiquidityPoolId:  p.PoolID,
-					TransactionId:    tx.ID,
-					FirstCoinVolume:  fcv,
-					SecondCoinVolume: scv,
-				})
-			}
+			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
 		}
 	}
-	return links, nil
+	return trades, nil
+}
+
+func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsData []models.TagLiquidityPool) []*models.LiquidityPoolTrade {
+	var trades []*models.LiquidityPoolTrade
+	for _, p := range poolsData {
+		var fcv, scv string
+		if p.CoinIn < p.CoinOut {
+			fcv = p.ValueIn
+			scv = p.ValueOut
+		} else {
+			fcv = p.ValueOut
+			scv = p.ValueIn
+		}
+		trades = append(trades, &models.LiquidityPoolTrade{
+			BlockId:          blockId,
+			LiquidityPoolId:  p.PoolID,
+			TransactionId:    transactionId,
+			FirstCoinVolume:  fcv,
+			SecondCoinVolume: scv,
+		})
+	}
+	return trades
 }
 
 func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
