@@ -70,6 +70,8 @@ func (s *Service) PublishBlock(b models.Block) {
 
 func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 	channel := `transactions`
+	channelCut := `transactions_100`
+	count := 0
 	for _, tx := range transactions {
 		mTransaction := *tx
 		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
@@ -86,6 +88,11 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 			continue
 		}
 		s.publish(channel, msg)
+
+		if count < 100 {
+			s.publish(channelCut, msg)
+		}
+		count++
 	}
 }
 
