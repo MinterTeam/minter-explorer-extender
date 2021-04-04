@@ -579,43 +579,11 @@ func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]
 	var trades []*models.LiquidityPoolTrade
 	for _, tx := range transactions {
 		switch transaction.Type(tx.Type) {
-		case transaction.TypeSellAllSwapPool:
-			var txData *api_pb.SellAllSwapPoolData
+		case transaction.TypeSellAllSwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeBuySwapPool:
 			var poolsData []models.TagLiquidityPool
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
-			if err != nil {
-				return nil, err
-			}
-			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
-		case transaction.TypeSellSwapPool:
-			var txData *api_pb.SellSwapPoolData
-			var poolsData []models.TagLiquidityPool
-
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
-			if err != nil {
-				return nil, err
-			}
-			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
-		case transaction.TypeBuySwapPool:
-			var txData *api_pb.BuySwapPoolData
-			var poolsData []models.TagLiquidityPool
-
-			err := json.Unmarshal(tx.Data, &txData)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			err = json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
+			err := json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
 			if err != nil {
 				return nil, err
 			}
