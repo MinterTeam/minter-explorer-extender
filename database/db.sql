@@ -85,7 +85,6 @@ CREATE TABLE coins
     deleted_at          timestamp with time zone DEFAULT NULL,
     UNIQUE (symbol, version)
 );
-CREATE INDEX coins_symbol_index ON coins USING btree (symbol);
 
 CREATE TABLE balances
 (
@@ -94,8 +93,6 @@ CREATE TABLE balances
     value      numeric(70, 0) NOT NULL,
     UNIQUE (address_id, coin_id)
 );
-CREATE INDEX balances_address_id_index ON balances USING btree (address_id);
-CREATE INDEX balances_coin_id_index ON balances USING btree (coin_id);
 
 CREATE TABLE transactions
 (
@@ -162,10 +159,6 @@ CREATE TABLE index_transaction_by_address
     unique (block_id, address_id, transaction_id)
 );
 
-CREATE INDEX index_transaction_by_address_address_id_index ON index_transaction_by_address USING btree (address_id);
-CREATE INDEX index_transaction_by_address_block_id_address_id_index ON index_transaction_by_address USING btree (block_id, address_id);
-CREATE INDEX index_transaction_by_address_transaction_id_index ON index_transaction_by_address USING btree (transaction_id);
-
 CREATE TABLE aggregated_rewards
 (
     time_id       timestamp with time zone NOT NULL,
@@ -174,13 +167,11 @@ CREATE TABLE aggregated_rewards
     address_id    bigint                   NOT NULL references addresses (id) on delete cascade,
     validator_id  integer                  NOT NULL references validators (id) on delete cascade,
     role          rewards_role             NOT NULL,
-    amount        numeric(70, 0)           NOT NULL
+    amount        numeric(70, 0)           NOT NULL,
+    unique (time_id, address_id, validator_id, role)
 );
 CREATE INDEX aggregated_rewards_address_id_index ON aggregated_rewards USING btree (address_id);
 CREATE INDEX aggregated_rewards_validator_id_index ON aggregated_rewards USING btree (validator_id);
-CREATE INDEX aggregated_rewards_time_id_index ON aggregated_rewards USING btree (time_id);
-CREATE UNIQUE INDEX aggregated_rewards_unique_index ON aggregated_rewards
-    USING btree (time_id, address_id, validator_id, role);
 
 CREATE TABLE slashes
 (
@@ -208,7 +199,6 @@ CREATE TABLE stakes
     UNIQUE (owner_address_id, validator_id, coin_id)
 );
 CREATE INDEX stakes_coin_id_index ON stakes USING btree (coin_id);
-CREATE INDEX stakes_owner_address_id_index ON stakes USING btree (owner_address_id);
 CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
 
 CREATE TABLE unbonds
@@ -259,17 +249,12 @@ CREATE TABLE address_liquidity_pools
     unique (address_id, liquidity_pool_id)
 );
 
-CREATE INDEX address_liquidity_address_id_index ON address_liquidity_pools USING btree (address_id);
-CREATE INDEX address_liquidity_liquidity_pool_id_index ON address_liquidity_pools USING btree (liquidity_pool_id);
-
 CREATE TABLE transaction_liquidity_pool
 (
     transaction_id    bigint not null references transactions (id) on delete cascade,
     liquidity_pool_id int    not null references liquidity_pools (id) on delete cascade,
     unique (transaction_id, liquidity_pool_id)
 );
-CREATE INDEX transaction_liquidity_pool_tx_id_index ON transaction_liquidity_pool USING btree (transaction_id);
-CREATE INDEX transaction_liquidity_pool_lp_id_index ON transaction_liquidity_pool USING btree (liquidity_pool_id);
 
 CREATE TABLE liquidity_pool_trades
 (
