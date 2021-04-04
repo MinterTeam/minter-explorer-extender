@@ -39,7 +39,6 @@ CREATE TABLE validator_public_keys
     update_at    timestamp with time zone DEFAULT null
 );
 CREATE INDEX validator_public_keys_validator_id_index ON validator_public_keys USING btree (validator_id);
-CREATE INDEX validator_public_keys_key_index ON validator_public_keys USING btree (key);
 
 CREATE TABLE blocks
 (
