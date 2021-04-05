@@ -60,3 +60,4 @@ env:
   txsIndexPeriod: "60"
   extenderApiPort: "8011"
   updateBalancesWhenChasing: "true"
+  postgresSslMode: "false"
