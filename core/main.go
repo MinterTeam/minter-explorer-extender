@@ -18,7 +18,6 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
-	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/v10"
 	pg9 "github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
@@ -73,7 +72,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	})
 
 	//Init DB
-
 	dbOpt := &pg.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
 		User:     env.DbUser,
