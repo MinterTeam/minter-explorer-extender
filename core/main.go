@@ -348,6 +348,9 @@ func (ext *Extender) runWorkers() {
 
 	//LiquidityPool
 	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
+	for w := 1; w <= 10; w++ {
+		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
+	}
 
 	//Broadcast
 	go ext.broadcastService.PublishStakeWorker()

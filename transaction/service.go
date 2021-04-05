@@ -3,7 +3,6 @@ package transaction
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
@@ -169,16 +168,7 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 			s.logger.Error(err)
 		}
 
-		lptLinks, err := s.getLiquidityPoolTrades(transactions)
-		if err != nil {
-			s.logger.Error(err)
-		}
-		if len(lptLinks) > 0 {
-			err = s.liquidityPoolService.SaveLiquidityPoolTrades(lptLinks)
-		}
-		if err != nil {
-			s.logger.Error(err)
-		}
+		s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
 
 		s.GetSaveTxsOutputJobChannel() <- transactions
 		go s.broadcastService.PublishTransactions(transactions)
@@ -573,46 +563,6 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 		}
 	}
 	return links, nil
-}
-
-func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]*models.LiquidityPoolTrade, error) {
-	var trades []*models.LiquidityPoolTrade
-	for _, tx := range transactions {
-		switch transaction.Type(tx.Type) {
-		case transaction.TypeSellAllSwapPool,
-			transaction.TypeSellSwapPool,
-			transaction.TypeBuySwapPool:
-			var poolsData []models.TagLiquidityPool
-			err := json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
-			if err != nil {
-				return nil, err
-			}
-			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
-		}
-	}
-	return trades, nil
-}
-
-func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsData []models.TagLiquidityPool) []*models.LiquidityPoolTrade {
-	var trades []*models.LiquidityPoolTrade
-	for _, p := range poolsData {
-		var fcv, scv string
-		if p.CoinIn < p.CoinOut {
-			fcv = p.ValueIn
-			scv = p.ValueOut
-		} else {
-			fcv = p.ValueOut
-			scv = p.ValueIn
-		}
-		trades = append(trades, &models.LiquidityPoolTrade{
-			BlockId:          blockId,
-			LiquidityPoolId:  p.PoolID,
-			TransactionId:    transactionId,
-			FirstCoinVolume:  fcv,
-			SecondCoinVolume: scv,
-		})
-	}
-	return trades
 }
 
 func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
