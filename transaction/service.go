@@ -167,9 +167,7 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-
 		s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
-
 		s.GetSaveTxsOutputJobChannel() <- transactions
 		go s.broadcastService.PublishTransactions(transactions)
 	}
