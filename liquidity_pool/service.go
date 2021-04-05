@@ -20,18 +20,6 @@ import (
 	"strings"
 )
 
-type Service struct {
-	repository                     *Repository
-	addressRepository              *address.Repository
-	coinService                    *coin.Service
-	balanceService                 *balance.Service
-	logger                         *logrus.Entry
-	nodeApi                        *grpc_client.Client
-	jobUpdateLiquidityPool         chan *api_pb.TransactionResponse
-	jobLiquidityPoolTrades         chan []*models.Transaction
-	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
-}
-
 func (s *Service) LiquidityPoolTradesSaveChannel() chan []*models.LiquidityPoolTrade {
 	return s.liquidityPoolTradesSaveChannel
 }
@@ -677,13 +665,26 @@ func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsD
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, nodeApi *grpc_client.Client, logger *logrus.Entry) *Service {
 	return &Service{
-		repository:             repository,
-		addressRepository:      addressRepository,
-		coinService:            coinService,
-		balanceService:         balanceService,
-		nodeApi:                nodeApi,
-		logger:                 logger,
-		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
-		jobLiquidityPoolTrades: make(chan []*models.Transaction, 1),
+		repository:                     repository,
+		addressRepository:              addressRepository,
+		coinService:                    coinService,
+		balanceService:                 balanceService,
+		nodeApi:                        nodeApi,
+		logger:                         logger,
+		jobUpdateLiquidityPool:         make(chan *api_pb.TransactionResponse, 1),
+		jobLiquidityPoolTrades:         make(chan []*models.Transaction, 1),
+		liquidityPoolTradesSaveChannel: make(chan []*models.LiquidityPoolTrade, 10),
 	}
+}
+
+type Service struct {
+	repository                     *Repository
+	addressRepository              *address.Repository
+	coinService                    *coin.Service
+	balanceService                 *balance.Service
+	logger                         *logrus.Entry
+	nodeApi                        *grpc_client.Client
+	jobUpdateLiquidityPool         chan *api_pb.TransactionResponse
+	jobLiquidityPoolTrades         chan []*models.Transaction
+	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
 }
