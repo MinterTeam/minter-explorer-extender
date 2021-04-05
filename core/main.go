@@ -85,13 +85,11 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		Database: env.DbName,
 	}
 
-	if os.Getenv("POSTGRES_SSL_MODE") == "true" {
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-		}
-		dbOpt.TLSConfig = tlsConfig
-		db9Opt.TLSConfig = tlsConfig
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
 	}
+	dbOpt.TLSConfig = tlsConfig
+	db9Opt.TLSConfig = tlsConfig
 
 	db := pg.Connect(dbOpt)
 	db9 := pg9.Connect(db9Opt)
