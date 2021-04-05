@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
@@ -17,6 +18,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
+	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/v10"
 	pg9 "github.com/go-pg/pg/v9"
 	"github.com/sirupsen/logrus"
@@ -71,19 +73,30 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	})
 
 	//Init DB
-	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
-		User:     env.DbUser,
-		Password: env.DbPassword,
-		Database: env.DbName,
-	})
 
-	db9 := pg9.Connect(&pg9.Options{
+	dbOpt := &pg.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
-	})
+	}
+	db9Opt := &pg9.Options{
+		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
+		User:     env.DbUser,
+		Password: env.DbPassword,
+		Database: env.DbName,
+	}
+
+	if os.Getenv("POSTGRES_SSL_MODE") == "true" {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		dbOpt.TLSConfig = tlsConfig
+		db9Opt.TLSConfig = tlsConfig
+	}
+
+	db := pg.Connect(dbOpt)
+	db9 := pg9.Connect(db9Opt)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
