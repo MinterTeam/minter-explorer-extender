@@ -44,7 +44,7 @@ jobs:
       - name: Deploy to DO
         env:
           TAG_NAME: ${{ github.sha }}
-        run: ./linux-amd64/helm upgrade -n mainnet-reserved -i extender-pg chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
+        run: ./linux-amd64/helm upgrade -n mainnet-reserved -i extender chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
 
       - name: notification
         if: cancelled() == false
