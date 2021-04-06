@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
@@ -133,13 +134,19 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	})
 
 	//Init DB
-	db := pg.Connect(&pg.Options{
+	pgOptions := &pg.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
 		PoolSize: 100,
-	})
+	}
+	if os.Getenv("POSTGRES_SSL_ENABLED") == "true" {
+		pgOptions.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+	db := pg.Connect(pgOptions)
 	hookImpl := eventHook{
 		log:        logrus.New(),
 		beforeTime: time.Now(),
