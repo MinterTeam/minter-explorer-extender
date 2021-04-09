@@ -111,6 +111,10 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
+			default:
+				if tx.GasCoin.Id == 0 || tags["tx.commission_conversion"] != "pool" {
+					s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
+				}
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
