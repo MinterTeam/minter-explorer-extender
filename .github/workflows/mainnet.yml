@@ -40,17 +40,10 @@ jobs:
       - name: Install helm
         run: wget https://get.helm.sh/helm-v3.3.4-linux-amd64.tar.gz &> /dev/null && tar xvzf helm-v3.3.4-linux-amd64.tar.gz && chmod 777 linux-amd64/helm && ./linux-amd64/helm ls -n mainnet-reserved
 
-      - name: Deploy to DO
+      - name: Deploy to reserv
         env:
           TAG_NAME: ${{ github.sha }}
-        run: ./linux-amd64/helm upgrade -n mainnet-reserved -i extender-fixed chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
-
-      - name: Deploy
-        uses: wahyd4/kubectl-helm-action@master
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_PROD_CONFIG_DATA }}
-        with:
-          args: helm upgrade extender chart/ --reuse-values --atomic --timeout 150s --set image.tag=$GITHUB_SHA -n mainnet
+        run: ./linux-amd64/helm upgrade -n mainnet-reserved extender chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
 
       - name: notification
         if: cancelled() == false

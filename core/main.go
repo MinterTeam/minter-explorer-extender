@@ -361,7 +361,7 @@ func (ext *Extender) runWorkers() {
 	}
 
 	//Broadcast
-	go ext.broadcastService.PublishStakeWorker()
+	go ext.broadcastService.Manager()
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {

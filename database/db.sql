@@ -92,6 +92,7 @@ CREATE TABLE balances
     value      numeric(70, 0) NOT NULL,
     UNIQUE (address_id, coin_id)
 );
+CREATE INDEX balances_coin_id_index ON balances USING btree (coin_id);
 
 CREATE TABLE transactions
 (
@@ -155,8 +156,10 @@ CREATE TABLE index_transaction_by_address
     block_id       bigint NOT NULL references blocks (id) on delete cascade,
     address_id     bigint NOT NULL references addresses (id) on delete cascade,
     transaction_id bigint NOT NULL references transactions (id) on delete cascade,
-    unique (block_id, address_id, transaction_id)
+    unique (address_id, transaction_id, block_id)
 );
+CREATE INDEX index_transaction_by_address_transaction_id_index ON index_transaction_by_address USING btree (transaction_id);
+CREATE INDEX index_transaction_by_address_block_id_address_id_index ON index_transaction_by_address USING btree (block_id, address_id);
 
 CREATE TABLE aggregated_rewards
 (
@@ -248,12 +251,15 @@ CREATE TABLE address_liquidity_pools
     unique (address_id, liquidity_pool_id)
 );
 
+CREATE INDEX address_liquidity_liquidity_pool_id_index ON address_liquidity_pools USING btree (liquidity_pool_id);
+
 CREATE TABLE transaction_liquidity_pool
 (
     transaction_id    bigint not null references transactions (id) on delete cascade,
     liquidity_pool_id int    not null references liquidity_pools (id) on delete cascade,
     unique (transaction_id, liquidity_pool_id)
 );
+CREATE INDEX transaction_liquidity_pool_lp_id_index ON transaction_liquidity_pool USING btree (liquidity_pool_id);
 
 CREATE TABLE liquidity_pool_trades
 (
@@ -264,7 +270,6 @@ CREATE TABLE liquidity_pool_trades
     second_coin_volume numeric(100, 0) not null,
     created_at         timestamp with time zone DEFAULT current_timestamp
 );
-
 CREATE INDEX pool_trades_block_id_index ON liquidity_pool_trades USING btree (block_id);
 CREATE INDEX pool_trades_liquidity_pool_id_index ON liquidity_pool_trades USING btree (liquidity_pool_id);
 CREATE INDEX pool_trades_transaction_id_index ON liquidity_pool_trades USING btree (transaction_id);

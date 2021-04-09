@@ -148,7 +148,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 		case *api.UnbondEvent:
 			continue
 		case *api.UpdateCommissionsEvent:
-			s.broadcastService.PublishCommissions(eventStruct)
+			s.broadcastService.CommissionsChannel() <- eventStruct
 		case *api.JailEvent:
 			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
 			if err != nil {

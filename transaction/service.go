@@ -169,7 +169,7 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		}
 		s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
 		s.GetSaveTxsOutputJobChannel() <- transactions
-		go s.broadcastService.PublishTransactions(transactions)
+		s.broadcastService.TransactionsChannel() <- transactions
 	}
 }
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {

@@ -106,7 +106,7 @@ func (s *Service) updateAddresses(list []string) error {
 	if err != nil {
 		return err
 	}
-	s.broadcastService.PublishBalances(balances)
+	s.broadcastService.BalanceChannel() <- balances
 	return err
 }
 
