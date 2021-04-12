@@ -102,11 +102,14 @@ func (s *Service) updateAddresses(list []string) error {
 		return err
 	}
 
-	err = s.repository.SaveAll(balances)
-	if err != nil {
-		return err
+	if len(balances) > 0 {
+		err = s.repository.SaveAll(balances)
+		if err != nil {
+			return err
+		}
+		s.broadcastService.BalanceChannel() <- balances
 	}
-	s.broadcastService.BalanceChannel() <- balances
+
 	return err
 }
 
