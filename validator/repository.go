@@ -195,3 +195,8 @@ func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	`, addressId, validatorId)
 	return err
 }
+
+func (r *Repository) SaveBan(ban *models.ValidatorBan) error {
+	_, err := r.db.Model(ban).Insert()
+	return err
+}

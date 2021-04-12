@@ -18,18 +18,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"math/big"
-	"time"
 )
 
 type Service struct {
-	client            *gocent.Client
-	nodeClient        *grpc_client.Client
-	ctx               context.Context
-	addressRepository *address.Repository
-	coinRepository    *coin.Repository
-	logger            *logrus.Entry
-	stakeChannel      chan *api_pb.TransactionResponse
-	chasingMode       bool
+	client              *gocent.Client
+	nodeClient          *grpc_client.Client
+	ctx                 context.Context
+	addressRepository   *address.Repository
+	coinRepository      *coin.Repository
+	logger              *logrus.Entry
+	stakeChannel        chan *api_pb.TransactionResponse
+	chasingMode         bool
+	blockChannel        chan models.Block
+	transactionsChannel chan []*models.Transaction
+	balanceChannel      chan []*models.Balance
+	commissionsChannel  chan api.Event
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -40,19 +43,57 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	})
 
 	return &Service{
-		client:            wsClient,
-		nodeClient:        nodeClient,
-		ctx:               context.Background(),
-		addressRepository: addressRepository,
-		coinRepository:    coinRepository,
-		stakeChannel:      make(chan *api_pb.TransactionResponse),
-		logger:            logger,
-		chasingMode:       false,
+		client:              wsClient,
+		nodeClient:          nodeClient,
+		ctx:                 context.Background(),
+		addressRepository:   addressRepository,
+		coinRepository:      coinRepository,
+		commissionsChannel:  make(chan api.Event),
+		stakeChannel:        make(chan *api_pb.TransactionResponse),
+		balanceChannel:      make(chan []*models.Balance),
+		transactionsChannel: make(chan []*models.Transaction),
+		blockChannel:        make(chan models.Block),
+		logger:              logger,
+		chasingMode:         false,
 	}
+}
+
+func (s *Service) Manager() {
+	for {
+		select {
+		case b := <-s.blockChannel:
+			s.PublishBlock(b)
+			s.PublishStatus()
+		case txs := <-s.transactionsChannel:
+			s.PublishTransactions(txs)
+		case b := <-s.balanceChannel:
+			s.PublishBalances(b)
+		case tx := <-s.stakeChannel:
+			s.PublishStake(tx)
+		case c := <-s.commissionsChannel:
+			s.PublishCommissions(c)
+		}
+	}
+}
+
+func (s *Service) CommissionsChannel() chan api.Event {
+	return s.commissionsChannel
 }
 
 func (s *Service) StakeChannel() chan *api_pb.TransactionResponse {
 	return s.stakeChannel
+}
+
+func (s *Service) BalanceChannel() chan []*models.Balance {
+	return s.balanceChannel
+}
+
+func (s *Service) TransactionsChannel() chan []*models.Transaction {
+	return s.transactionsChannel
+}
+
+func (s *Service) BlockChannel() chan models.Block {
+	return s.blockChannel
 }
 
 func (s *Service) SetChasingMode(chasingMode bool) {
@@ -70,6 +111,8 @@ func (s *Service) PublishBlock(b models.Block) {
 
 func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 	channel := `transactions`
+	channelCut := `transactions_100`
+	count := 0
 	for _, tx := range transactions {
 		mTransaction := *tx
 		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
@@ -86,6 +129,11 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 			continue
 		}
 		s.publish(channel, msg)
+
+		if count < 100 {
+			s.publish(channelCut, msg)
+		}
+		count++
 	}
 }
 
@@ -137,35 +185,21 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 }
 
 func (s *Service) PublishStatus() {
-
 	if s.chasingMode {
 		return
 	}
-	start := time.Now()
 	status, err := s.nodeClient.Status()
 	if err != nil {
 		s.logger.Error(err)
 		return
 	}
-	elapsed := time.Since(start)
-	s.logger.Info(fmt.Sprintf("Status data getting time: %s", elapsed))
-
 	channel := `status`
-
 	msg, err := json.Marshal(status)
 	if err != nil {
 		s.logger.Error(err)
 	}
 	s.publish(channel, msg)
 }
-
-func (s *Service) publish(ch string, msg []byte) {
-	err := s.client.Publish(s.ctx, ch, msg)
-	if err != nil {
-		s.logger.Warn(err)
-	}
-}
-
 func (s *Service) PublishCommissions(data api.Event) {
 	channel := `commissions`
 	msg, err := json.Marshal(data)
@@ -175,54 +209,55 @@ func (s *Service) PublishCommissions(data api.Event) {
 	s.publish(channel, msg)
 }
 
-func (s *Service) PublishStakeWorker() {
+func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
+	var val *big.Int
 	channel := `stake/%s`
 	addressCache := make(map[string]*big.Int)
 
-	for {
-		tx := <-s.stakeChannel
+	if transaction.Type(tx.Type) == transaction.TypeDelegate {
+		txData := new(api_pb.DelegateData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			s.logger.Error(err)
+			return
+		}
+		val, _ = big.NewInt(0).SetString(txData.Value, 10)
+	}
 
-		var val *big.Int
+	if transaction.Type(tx.Type) == transaction.TypeUnbond {
+		txData := new(api_pb.UnbondData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			s.logger.Error(err)
+			return
+		}
+		val, _ = big.NewInt(0).SetString(txData.Value, 10)
+	}
+
+	if tx.Height%120 == 0 {
+		if len(addressCache) > 0 {
+			for a := range addressCache {
+				s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, a)))
+				delete(addressCache, a)
+			}
+		}
+		s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, val.String())))
+	} else {
+
+		if addressCache[tx.From] == nil {
+			addressCache[tx.From] = big.NewInt(0)
+		}
 
 		if transaction.Type(tx.Type) == transaction.TypeDelegate {
-			txData := new(api_pb.DelegateData)
-			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			val, _ = big.NewInt(0).SetString(txData.Value, 10)
+			addressCache[tx.From].Add(addressCache[tx.From], val)
 		}
 
 		if transaction.Type(tx.Type) == transaction.TypeUnbond {
-			txData := new(api_pb.UnbondData)
-			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			val, _ = big.NewInt(0).SetString(txData.Value, 10)
+			addressCache[tx.From].Sub(addressCache[tx.From], val)
 		}
-
-		if tx.Height%120 == 0 {
-			if len(addressCache) > 0 {
-				for a := range addressCache {
-					s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, a)))
-					delete(addressCache, a)
-				}
-			}
-			s.publish(fmt.Sprintf(channel, tx.From), []byte(fmt.Sprintf(`{"data" : "%s"}`, val.String())))
-		} else {
-
-			if addressCache[tx.From] == nil {
-				addressCache[tx.From] = big.NewInt(0)
-			}
-
-			if transaction.Type(tx.Type) == transaction.TypeDelegate {
-				addressCache[tx.From].Add(addressCache[tx.From], val)
-			}
-
-			if transaction.Type(tx.Type) == transaction.TypeUnbond {
-				addressCache[tx.From].Sub(addressCache[tx.From], val)
-			}
-		}
+	}
+}
+func (s *Service) publish(ch string, msg []byte) {
+	err := s.client.Publish(s.ctx, ch, msg)
+	if err != nil {
+		s.logger.Warn(err)
 	}
 }

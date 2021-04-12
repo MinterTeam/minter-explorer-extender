@@ -28,6 +28,7 @@ type Validator struct {
 	OwnerAddress         *Address              `json:"owner_address"   pg:"rel:has-one,fk:owner_address_id"`
 	Stakes               []*Stake              `json:"stakes"          pg:"rel:has-many"`
 	PublicKeys           []ValidatorPublicKeys `json:"public_keys"     pg:"rel:has-many"`
+	Bans                 []ValidatorBan        `json:"bans"            pg:"rel:has-many"`
 }
 
 //Return validators PK with prefix

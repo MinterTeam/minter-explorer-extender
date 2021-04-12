@@ -13,20 +13,48 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
+	"math"
 	"math/big"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-type Service struct {
-	repository             *Repository
-	addressRepository      *address.Repository
-	coinService            *coin.Service
-	balanceService         *balance.Service
-	logger                 *logrus.Entry
-	nodeApi                *grpc_client.Client
-	jobUpdateLiquidityPool chan *api_pb.TransactionResponse
+func (s *Service) LiquidityPoolTradesSaveChannel() chan []*models.LiquidityPoolTrade {
+	return s.liquidityPoolTradesSaveChannel
+}
+
+func (s *Service) SaveLiquidityPoolTradesWorker(data <-chan []*models.LiquidityPoolTrade) {
+	for trades := range data {
+		err := s.repository.SaveAllLiquidityPoolTrades(trades)
+		if err != nil {
+			s.logger.Error(err)
+		}
+	}
+}
+
+func (s *Service) LiquidityPoolTradesWorker(data <-chan []*models.Transaction) {
+	chunkSize := 300
+	for txs := range data {
+		trades, err := s.getLiquidityPoolTrades(txs)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		if len(trades) > 0 {
+			chunksCount := int(math.Ceil(float64(len(trades)) / float64(chunkSize)))
+			for i := 0; i < chunksCount; i++ {
+				start := chunkSize * i
+				end := start + chunkSize
+				if end > len(trades) {
+					end = len(trades)
+				}
+				s.LiquidityPoolTradesSaveChannel() <- trades[start:end]
+			}
+		}
+		if err != nil {
+			s.logger.Error(err)
+		}
+	}
 }
 
 func (s *Service) UpdateLiquidityPoolWorker(data <-chan *api_pb.TransactionResponse) {
@@ -53,6 +81,10 @@ func (s *Service) UpdateLiquidityPoolWorker(data <-chan *api_pb.TransactionRespo
 			s.logger.Error(err)
 		}
 	}
+}
+
+func (s *Service) LiquidityPoolTradesChannel() chan []*models.Transaction {
+	return s.jobLiquidityPoolTrades
 }
 
 func (s *Service) JobUpdateLiquidityPoolChannel() chan *api_pb.TransactionResponse {
@@ -590,15 +622,69 @@ func (s *Service) getCoinVolumesFromTags(str string) (map[string]string, error) 
 	return result, nil
 }
 
+func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]*models.LiquidityPoolTrade, error) {
+	var trades []*models.LiquidityPoolTrade
+	for _, tx := range transactions {
+		switch transaction.Type(tx.Type) {
+		case transaction.TypeSellAllSwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeBuySwapPool:
+			var poolsData []models.TagLiquidityPool
+			err := json.Unmarshal([]byte(tx.Tags["tx.pools"]), &poolsData)
+			if err != nil {
+				return nil, err
+			}
+			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
+		}
+	}
+	return trades, nil
+}
+
+func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsData []models.TagLiquidityPool) []*models.LiquidityPoolTrade {
+	var trades []*models.LiquidityPoolTrade
+	for _, p := range poolsData {
+		var fcv, scv string
+		if p.CoinIn < p.CoinOut {
+			fcv = p.ValueIn
+			scv = p.ValueOut
+		} else {
+			fcv = p.ValueOut
+			scv = p.ValueIn
+		}
+		trades = append(trades, &models.LiquidityPoolTrade{
+			BlockId:          blockId,
+			LiquidityPoolId:  p.PoolID,
+			TransactionId:    transactionId,
+			FirstCoinVolume:  fcv,
+			SecondCoinVolume: scv,
+		})
+	}
+	return trades
+}
+
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, nodeApi *grpc_client.Client, logger *logrus.Entry) *Service {
 	return &Service{
-		repository:             repository,
-		addressRepository:      addressRepository,
-		coinService:            coinService,
-		balanceService:         balanceService,
-		nodeApi:                nodeApi,
-		logger:                 logger,
-		jobUpdateLiquidityPool: make(chan *api_pb.TransactionResponse, 1),
+		repository:                     repository,
+		addressRepository:              addressRepository,
+		coinService:                    coinService,
+		balanceService:                 balanceService,
+		nodeApi:                        nodeApi,
+		logger:                         logger,
+		jobUpdateLiquidityPool:         make(chan *api_pb.TransactionResponse, 1),
+		jobLiquidityPoolTrades:         make(chan []*models.Transaction, 1),
+		liquidityPoolTradesSaveChannel: make(chan []*models.LiquidityPoolTrade, 10),
 	}
+}
+
+type Service struct {
+	repository                     *Repository
+	addressRepository              *address.Repository
+	coinService                    *coin.Service
+	balanceService                 *balance.Service
+	logger                         *logrus.Entry
+	nodeApi                        *grpc_client.Client
+	jobUpdateLiquidityPool         chan *api_pb.TransactionResponse
+	jobLiquidityPoolTrades         chan []*models.Transaction
+	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
 }

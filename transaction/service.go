@@ -98,18 +98,23 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			}
 
 			switch transaction.Type(tx.Type) {
+			case transaction.TypeCreateSwapPool,
+				transaction.TypeRemoveLiquidity,
+				transaction.TypeAddLiquidity:
+				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			case transaction.TypeBuySwapPool,
 				transaction.TypeSellSwapPool,
 				transaction.TypeSellAllSwapPool,
-				transaction.TypeAddLiquidity,
-				transaction.TypeCreateSwapPool,
-				transaction.TypeRemoveLiquidity,
 				transaction.TypeSend,
 				transaction.TypeMultisend:
 				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
+			default:
+				if tx.GasCoin.Id == 0 || tags["tx.commission_conversion"] != "pool" {
+					s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
+				}
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
@@ -166,9 +171,9 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-
+		s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
 		s.GetSaveTxsOutputJobChannel() <- transactions
-		go s.broadcastService.PublishTransactions(transactions)
+		s.broadcastService.TransactionsChannel() <- transactions
 	}
 }
 func (s *Service) SaveTransactionsOutputWorker(jobs <-chan []*models.Transaction) {

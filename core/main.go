@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
@@ -133,13 +134,19 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	})
 
 	//Init DB
-	db := pg.Connect(&pg.Options{
+	pgOptions := &pg.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.DbHost, env.DbPort),
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
 		PoolSize: 100,
-	})
+	}
+	if os.Getenv("POSTGRES_SSL_ENABLED") == "true" {
+		pgOptions.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+	db := pg.Connect(pgOptions)
 	hookImpl := eventHook{
 		log:        logrus.New(),
 		beforeTime: time.Now(),
@@ -154,7 +161,11 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	//api
 	nodeApi, err := grpc_client.New(env.NodeApi)
+	if err != nil {
+		panic(err)
+	}
 
+	status, err := nodeApi.Status()
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +208,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		liquidityPoolService: liquidityPoolService,
 		chasingMode:          true,
 		currentNodeHeight:    0,
-		startBlockHeight:     uploader.StartBlock() + 1,
+		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
 	}
 }
@@ -344,9 +355,13 @@ func (ext *Extender) runWorkers() {
 
 	//LiquidityPool
 	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
+	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
+	for w := 1; w <= 10; w++ {
+		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
+	}
 
 	//Broadcast
-	go ext.broadcastService.PublishStakeWorker()
+	go ext.broadcastService.Manager()
 }
 
 func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {

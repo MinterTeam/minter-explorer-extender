@@ -63,6 +63,22 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
 			}
+		case transaction.TypeCreateMultisig:
+			txData := new(api_pb.CreateMultisigData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				return nil, err, nil
+			}
+			for _, adr := range txData.Addresses {
+				mapAddresses[helpers.RemovePrefix(adr)] = struct{}{}
+			}
+		case transaction.TypeEditMultisig:
+			txData := new(api_pb.EditMultisigData)
+			if err := tx.Data.UnmarshalTo(txData); err != nil {
+				return nil, err, nil
+			}
+			for _, adr := range txData.Addresses {
+				mapAddresses[helpers.RemovePrefix(adr)] = struct{}{}
+			}
 		case transaction.TypeRedeemCheck:
 			txData := new(api_pb.RedeemCheckData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
