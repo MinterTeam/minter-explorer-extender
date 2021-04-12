@@ -5,6 +5,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/block"
+	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
@@ -17,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
+	"os"
 	"strconv"
 	"time"
 )
@@ -30,6 +32,7 @@ type Service struct {
 	coinService         *coin.Service
 	balanceRepository   *balance.Repository
 	blockRepository     *block.Repository
+	broadcastService    *broadcast.Service
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	logger              *logrus.Entry
@@ -37,7 +40,8 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	blockRepository *block.Repository, balanceRepository *balance.Repository, logger *logrus.Entry) *Service {
+	blockRepository *block.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -47,6 +51,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		coinService:         coinService,
 		balanceRepository:   balanceRepository,
 		blockRepository:     blockRepository,
+		broadcastService:    broadcastService,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 		logger:              logger,
@@ -140,11 +145,33 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			if err != nil {
 				s.logger.Error(err)
 			}
-
 		case *api.UnbondEvent:
 			continue
-		}
+		case *api.UpdateCommissionsEvent:
+			s.broadcastService.CommissionsChannel() <- eventStruct
+		case *api.JailEvent:
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
 
+			blockId, err := strconv.ParseUint(e.JailedUntil, 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			ban := &models.ValidatorBan{
+				ValidatorId: validatorId,
+				BlockId:     blockId,
+			}
+
+			err = s.validatorRepository.SaveBan(ban)
+			if err != nil {
+				s.logger.Error(err)
+			}
+		}
 	}
 
 	if len(coinsForUpdateMap) > 0 {
@@ -194,9 +221,17 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 		}
 
 		if (err != nil && err == pg.ErrNoRows) || len(exist) == 0 {
+
+			firstBlock, err := strconv.ParseUint(os.Getenv("START_BLOCK"), 10, 64)
+			if err != nil {
+				firstBlock = 1
+			}
+
 			startBlock := rewards[0].BlockID - 120
 			if startBlock == 0 {
 				startBlock = 1
+			} else if startBlock < firstBlock {
+				startBlock = firstBlock
 			}
 
 			var aggregated []*models.AggregatedReward

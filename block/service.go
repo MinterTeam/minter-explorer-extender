@@ -72,8 +72,7 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 		})
 	}
 	broadcastBlock.BlockValidators = blockValidators
-	go s.broadcastService.PublishBlock(broadcastBlock)
-	go s.broadcastService.PublishStatus()
+	s.broadcastService.BlockChannel() <- broadcastBlock
 
 	return s.blockRepository.Save(block)
 }

@@ -1,11 +1,11 @@
-name: MainNet
+name: QA
 
 on:
   push:
-    branches: [ master ]
+    branches: [ dev ]
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,7 +24,7 @@ jobs:
         env:
           USERNAME: ${{ secrets.DOCKER_HUB_USER }}
           PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          IMAGE_NAME: "minterteam/explorer-extender"
+          IMAGE_NAME: "minterteam/explorer-extender-testnet"
           DOCKERFILE: ".docker/Dockerfile"
           LATEST: "true"
           VERSION: "${{ steps.version.outputs.text }}"
@@ -38,18 +38,18 @@ jobs:
           clusterName: k8s-prod-do
 
       - name: Install helm
-        run: wget https://get.helm.sh/helm-v3.3.4-linux-amd64.tar.gz &> /dev/null && tar xvzf helm-v3.3.4-linux-amd64.tar.gz && chmod 777 linux-amd64/helm && ./linux-amd64/helm ls -n mainnet-reserved
+        run: wget https://get.helm.sh/helm-v3.3.4-linux-amd64.tar.gz &> /dev/null && tar xvzf helm-v3.3.4-linux-amd64.tar.gz && chmod 777 linux-amd64/helm && ./linux-amd64/helm ls -n qa-reserved
 
-      - name: Deploy to reserv
+      - name: Deploy to DO
         env:
           TAG_NAME: ${{ github.sha }}
-        run: ./linux-amd64/helm upgrade -n mainnet-reserved extender chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
+        run: ./linux-amd64/helm upgrade -n qa-reserved -i extender chart/ --atomic --timeout 100s --set image.tag=$TAG_NAME --reuse-values
 
       - name: notification
         if: cancelled() == false
         uses: xinthink/action-telegram@v1.1
         with:
-          botToken: ${{ secrets.TELEGRAM_CI_TOKEN }}
-          chatId: ${{ secrets.TELEGRAM_CI_PROD_TO }}
+          botToken: ${{ secrets.TELEGRAM_TOKEN }}
+          chatId: ${{ secrets.TELEGRAM_TO }}
           jobStatus: ${{ job.status }}
           skipSuccess: false

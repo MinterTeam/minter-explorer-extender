@@ -39,8 +39,10 @@ spec:
               value: {{ .Values.env.pgHost | quote }}
             - name: DB_PORT
               value: {{ .Values.env.pgPort | quote }}
-            - name: NODE_API
-              value: {{ .Values.env.nodeApi | quote }}
+            - name: POSTGRES_SSL_ENABLED
+              value: {{ .Values.env.pgSslEnabled | quote }}
+            - name: NODE_GRPC
+              value: {{ .Values.env.nodeGrpc | quote }}
             - name: CENTRIFUGO_SECRET
               value: {{ .Values.env.сentrifugoSecret | quote }}
             - name: CENTRIFUGO_LINK
