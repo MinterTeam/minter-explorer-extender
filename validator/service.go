@@ -124,8 +124,16 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 			pk = txData.PubKey
 		}
 
+		start := time.Now()
 		if err = s.UpdateWaitList(adr, pk); err != nil {
 			s.logger.Error(err)
+		}
+		elapsed := time.Since(start)
+		critical := 5 * time.Second
+		if elapsed > critical {
+			s.logger.Error(fmt.Sprintf("WaitList updating time: %s", elapsed))
+		} else {
+			s.logger.Info(fmt.Sprintf("WaitList updating time: %s", elapsed))
 		}
 	}
 }
@@ -442,7 +450,6 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	strRune := []rune(adr)
 	prefix := string(strRune[0:2])
 
-	start := time.Now()
 	if strings.ToLower(prefix) == "mx" {
 		data, err = s.nodeApi.WaitList(pk, adr)
 	} else {
@@ -451,8 +458,6 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	if err != nil {
 		return err
 	}
-	elapsed := time.Since(start)
-	s.logger.Info(fmt.Sprintf("WaitList's data getting time: %s", elapsed))
 
 	if strings.ToLower(prefix) == "mx" {
 		addressId, err = s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(adr))
@@ -473,24 +478,23 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	var existCoins []uint64
+	var stakes []*models.Stake
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
-
-		stk := &models.Stake{
+		stakes = append(stakes, &models.Stake{
 			OwnerAddressID: addressId,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    vId,
 			Value:          item.Value,
 			IsKicked:       true,
 			BipValue:       "0",
-		}
+		})
+	}
 
-		err = s.repository.UpdateStake(stk)
-		if err != nil {
-			s.logger.Error(err)
-			continue
-		}
+	err = s.repository.UpdateStakes(stakes)
+	if err != nil {
+		s.logger.Error(err)
 	}
 
 	return s.repository.DeleteFromWaitList(addressId, vId, existCoins)

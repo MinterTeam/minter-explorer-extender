@@ -179,6 +179,10 @@ func (r *Repository) UpdateStake(s *models.Stake) error {
 	_, err := r.db.Model(s).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
 	return err
 }
+func (r *Repository) UpdateStakes(list []*models.Stake) error {
+	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	return err
+}
 
 func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uint64) error {
 	_, err := r.db.Model().Exec(`
