@@ -77,7 +77,7 @@ func (eh eventHook) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (cont
 	return ctx, nil
 }
 func (eh eventHook) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
-	critical := time.Second
+	critical := time.Millisecond * 500
 	result := time.Duration(0)
 	if event.Stash != nil {
 		if v, ok := event.Stash["query_time"]; ok {
@@ -146,11 +146,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 			InsecureSkipVerify: true,
 		}
 	}
-	db := pg.Connect(pgOptions)
+
 	hookImpl := eventHook{
 		log:        logrus.New(),
 		beforeTime: time.Now(),
 	}
+
+	db := pg.Connect(pgOptions)
 	db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
@@ -190,13 +192,14 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, nodeApi, contextLogger)
+	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
 
 	return &Extender{
 		//Metrics:             metrics.New(),
 		env:                  env,
 		nodeApi:              nodeApi,
 		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:         events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger),
+		eventService:         eventService,
 		blockRepository:      blockRepository,
 		validatorService:     validatorService,
 		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
@@ -338,10 +341,10 @@ func (ext *Extender) runWorkers() {
 	}
 
 	// Balances
-	for w := 1; w <= 5; w++ {
+	for w := 1; w <= 100; w++ {
 		go ext.balanceService.BalanceManager()
 	}
-	for w := 1; w <= 10; w++ {
+	for w := 1; w <= 500; w++ {
 		go ext.balanceService.BalanceUpdater()
 	}
 

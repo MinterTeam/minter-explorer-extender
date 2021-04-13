@@ -65,11 +65,11 @@ func (s *Service) Manager() {
 			s.PublishBlock(b)
 			s.PublishStatus()
 		case txs := <-s.transactionsChannel:
-			s.PublishTransactions(txs)
+			go s.PublishTransactions(txs)
 		case b := <-s.balanceChannel:
-			s.PublishBalances(b)
+			go s.PublishBalances(b)
 		case tx := <-s.stakeChannel:
-			s.PublishStake(tx)
+			go s.PublishStake(tx)
 		case c := <-s.commissionsChannel:
 			s.PublishCommissions(c)
 		}
