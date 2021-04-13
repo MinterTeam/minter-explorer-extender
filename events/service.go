@@ -34,13 +34,14 @@ type Service struct {
 	broadcastService    *broadcast.Service
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
+	startBlock          uint64
 	logger              *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	blockRepository *block.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
-	logger *logrus.Entry) *Service {
+	logger *logrus.Entry, startBlock uint64) *Service {
 	return &Service{
 		env:                 env,
 		repository:          repository,
@@ -51,13 +52,14 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		balanceRepository:   balanceRepository,
 		blockRepository:     blockRepository,
 		broadcastService:    broadcastService,
+		startBlock:          startBlock,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
 		jobSaveSlashes:      make(chan []*models.Slash, env.WrkSaveSlashesCount),
 		logger:              logger,
 	}
 }
 
-//Handle response and save block to DB
+// HandleEventResponse Handle response and save block to DB
 func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
 	var (
 		rewards           []*models.Reward
@@ -221,8 +223,8 @@ func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 
 		if (err != nil && err == pg.ErrNoRows) || len(exist) == 0 {
 			startBlock := rewards[0].BlockID - 120
-			if startBlock <= 0 {
-				startBlock = 1
+			if startBlock < s.startBlock {
+				startBlock = s.startBlock
 			}
 
 			var aggregated []*models.AggregatedReward
