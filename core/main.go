@@ -341,10 +341,8 @@ func (ext *Extender) runWorkers() {
 	}
 
 	// Balances
-	for w := 1; w <= 100; w++ {
-		go ext.balanceService.BalanceManager()
-	}
-	for w := 1; w <= 500; w++ {
+	go ext.balanceService.BalanceManager()
+	for w := 1; w <= 10; w++ {
 		go ext.balanceService.BalanceUpdater()
 	}
 
