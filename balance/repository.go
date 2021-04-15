@@ -29,7 +29,7 @@ func (r *Repository) FindAllByAddress(addresses []string) ([]*models.Balance, er
 }
 
 func (r *Repository) SaveAll(balances []*models.Balance) error {
-	_, err := r.db.Model(&balances).Insert()
+	_, err := r.db.Model(&balances).OnConflict("(address_id, coin_id) DO UPDATE").Insert()
 	return err
 }
 
@@ -65,7 +65,7 @@ func (r *Repository) Delete(addressID, coinID uint) error {
 	return err
 }
 
-// Exist is a map with a key is AddressId and value is a slice of coin ids
+// DeleteUselessCoins Exist is a map with a key is AddressId and value is a slice of coin ids
 func (r *Repository) DeleteUselessCoins(exist map[uint][]uint64) error {
 	var condition []string
 	for addressId, coins := range exist {
