@@ -121,7 +121,7 @@ func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse
 	return addresses, mapAddresses
 }
 
-// Find all addresses in block response and save it
+// SaveAddressesFromResponses Find all addresses in block response and save it
 func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) error {
 	var (
 		err                error
