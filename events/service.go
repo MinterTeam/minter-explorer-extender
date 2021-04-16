@@ -170,12 +170,6 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 
 			err = s.validatorRepository.SaveBan(ban)
 			if err != nil {
-				// temp solution
-				time.Sleep(500 * time.Millisecond)
-				err = s.validatorRepository.SaveBan(ban)
-			}
-
-			if err != nil {
 				s.logger.Error(err)
 			}
 		}
