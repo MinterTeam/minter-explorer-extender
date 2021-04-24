@@ -135,7 +135,15 @@ func (s *Service) updateBalancesByBlockData(block *api_pb.BlockResponse) error {
 func (s *Service) updateBalancesByEventData(event *api_pb.EventsResponse) error {
 	list, _ := s.addressService.ExtractAddressesEventsResponse(event)
 	if len(list) > 0 {
-		return s.updateAddresses(list)
+		chunksCount := int(math.Ceil(float64(len(list)) / float64(s.env.AddrChunkSize)))
+		for i := 0; i < chunksCount; i++ {
+			start := s.env.AddrChunkSize * i
+			end := start + s.env.AddrChunkSize
+			if end > len(list) {
+				end = len(list)
+			}
+			s.channelUpdate <- list[start:end]
+		}
 	}
 	return nil
 }
