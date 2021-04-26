@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
+	"github.com/MinterTeam/explorer-sdk/swap"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
@@ -191,7 +192,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressService, coinRepository, broadcastService, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
-	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, nodeApi, contextLogger)
+	swapService := swap.NewService(db)
+	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
 	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
 
 	return &Extender{

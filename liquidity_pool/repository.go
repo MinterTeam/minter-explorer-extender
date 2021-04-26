@@ -75,6 +75,12 @@ func (r *Repository) SaveAllLiquidityPoolTrades(links []*models.LiquidityPoolTra
 	return err
 }
 
+func (r *Repository) GetAll() ([]models.LiquidityPool, error) {
+	var list []models.LiquidityPool
+	err := r.db.Model(&list).Select()
+	return list, err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
