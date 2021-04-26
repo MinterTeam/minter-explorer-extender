@@ -246,6 +246,18 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 		lp.SecondCoinVolume = nodeLp.Amount1
 	}
 
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
+
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
 		return nil, err
@@ -351,6 +363,18 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	lp.SecondCoinId = secondCoinId
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
+
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
 
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
@@ -480,6 +504,18 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
 	lp.Liquidity = nodeLp.Liquidity
+
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
 
 	return s.repository.UpdateLiquidityPool(lp)
 }
