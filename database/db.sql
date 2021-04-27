@@ -238,6 +238,7 @@ CREATE TABLE liquidity_pools
     first_coin_volume  numeric(100, 0) NOT NULL,
     second_coin_volume numeric(100, 0) NOT NULL,
     liquidity          numeric(100, 0) NOT NULL,
+    liquidity_bip      numeric(100, 0),
     unique (first_coin_id, second_coin_id)
 );
 CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);

@@ -14,6 +14,7 @@ type LiquidityPool struct {
 	FirstCoinVolume  string `json:"first_coin_volume"`
 	SecondCoinVolume string `json:"second_coin_volume"`
 	Liquidity        string `json:"liquidity"`
+	LiquidityBip     string `json:"liquidity_bip"`
 	FirstCoin        *Coin  `json:"first_coin"  pg:"rel:has-one,fk:first_coin_id"`
 	SecondCoin       *Coin  `json:"second_coin" pg:"rel:has-one,fk:second_coin_id"`
 	Token            *Coin  `json:"token"       pg:"rel:has-one,fk:token_id"`

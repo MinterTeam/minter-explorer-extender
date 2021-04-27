@@ -3,6 +3,7 @@ package liquidity_pool
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MinterTeam/explorer-sdk/swap"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -245,6 +246,18 @@ func (s *Service) addToPool(firstCoinId, secondCoinId uint64, firstCoinVol, seco
 		lp.SecondCoinVolume = nodeLp.Amount1
 	}
 
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
+
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
 		return nil, err
@@ -351,6 +364,18 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
 
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
+
 	err = s.repository.UpdateLiquidityPool(lp)
 	if err != nil {
 		return err
@@ -440,6 +465,18 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 		lp.FirstCoinVolume = nodeLp.Amount0
 		lp.SecondCoinVolume = nodeLp.Amount1
 
+		lpList, err := s.repository.GetAll()
+		if err != nil {
+			return err
+		}
+
+		if len(lpList) > 0 {
+			liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+			lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+		} else {
+			lp.LiquidityBip = "0"
+		}
+
 		err = s.repository.UpdateLiquidityPool(lp)
 		if err != nil {
 			return err
@@ -467,6 +504,18 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
 	lp.Liquidity = nodeLp.Liquidity
+
+	lpList, err := s.repository.GetAll()
+	if err != nil {
+		return err
+	}
+
+	if len(lpList) > 0 {
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
+		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+	} else {
+		lp.LiquidityBip = "0"
+	}
 
 	return s.repository.UpdateLiquidityPool(lp)
 }
@@ -663,12 +712,14 @@ func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsD
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
-	balanceService *balance.Service, nodeApi *grpc_client.Client, logger *logrus.Entry) *Service {
+	balanceService *balance.Service, swapService *swap.Service, nodeApi *grpc_client.Client,
+	logger *logrus.Entry) *Service {
 	return &Service{
 		repository:                     repository,
 		addressRepository:              addressRepository,
 		coinService:                    coinService,
 		balanceService:                 balanceService,
+		swapService:                    swapService,
 		nodeApi:                        nodeApi,
 		logger:                         logger,
 		jobUpdateLiquidityPool:         make(chan *api_pb.TransactionResponse, 1),
@@ -682,9 +733,25 @@ type Service struct {
 	addressRepository              *address.Repository
 	coinService                    *coin.Service
 	balanceService                 *balance.Service
+	swapService                    *swap.Service
 	logger                         *logrus.Entry
 	nodeApi                        *grpc_client.Client
 	jobUpdateLiquidityPool         chan *api_pb.TransactionResponse
 	jobLiquidityPoolTrades         chan []*models.Transaction
 	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
+}
+
+func bigFloatToToPipString(f *big.Float) string {
+	s := f.String()
+	num := strings.Split(f.String(), ".")
+	s = num[0]
+	count := 0
+	if len(num) > 1 {
+		s += num[1]
+		count = len(num[1])
+	}
+	for i := 0; i < (18 - count); i++ {
+		s += "0"
+	}
+	return s
 }
