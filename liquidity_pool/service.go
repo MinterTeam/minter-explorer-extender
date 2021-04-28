@@ -69,7 +69,7 @@ func (s *Service) UpdateLiquidityPoolWorker(data <-chan *api_pb.TransactionRespo
 		case transaction.TypeAddLiquidity:
 			err = s.addToLiquidityPool(tx)
 		case transaction.TypeCreateSwapPool:
-			err = s.createLiquidityPool(tx)
+			err = s.CreateLiquidityPool(tx)
 		case transaction.TypeRemoveLiquidity:
 			err = s.removeFromLiquidityPool(tx)
 		case transaction.TypeSend, transaction.TypeMultisend:
@@ -92,7 +92,7 @@ func (s *Service) JobUpdateLiquidityPoolChannel() chan *api_pb.TransactionRespon
 	return s.jobUpdateLiquidityPool
 }
 
-func (s *Service) createLiquidityPool(tx *api_pb.TransactionResponse) error {
+func (s *Service) CreateLiquidityPool(tx *api_pb.TransactionResponse) error {
 	txData := new(api_pb.CreateSwapPoolData)
 	if err := tx.GetData().UnmarshalTo(txData); err != nil {
 		return err
@@ -743,15 +743,18 @@ type Service struct {
 
 func bigFloatToToPipString(f *big.Float) string {
 	s := f.String()
-	num := strings.Split(f.String(), ".")
+	num := strings.Split(f.String(), "e")
+	if len(num) > 1 {
+		return "0"
+	}
+
+	num = strings.Split(f.String(), ".")
 	s = num[0]
-	count := 0
 	if len(num) > 1 {
 		s += num[1]
-		count = len(num[1])
-	}
-	for i := 0; i < (18 - count); i++ {
-		s += "0"
+		for i := 0; i < (18 - len(num[1])); i++ {
+			s += "0"
+		}
 	}
 	return s
 }
