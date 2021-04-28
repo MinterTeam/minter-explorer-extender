@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func (s *Service) GetSaveTxValidatorJobChannel() chan []*models.TransactionValid
 	return s.jobSaveValidatorTxs
 }
 
-//Handle response and save block to DB
+// HandleTransactionsFromBlockResponse Handle response and save block to DB
 func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockCreatedAt time.Time,
 	transactions []*api_pb.TransactionResponse) error {
 
@@ -98,8 +99,12 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			}
 
 			switch transaction.Type(tx.Type) {
-			case transaction.TypeCreateSwapPool,
-				transaction.TypeRemoveLiquidity,
+			case transaction.TypeCreateSwapPool:
+				err := s.liquidityPoolService.CreateLiquidityPool(tx)
+				if err != nil {
+					return err
+				}
+			case transaction.TypeRemoveLiquidity,
 				transaction.TypeAddLiquidity:
 				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			case transaction.TypeBuySwapPool,
@@ -546,15 +551,18 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 					LiquidityPoolID: lp.Id,
 				})
 			}
-		case transaction.TypeRemoveLiquidity,
-			transaction.TypeAddLiquidity,
-			transaction.TypeCreateSwapPool:
-			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+		case transaction.TypeCreateSwapPool:
+			lpId, err := strconv.ParseUint(tx.Tags["tx.pool_id"], 10, 64)
 			if err != nil {
-				//TODO: quick fix will be removed
-				time.Sleep(500 * time.Millisecond)
-				lp, err = s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+				return nil, err
 			}
+			links = append(links, &models.TransactionLiquidityPool{
+				TransactionID:   tx.ID,
+				LiquidityPoolID: lpId,
+			})
+		case transaction.TypeRemoveLiquidity,
+			transaction.TypeAddLiquidity:
+			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
 			if err != nil {
 				return nil, err
 			}
