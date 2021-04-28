@@ -564,7 +564,7 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 			return err
 		}
 
-		var re = regexp.MustCompile(`(?mi)p-\d+`)
+		var re = regexp.MustCompile(`(?mi)lp-\d+`)
 		if re.MatchString(txData.Coin.Symbol) {
 			err = s.updateAddressPoolVolumesByTxData(fromAddressId, txData)
 		}
@@ -575,7 +575,7 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 			return err
 		}
 		for _, data := range txData.List {
-			var re = regexp.MustCompile(`(?mi)p-\d+`)
+			var re = regexp.MustCompile(`(?mi)lp-\d+`)
 			if re.MatchString(data.Coin.Symbol) {
 				err = s.updateAddressPoolVolumesByTxData(fromAddressId, data)
 				if err != nil {
