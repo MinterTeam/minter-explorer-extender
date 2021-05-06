@@ -392,8 +392,10 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	}
 	var alp *models.AddressLiquidityPool
 	alp, err = s.repository.GetAddressLiquidityPool(addressId, lp.Id)
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	}
 	if err != nil {
-		s.logger.Error(err)
 		alp = new(models.AddressLiquidityPool)
 	}
 
@@ -418,8 +420,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 		return err
 	}
 
-	addressLiquidity, _ := big.NewInt(0).SetString(nodeALP.Liquidity, 10)
-	if addressLiquidity.Cmp(big.NewInt(0)) == 0 {
+	if nodeALP.Liquidity == "0" {
 		return s.repository.DeleteAddressLiquidityPool(addressId, lp.Id)
 	} else {
 		return s.repository.UpdateAddressLiquidityPool(alp)
