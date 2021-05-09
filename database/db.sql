@@ -244,7 +244,20 @@ CREATE TABLE liquidity_pools
 CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);
 CREATE INDEX liquidity_pools_second_coin_id_index ON liquidity_pools USING btree (second_coin_id);
 
-CREATE TABLE address_liquidity_pools
+CREATE TABLE liquidity_pool_snapshots
+(
+    block_id           integer         NOT NULL references blocks (id) on delete cascade,
+    liquidity_pool_id  integer         NOT NULL references liquidity_pools (id) on delete cascade,
+    first_coin_volume  numeric(100, 0) NOT NULL,
+    second_coin_volume numeric(100, 0) NOT NULL,
+    liquidity          numeric(100, 0) NOT NULL,
+    liquidity_bip      numeric(100, 0),
+    created_at         timestamp with time zone DEFAULT current_timestamp
+);
+CREATE INDEX liquidity_pool_snapshots_block_id_index on liquidity_pool_snapshots USING btree (block_id);
+CREATE INDEX liquidity_pool_snapshots_liquidity_pool_id_index on liquidity_pool_snapshots USING btree (liquidity_pool_id);
+
+    CREATE TABLE address_liquidity_pools
 (
     address_id        bigint          not null references addresses (id) on delete cascade,
     liquidity_pool_id int             not null references liquidity_pools (id) on delete cascade,
