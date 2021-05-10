@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 )
 
 const LockedLiquidityVolume = 1000
@@ -20,6 +21,10 @@ type LiquidityPool struct {
 	Token            *Coin  `json:"token"       pg:"rel:has-one,fk:token_id"`
 }
 
+func (lp *LiquidityPool) GetTokenSymbol() string {
+	return fmt.Sprintf("LP-%d", lp.Id)
+}
+
 type AddressLiquidityPool struct {
 	LiquidityPoolId uint64         `json:"liquidity_pool_id" pg:",pk"`
 	AddressId       uint64         `json:"address_id"        pg:",pk"`
@@ -36,6 +41,12 @@ type TagLiquidityPool struct {
 	ValueOut string `json:"value_out"`
 }
 
-func (lp *LiquidityPool) GetTokenSymbol() string {
-	return fmt.Sprintf("LP-%d", lp.Id)
+type LiquidityPoolSnapshot struct {
+	BlockId          uint64    `json:"block_id"`
+	LiquidityPoolId  uint64    `json:"liquidity_pool_id"`
+	FirstCoinVolume  string    `json:"first_coin_volume"`
+	SecondCoinVolume string    `json:"second_coin_volume"`
+	Liquidity        string    `json:"liquidity"`
+	LiquidityBip     string    `json:"liquidity_bip"`
+	CreatedAt        time.Time `json:"created_at"`
 }

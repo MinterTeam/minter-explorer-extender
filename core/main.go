@@ -24,6 +24,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math"
+	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -52,7 +53,9 @@ type Extender struct {
 	chasingMode          bool
 	startBlockHeight     uint64
 	currentNodeHeight    uint64
+	lastLPSnapshotHeight uint64
 	log                  *logrus.Entry
+	lpSnapshotChannel    chan *api_pb.BlockResponse
 }
 
 type ExtenderElapsedTime struct {
@@ -215,6 +218,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		currentNodeHeight:    0,
 		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
+		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -301,6 +305,7 @@ func (ext *Extender) Run() {
 		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
 
 		go ext.handleEventResponse(height, eventsResponse)
+		ext.lpSnapshotChannel <- blockResponse
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -364,6 +369,7 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= 10; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
+	go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
 
 	//Broadcast
 	go ext.broadcastService.Manager()
@@ -524,4 +530,66 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 		"handle coins":        eet.HandleCoinsFromTransactions,
 		"handle block":        eet.HandleBlockResponse,
 	}).Info(fmt.Sprintf("Block: %d Processing time: %s", eet.Height, eet.Total))
+}
+
+func (ext *Extender) LiquidityPoolSnapshotCreator(data <-chan *api_pb.BlockResponse) {
+	var lastSnapshotBlock *api_pb.BlockResponse
+	for b := range data {
+		blockTime, err := time.Parse("2006-01-02T15:04:05Z", b.Time)
+		if err != nil {
+			ext.log.Error(err)
+			continue
+		}
+		if ext.chasingMode {
+			if blockTime.Format("15:04") == "23:01" {
+				err = ext.CreateLpSnapshot(b.Height, blockTime)
+				if err != nil {
+					ext.log.Error(err)
+					continue
+				}
+				lastSnapshotBlock = b
+				continue
+			}
+		} else {
+			if lastSnapshotBlock != nil {
+				lastSnapshotBlockTime, err := time.Parse("2006-01-02T15:04:05Z", lastSnapshotBlock.Time)
+				if err != nil {
+					ext.log.Error(err)
+					continue
+				}
+				min := 15
+				max := 23
+				rand.Seed(time.Now().UnixNano())
+				x := float64((rand.Intn(max-min+1) + min) * 60)
+				since := time.Since(lastSnapshotBlockTime)
+				if since.Minutes() > x {
+					err = ext.CreateLpSnapshot(b.Height, blockTime)
+					if err != nil {
+						ext.log.Error(err)
+						continue
+					}
+					lastSnapshotBlock = b
+					continue
+				}
+			} else {
+				err = ext.CreateLpSnapshot(b.Height, blockTime)
+				if err != nil {
+					ext.log.Error(err)
+					continue
+				}
+				lastSnapshotBlock = b
+			}
+		}
+	}
+}
+
+func (ext Extender) CreateLpSnapshot(height uint64, blockTime time.Time) error {
+	list, err := ext.liquidityPoolService.Storage.GetSnapshotsByDate(blockTime)
+	if err != nil && err != pg.ErrNoRows {
+		return err
+	}
+	if list != nil {
+		return nil
+	}
+	return ext.liquidityPoolService.CreateSnapshot(height, blockTime)
 }
