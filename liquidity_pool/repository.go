@@ -1,8 +1,10 @@
 package liquidity_pool
 
 import (
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v10"
+	"time"
 )
 
 type Repository struct {
@@ -79,6 +81,25 @@ func (r *Repository) GetAll() ([]models.LiquidityPool, error) {
 	var list []models.LiquidityPool
 	err := r.db.Model(&list).Select()
 	return list, err
+}
+
+func (r *Repository) GetLastSnapshot() (*models.LiquidityPoolSnapshot, error) {
+	var lps = new(models.LiquidityPoolSnapshot)
+	err := r.db.Model(lps).Order("block_id desc").Limit(1).Select()
+	return lps, err
+}
+
+func (r *Repository) GetSnapshotsByDate(date time.Time) ([]models.LiquidityPoolSnapshot, error) {
+	var list []models.LiquidityPoolSnapshot
+	startDate := fmt.Sprintf("%s 00:00:00", date.Format("2006-01-02"))
+	endDate := fmt.Sprintf("%s 23:59:59", date.Format("2006-01-02"))
+	err := r.db.Model(&list).Where("created_at >= ? and created_at <= ?", startDate, endDate).Select()
+	return list, err
+}
+
+func (r *Repository) SaveLiquidityPoolSnapshots(snap []models.LiquidityPoolSnapshot) error {
+	_, err := r.db.Model(&snap).Insert()
+	return err
 }
 
 func NewRepository(db *pg.DB) *Repository {
