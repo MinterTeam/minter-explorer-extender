@@ -191,7 +191,7 @@ CREATE INDEX slashes_validator_id_index ON slashes USING btree (validator_id);
 
 CREATE TABLE stakes
 (
-    id               serial         NOT NULL,
+    id               serial         NOT NULL primary key,
     owner_address_id bigint         NOT NULL references addresses (id) on delete cascade,
     validator_id     integer        NOT NULL references validators (id) on delete cascade,
     coin_id          integer        NOT NULL references coins (id) on delete cascade,
@@ -257,7 +257,7 @@ CREATE TABLE liquidity_pool_snapshots
 CREATE INDEX liquidity_pool_snapshots_block_id_index on liquidity_pool_snapshots USING btree (block_id);
 CREATE INDEX liquidity_pool_snapshots_liquidity_pool_id_index on liquidity_pool_snapshots USING btree (liquidity_pool_id);
 
-    CREATE TABLE address_liquidity_pools
+CREATE TABLE address_liquidity_pools
 (
     address_id        bigint          not null references addresses (id) on delete cascade,
     liquidity_pool_id int             not null references liquidity_pools (id) on delete cascade,
