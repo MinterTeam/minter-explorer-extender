@@ -37,7 +37,7 @@ func (s *Service) CreateSnapshot(height uint64, date time.Time) error {
 			LiquidityPoolId:  p.Id,
 			FirstCoinVolume:  p.FirstCoinVolume,
 			SecondCoinVolume: p.SecondCoinVolume,
-			Liquidity:        p.LiquidityBip,
+			Liquidity:        p.Liquidity,
 			LiquidityBip:     p.LiquidityBip,
 			CreatedAt:        date,
 		})
