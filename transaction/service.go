@@ -463,6 +463,7 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, block
 		Type:          uint8(tx.Type),
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(txDataJson),
+		Log:           tx.Log,
 	}, nil
 }
 
