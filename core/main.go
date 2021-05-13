@@ -510,6 +510,7 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 	ext.validatorService.SetChasingMode(ext.chasingMode)
 	ext.broadcastService.SetChasingMode(ext.chasingMode)
 	ext.balanceService.SetChasingMode(ext.chasingMode)
+	ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
 }
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
