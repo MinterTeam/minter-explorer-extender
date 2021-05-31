@@ -277,6 +277,8 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 
 	alp.AddressId = uint64(addressId)
 	alp.Liquidity = nodeALP.Liquidity
+	alp.FirstCoinVolume = nodeALP.Amount0
+	alp.SecondCoinVolume = nodeALP.Amount1
 	alp.LiquidityPoolId = lp.Id
 
 	if nodeALP.Liquidity == "0" {
@@ -377,6 +379,8 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	alp.AddressId = uint64(addressId)
 	alp.LiquidityPoolId = lp.Id
 	alp.Liquidity = nodeALP.Liquidity
+	alp.FirstCoinVolume = nodeALP.Amount0
+	alp.SecondCoinVolume = nodeALP.Amount1
 
 	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {
@@ -603,24 +607,28 @@ func (s *Service) updateAddressPoolVolumesByTxData(fromAddressId uint, from stri
 	}
 
 	alpFrom := &models.AddressLiquidityPool{
-		LiquidityPoolId: lp.Id,
-		AddressId:       uint64(fromAddressId),
-		Liquidity:       nodeALPFrom.Liquidity,
+		LiquidityPoolId:  lp.Id,
+		AddressId:        uint64(fromAddressId),
+		FirstCoinVolume:  nodeALPFrom.Amount0,
+		SecondCoinVolume: nodeALPFrom.Amount1,
+		Liquidity:        nodeALPFrom.Liquidity,
 	}
 
 	var nodeALPTo *api_pb.SwapPoolResponse
 	if s.chasingMode {
-		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from, height)
+		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, txData.To, height)
 	} else {
-		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from)
+		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, txData.To)
 	}
 	if err != nil {
 		return err
 	}
 	alpTo := &models.AddressLiquidityPool{
-		LiquidityPoolId: lp.Id,
-		AddressId:       uint64(toAddressId),
-		Liquidity:       nodeALPTo.Liquidity,
+		LiquidityPoolId:  lp.Id,
+		AddressId:        uint64(toAddressId),
+		FirstCoinVolume:  nodeALPTo.Amount0,
+		SecondCoinVolume: nodeALPTo.Amount1,
+		Liquidity:        nodeALPTo.Liquidity,
 	}
 
 	return s.Storage.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alpFrom, alpTo})
