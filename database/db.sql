@@ -259,9 +259,11 @@ CREATE INDEX liquidity_pool_snapshots_liquidity_pool_id_index on liquidity_pool_
 
 CREATE TABLE address_liquidity_pools
 (
-    address_id        bigint          not null references addresses (id) on delete cascade,
-    liquidity_pool_id int             not null references liquidity_pools (id) on delete cascade,
-    liquidity         numeric(100, 0) not null,
+    address_id         bigint          not null references addresses (id) on delete cascade,
+    liquidity_pool_id  int             not null references liquidity_pools (id) on delete cascade,
+    liquidity          numeric(100, 0) not null,
+    first_coin_volume  numeric(100, 0) not null,
+    second_coin_volume numeric(100, 0) not null,
     unique (address_id, liquidity_pool_id)
 );
 
