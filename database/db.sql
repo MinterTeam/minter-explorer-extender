@@ -231,14 +231,15 @@ CREATE INDEX checks_check_index ON checks USING btree (data);
 
 CREATE TABLE liquidity_pools
 (
-    id                 serial primary key,
-    token_id           integer         NOT NULL references coins (id) on delete cascade,
-    first_coin_id      integer         NOT NULL references coins (id) on delete cascade,
-    second_coin_id     integer         NOT NULL references coins (id) on delete cascade,
-    first_coin_volume  numeric(100, 0) NOT NULL,
-    second_coin_volume numeric(100, 0) NOT NULL,
-    liquidity          numeric(100, 0) NOT NULL,
-    liquidity_bip      numeric(100, 0),
+    id                  serial primary key,
+    token_id            integer         NOT NULL references coins (id) on delete cascade,
+    first_coin_id       integer         NOT NULL references coins (id) on delete cascade,
+    second_coin_id      integer         NOT NULL references coins (id) on delete cascade,
+    first_coin_volume   numeric(100, 0) NOT NULL,
+    second_coin_volume  numeric(100, 0) NOT NULL,
+    liquidity           numeric(100, 0) NOT NULL,
+    liquidity_bip       numeric(100, 0),
+    updated_at_block_id integer         not null references blocks (id),
     unique (first_coin_id, second_coin_id)
 );
 CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);

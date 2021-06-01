@@ -232,6 +232,7 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 		lp.Liquidity = nodeLp.Liquidity
 		lp.FirstCoinVolume = nodeLp.Amount0
 		lp.SecondCoinVolume = nodeLp.Amount1
+		lp.UpdatedAtBlockId = height
 	}
 
 	lpList, err := s.Storage.GetAll()
@@ -334,6 +335,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	lp.SecondCoinId = secondCoinId
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
+	lp.UpdatedAtBlockId = tx.Height
 
 	lpList, err := s.Storage.GetAll()
 	if err != nil {
@@ -456,6 +458,7 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 		lp.Liquidity = nodeLp.Liquidity
 		lp.FirstCoinVolume = nodeLp.Amount0
 		lp.SecondCoinVolume = nodeLp.Amount1
+		lp.UpdatedAtBlockId = tx.Height
 
 		lpList, err := s.Storage.GetAll()
 		if err != nil {
@@ -501,6 +504,7 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
 	lp.Liquidity = nodeLp.Liquidity
+	lp.UpdatedAtBlockId = tx.Height
 
 	lpList, err := s.Storage.GetAll()
 	if err != nil {
