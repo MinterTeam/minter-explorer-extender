@@ -242,7 +242,8 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
+		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
+		lp.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -344,7 +345,8 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
+		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
+		lp.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -467,7 +469,8 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 
 		if len(lpList) > 0 {
 			liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-			lp.LiquidityBip = bigFloatToPipString(liquidityBip)
+			s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
+			lp.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 		} else {
 			lp.LiquidityBip = "0"
 		}
@@ -513,7 +516,8 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
+		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
+		lp.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -728,6 +732,11 @@ func (s *Service) SetChasingMode(chasingMode bool) {
 	s.chasingMode = chasingMode
 }
 
+func (s *Service) bigFloatToPipString(f *big.Float) string {
+	pip, _ := new(big.Float).Mul(big.NewFloat(1e18), f).Int(nil)
+	return pip.String()
+}
+
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, swapService *swap.Service, nodeApi *grpc_client.Client,
 	logger *logrus.Entry) *Service {
@@ -758,9 +767,4 @@ type Service struct {
 	jobLiquidityPoolTrades         chan []*models.Transaction
 	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
 	chasingMode                    bool
-}
-
-func bigFloatToPipString(f *big.Float) string {
-	pip, _ := new(big.Float).Mul(big.NewFloat(1e18), f).Int(nil)
-	return pip.String()
 }
