@@ -242,7 +242,7 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -344,7 +344,7 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -467,7 +467,7 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 
 		if len(lpList) > 0 {
 			liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-			lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+			lp.LiquidityBip = bigFloatToPipString(liquidityBip)
 		} else {
 			lp.LiquidityBip = "0"
 		}
@@ -513,7 +513,7 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp)
-		lp.LiquidityBip = bigFloatToToPipString(liquidityBip)
+		lp.LiquidityBip = bigFloatToPipString(liquidityBip)
 	} else {
 		lp.LiquidityBip = "0"
 	}
@@ -760,20 +760,7 @@ type Service struct {
 	chasingMode                    bool
 }
 
-func bigFloatToToPipString(f *big.Float) string {
-	s := f.String()
-	num := strings.Split(f.String(), "e")
-	if len(num) > 1 {
-		return "0"
-	}
-
-	num = strings.Split(f.String(), ".")
-	s = num[0]
-	if len(num) > 1 {
-		s += num[1]
-		for i := 0; i < (18 - len(num[1])); i++ {
-			s += "0"
-		}
-	}
-	return s
+func bigFloatToPipString(f *big.Float) string {
+	pip, _ := new(big.Float).Mul(big.NewFloat(1e18), f).Int(nil)
+	return pip.String()
 }

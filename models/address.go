@@ -10,7 +10,7 @@ type Address struct {
 	InvalidTransactions []*InvalidTransaction `json:"invalid_transactions" pg:"rel:has-many,fk:from_address_id"` //relation has many to InvalidTransactions
 }
 
-// Return address with prefix
+// GetAddress Return address with prefix
 func (a *Address) GetAddress() string {
 	return `Mx` + a.Address
 }
