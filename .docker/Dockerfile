@@ -4,6 +4,8 @@ WORKDIR /app
 COPY . /app
 RUN apk add --no-cache make gcc musl-dev linux-headers
 RUN go mod download
+RUN go mod tidy
+#RUN go get -t .
 RUN go build -ldflags="-X 'github.com/MinterTeam/minter-explorer-extender/v2/core.Version=$VERSION'" -o ./builds/linux/extender ./cmd/extender.go
 
 FROM alpine:3.13
