@@ -21,7 +21,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -154,16 +153,16 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		for _, id := range lpList {
 			uniqId[id] = struct{}{}
 		}
-		lpList = nil
+		var lpsList []uint64
 		for id := range uniqId {
-			lpList = append(lpList, id)
+			lpsList = append(lpsList, id)
 		}
 
 		var lps []models.LiquidityPool
 		var err error
 
 		if len(lpList) > 0 {
-			lps, err = s.Storage.GetAllByIds(lpList)
+			lps, err = s.Storage.GetAllByIds(lpsList)
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -171,12 +170,16 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		}
 
 		if len(lps) > 0 {
-			wg := new(sync.WaitGroup)
-			wg.Add(len(lps))
+			g, _ := errgroup.WithContext(context.Background())
 			for _, lp := range lps {
-				go s.updateLiquidityPool(b.Height, lp, wg)
+				g.Go(func() error {
+					return s.updateLiquidityPool(b.Height, lp)
+				})
 			}
-			wg.Wait()
+			err = g.Wait()
+			if err != nil {
+				s.logger.Error(err)
+			}
 			s.updatePoolsBipLiquidity(lps)
 			s.updateAddressPoolChannel <- b.Transactions
 		}
@@ -626,13 +629,13 @@ func (s *Service) bigFloatToPipString(f *big.Float) string {
 	return pip.String()
 }
 
-func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) error {
 	var err error
 	var nodeLp *api_pb.SwapPoolResponse
 	nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId)
 	if err != nil {
 		s.logger.Error(err)
+		return err
 	}
 	lp.FirstCoinVolume = nodeLp.Amount0
 	lp.SecondCoinVolume = nodeLp.Amount1
@@ -642,7 +645,9 @@ func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool, wg
 	err = s.Storage.UpdateLiquidityPool(&lp)
 	if err != nil {
 		s.logger.Error(err)
+		return err
 	}
+	return err
 }
 
 func (s *Service) updatePoolsBipLiquidity(lps []models.LiquidityPool) {
