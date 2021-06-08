@@ -102,6 +102,11 @@ func (r *Repository) SaveLiquidityPoolSnapshots(snap []models.LiquidityPoolSnaps
 	return err
 }
 
+func (r *Repository) RemoveEmptyAddresses() error {
+	_, err := r.db.Model().Exec(`DELETE FROM address_liquidity_pools WHERE liquidity <= 0;`)
+	return err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
