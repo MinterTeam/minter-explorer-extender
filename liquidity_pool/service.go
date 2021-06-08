@@ -40,16 +40,19 @@ func (s *Service) AddressLiquidityPoolWorker() {
 						txTags := tx.GetTags()
 						poolId, err := strconv.ParseUint(txTags["tx.pool_id"], 10, 64)
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 
 						pair := strings.Split(txTags["tx.pair_ids"], "-")
 						firstCoinId, err := strconv.ParseUint(pair[0], 10, 64)
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 						secondCoinId, err := strconv.ParseUint(pair[1], 10, 64)
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 
@@ -60,17 +63,20 @@ func (s *Service) AddressLiquidityPoolWorker() {
 							nodeALP, err = s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom))
 						}
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 
 						addressId, err := s.addressRepository.FindIdOrCreate(txFrom)
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 
 						var alp *models.AddressLiquidityPool
 						alp, err = s.Storage.GetAddressLiquidityPool(addressId, poolId)
 						if err != nil && err != pg.ErrNoRows {
+							s.logger.Error(err)
 							return err
 						}
 						if err != nil {
@@ -89,11 +95,15 @@ func (s *Service) AddressLiquidityPoolWorker() {
 							err = s.Storage.UpdateAddressLiquidityPool(alp)
 						}
 						if err != nil {
+							s.logger.Error(err)
 							return err
 						}
 					case transaction.TypeSend,
 						transaction.TypeMultisend:
 						err = s.updateAddressPoolVolumes(tx)
+						if err != nil {
+							s.logger.Error(err)
+						}
 					}
 					return err
 				})
