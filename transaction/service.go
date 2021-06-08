@@ -92,34 +92,15 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 				return err
 			}
 			txList = append(txList, txn)
-
-			tags := tx.GetTags()
-			if tx.GasCoin.Id != 0 && tags["tx.commission_conversion"] == "pool" {
-				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
-			}
-
 			switch transaction.Type(tx.Type) {
 			case transaction.TypeCreateSwapPool:
 				err := s.liquidityPoolService.CreateLiquidityPool(tx)
 				if err != nil {
 					return err
 				}
-			case transaction.TypeRemoveLiquidity,
-				transaction.TypeAddLiquidity:
-				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
-			case transaction.TypeBuySwapPool,
-				transaction.TypeSellSwapPool,
-				transaction.TypeSellAllSwapPool,
-				transaction.TypeSend,
-				transaction.TypeMultisend:
-				s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
-			default:
-				if tx.GasCoin.Id == 0 || tags["tx.commission_conversion"] != "pool" {
-					s.liquidityPoolService.JobUpdateLiquidityPoolChannel() <- tx
-				}
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)

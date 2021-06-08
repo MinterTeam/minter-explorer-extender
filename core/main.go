@@ -56,6 +56,7 @@ type Extender struct {
 	lastLPSnapshotHeight uint64
 	log                  *logrus.Entry
 	lpSnapshotChannel    chan *api_pb.BlockResponse
+	lpWorkerChannel      chan *api_pb.BlockResponse
 }
 
 type ExtenderElapsedTime struct {
@@ -219,6 +220,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
 		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
+		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -305,6 +307,7 @@ func (ext *Extender) Run() {
 		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
 
 		go ext.handleEventResponse(height, eventsResponse)
+		ext.lpWorkerChannel <- blockResponse
 		ext.lpSnapshotChannel <- blockResponse
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
@@ -364,7 +367,8 @@ func (ext *Extender) runWorkers() {
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
 
 	//LiquidityPool
-	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
+	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
+	go ext.liquidityPoolService.AddressLiquidityPoolWorker()
 	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
 	for w := 1; w <= 10; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
