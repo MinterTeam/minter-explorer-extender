@@ -28,6 +28,11 @@ func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
 	return err
 }
 
+func (r *Repository) UpdateLiquidityPoolById(lp *models.LiquidityPool) error {
+	_, err := r.db.Model(lp).WherePK().Update()
+	return err
+}
+
 func (r *Repository) LinkAddressLiquidityPool(addressId uint, liquidityPoolId uint64) error {
 	addressLiquidityPool := &models.AddressLiquidityPool{
 		LiquidityPoolId: liquidityPoolId,

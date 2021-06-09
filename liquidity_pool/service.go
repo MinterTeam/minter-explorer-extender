@@ -149,10 +149,16 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 				}
 			}
 		}
+
+		if len(lpList) < 1 {
+			continue
+		}
+
 		uniqId := make(map[uint64]struct{})
 		for _, id := range lpList {
 			uniqId[id] = struct{}{}
 		}
+
 		var lpsList []uint64
 		for id := range uniqId {
 			lpsList = append(lpsList, id)
@@ -161,28 +167,24 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		var lps []models.LiquidityPool
 		var err error
 
-		if len(lpList) > 0 {
-			lps, err = s.Storage.GetAllByIds(lpsList)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
+		lps, err = s.Storage.GetAllByIds(lpsList)
+		if err != nil {
+			s.logger.Error(err)
+			continue
 		}
 
-		if len(lps) > 0 {
-			g, _ := errgroup.WithContext(context.Background())
-			for _, lp := range lps {
-				g.Go(func() error {
-					return s.updateLiquidityPool(b.Height, lp)
-				})
-			}
-			err = g.Wait()
-			if err != nil {
-				s.logger.Error(err)
-			}
-			s.updatePoolsBipLiquidity(lps)
-			s.updateAddressPoolChannel <- b.Transactions
+		g, _ := errgroup.WithContext(context.TODO())
+		for _, lp := range lps {
+			g.Go(func() error {
+				return s.updateLiquidityPool(b.Height, &lp)
+			})
 		}
+		err = g.Wait()
+		if err != nil {
+			s.logger.Error(err)
+		}
+		s.updatePoolsBipLiquidity(lps)
+		s.updateAddressPoolChannel <- b.Transactions
 	}
 }
 
@@ -404,11 +406,7 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 	alp.SecondCoinVolume = nodeALP.Amount1
 	alp.LiquidityPoolId = lp.Id
 
-	if nodeALP.Liquidity == "0" {
-		err = s.Storage.DeleteAddressLiquidityPool(addressId, lp.Id)
-	} else {
-		err = s.Storage.UpdateAddressLiquidityPool(alp)
-	}
+	err = s.Storage.UpdateAddressLiquidityPool(alp)
 
 	if err != nil {
 		return nil, err
@@ -629,20 +627,38 @@ func (s *Service) bigFloatToPipString(f *big.Float) string {
 	return pip.String()
 }
 
-func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) error {
+func (s *Service) updateLiquidityPool(height uint64, lp *models.LiquidityPool) error {
 	var err error
 	var nodeLp *api_pb.SwapPoolResponse
-	nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId)
+
+	if s.chasingMode {
+		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId, height)
+	} else {
+		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId)
+	}
+
 	if err != nil {
 		s.logger.Error(err)
 		return err
 	}
-	lp.FirstCoinVolume = nodeLp.Amount0
-	lp.SecondCoinVolume = nodeLp.Amount1
-	lp.Liquidity = nodeLp.Liquidity
-	lp.UpdatedAtBlockId = height
 
-	err = s.Storage.UpdateLiquidityPool(&lp)
+	newLp := &models.LiquidityPool{
+		Id:               lp.Id,
+		TokenId:          lp.TokenId,
+		FirstCoinId:      lp.FirstCoinId,
+		SecondCoinId:     lp.SecondCoinId,
+		FirstCoinVolume:  nodeLp.Amount0,
+		SecondCoinVolume: nodeLp.Amount1,
+		Liquidity:        nodeLp.Liquidity,
+		UpdatedAtBlockId: height,
+	}
+
+	if lp.Id > 0 {
+		err = s.Storage.UpdateLiquidityPoolById(newLp)
+	} else {
+		err = s.Storage.UpdateLiquidityPool(newLp)
+	}
+
 	if err != nil {
 		s.logger.Error(err)
 		return err

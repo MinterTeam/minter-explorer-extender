@@ -8,7 +8,7 @@ import (
 const LockedLiquidityVolume = 1000
 
 type LiquidityPool struct {
-	Id               uint64 `json:"id"`
+	Id               uint64 `json:"id"             pg:",pk"`
 	TokenId          uint64 `json:"token_id"`
 	FirstCoinId      uint64 `json:"first_coin_id"  pg:",use_zero"`
 	SecondCoinId     uint64 `json:"second_coin_id" pg:",use_zero"`
