@@ -183,6 +183,11 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		if err != nil {
 			s.logger.Error(err)
 		}
+		lps, err = s.Storage.GetAllByIds(lpsList)
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
 		s.updatePoolsBipLiquidity(lps)
 		s.updateAddressPoolChannel <- b.Transactions
 	}
