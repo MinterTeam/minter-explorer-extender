@@ -32,7 +32,7 @@ type AddressLiquidityPool struct {
 	FirstCoinVolume  string         `json:"first_coin_volume"`
 	SecondCoinVolume string         `json:"second_coin_volume"`
 	Liquidity        string         `json:"liquidity"`
-	Address          *Address       `json:"first_coin"        pg:"rel:has-one,fk:address_id"`
+	Address          *Address       `json:"address"           pg:"rel:has-one,fk:address_id"`
 	LiquidityPool    *LiquidityPool `json:"liquidity_pool"    pg:"rel:has-one,fk:liquidity_pool_id"`
 }
 
