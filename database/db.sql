@@ -298,3 +298,16 @@ CREATE TABLE validator_bans
 );
 CREATE INDEX validator_bans_block_id_index ON validator_bans USING btree (block_id);
 CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (validator_id);
+
+CREATE TABLE orders
+(
+    id                bigserial primary key,
+    address_id        bigint          not null references addresses (id) on delete cascade,
+    liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
+    coin_sell_id      bigint          NOT NULL,
+    coin_sell_volume  numeric(100, 0) NOT NULL,
+    coin_buy_id       bigint          NOT NULL,
+    coin_buy_volume   numeric(100, 0) NOT NULL
+);
+CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
+CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);

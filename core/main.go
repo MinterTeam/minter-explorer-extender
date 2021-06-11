@@ -16,6 +16,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
@@ -50,6 +51,7 @@ type Extender struct {
 	coinService          *coin.Service
 	broadcastService     *broadcast.Service
 	liquidityPoolService *liquidity_pool.Service
+	orderBookService     *orderbook.Service
 	chasingMode          bool
 	startBlockHeight     uint64
 	currentNodeHeight    uint64
@@ -57,6 +59,7 @@ type Extender struct {
 	log                  *logrus.Entry
 	lpSnapshotChannel    chan *api_pb.BlockResponse
 	lpWorkerChannel      chan *api_pb.BlockResponse
+	orderBookChannel     chan *api_pb.BlockResponse
 }
 
 type ExtenderElapsedTime struct {
@@ -199,6 +202,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	swapService := swap.NewService(db)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
 	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
+	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
 
 	return &Extender{
 		//Metrics:             metrics.New(),
@@ -215,12 +219,14 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		coinService:          coinService,
 		broadcastService:     broadcastService,
 		liquidityPoolService: liquidityPoolService,
+		orderBookService:     orderBookService,
 		chasingMode:          true,
 		currentNodeHeight:    0,
 		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
 		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
 		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
+		orderBookChannel:     make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -309,6 +315,8 @@ func (ext *Extender) Run() {
 		go ext.handleEventResponse(height, eventsResponse)
 		ext.lpWorkerChannel <- blockResponse
 		ext.lpSnapshotChannel <- blockResponse
+		ext.orderBookChannel <- blockResponse
+
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -374,6 +382,9 @@ func (ext *Extender) runWorkers() {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
 	go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
+
+	//OrderBook
+	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
 
 	//Broadcast
 	go ext.broadcastService.Manager()
