@@ -11,7 +11,6 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
-	"os"
 	"sync"
 )
 
@@ -45,7 +44,7 @@ func (s *Service) BalanceUpdater() {
 	var err error
 	for {
 		data := <-s.channelUpdate
-		if len(data) > 0 && !(os.Getenv("UPDATE_BALANCES_WHEN_CHASING") == "true" && s.chasingMode) {
+		if len(data) > 0 {
 			err = s.updateAddresses(data)
 			if err != nil {
 				s.logger.Error(err)
@@ -99,7 +98,7 @@ func (s *Service) updateAddresses(list []string) error {
 
 	err = s.repository.DeleteByAddressIds(ids)
 	if err != nil {
-		return err
+		s.logger.Error(err)
 	}
 
 	if len(balances) > 0 {
