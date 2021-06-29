@@ -96,12 +96,12 @@ func (s *Service) updateAddresses(list []string) error {
 
 	}
 
-	err = s.repository.DeleteByAddressIds(ids)
-	if err != nil {
-		s.logger.Error(err)
-	}
-
 	if len(balances) > 0 {
+		err = s.repository.DeleteByAddressIds(ids)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
 		err = s.repository.SaveAll(balances)
 		if err != nil {
 			return err
