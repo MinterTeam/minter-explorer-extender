@@ -143,7 +143,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
-		PoolSize: 100,
+		PoolSize: 50,
 	}
 	if os.Getenv("POSTGRES_SSL_ENABLED") == "true" {
 		pgOptions.TLSConfig = &tls.Config{
