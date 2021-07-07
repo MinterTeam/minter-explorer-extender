@@ -774,7 +774,7 @@ func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) er
 	var err error
 	var nodeLp *api_pb.SwapPoolResponse
 
-	s.logger.Info(fmt.Sprintf("Updating pool %s-%s (%d-%d)", lp.FirstCoin.Symbol, lp.SecondCoin.Symbol, lp.FirstCoinId, lp.SecondCoinId))
+	s.logger.Info(fmt.Sprintf("Updating pool (%d-%d)", lp.FirstCoinId, lp.SecondCoinId))
 
 	if s.chasingMode {
 		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId, height)
