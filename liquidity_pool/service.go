@@ -173,10 +173,14 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 			continue
 		}
 
-		g, _ := errgroup.WithContext(context.TODO())
+		g := new(errgroup.Group)
 		for _, lp := range lps {
 			g.Go(func() error {
-				return s.updateLiquidityPool(b.Height, &lp)
+				err := s.updateLiquidityPool(b.Height, &lp)
+				if err != nil {
+					s.logger.Error(err)
+				}
+				return err
 			})
 		}
 		err = g.Wait()
