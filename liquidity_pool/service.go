@@ -200,21 +200,143 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 func (s *Service) GetLiquidityPoolsIdFromTx(tx *api_pb.TransactionResponse) ([]uint64, error) {
 	var err error
 	var ids []uint64
+	var re = regexp.MustCompile(`(?mi)lp-\d+`)
 	switch transaction.Type(tx.Type) {
-	case transaction.TypeBuySwapPool,
-		transaction.TypeSellSwapPool,
-		transaction.TypeSellAllSwapPool:
+	case transaction.TypeBuySwapPool:
+		txData := new(api_pb.BuySwapPoolData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				p, err := s.Storage.getLiquidityPoolByTokenId(c.Id)
+				if err != nil {
+					return nil, err
+				}
+				ids = append(ids, p.Id)
+			}
+		}
 		txTags := tx.GetTags()
 		list, err := s.getPoolChainFromTags(txTags)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		for id := range list {
 			ids = append(ids, id)
 		}
-	case transaction.TypeCreateSwapPool,
-		transaction.TypeAddLiquidity,
-		transaction.TypeRemoveLiquidity:
+	case transaction.TypeSellSwapPool:
+		txData := new(api_pb.SellSwapPoolData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				p, err := s.Storage.getLiquidityPoolByTokenId(c.Id)
+				if err != nil {
+					return nil, err
+				}
+				ids = append(ids, p.Id)
+			}
+		}
+		txTags := tx.GetTags()
+		list, err := s.getPoolChainFromTags(txTags)
+		if err != nil {
+			return nil, err
+		}
+		for id := range list {
+			ids = append(ids, id)
+		}
+	case transaction.TypeSellAllSwapPool:
+		txData := new(api_pb.SellAllSwapPoolData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				p, err := s.Storage.getLiquidityPoolByTokenId(c.Id)
+				if err != nil {
+					return nil, err
+				}
+				ids = append(ids, p.Id)
+			}
+		}
+		txTags := tx.GetTags()
+		list, err := s.getPoolChainFromTags(txTags)
+		if err != nil {
+			return nil, err
+		}
+		for id := range list {
+			ids = append(ids, id)
+		}
+	case transaction.TypeCreateSwapPool:
+		txData := new(api_pb.CreateSwapPoolData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		if re.MatchString(txData.Coin0.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin0.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
+		if re.MatchString(txData.Coin1.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin1.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
+		txTags := tx.GetTags()
+		id, err := strconv.ParseUint(txTags["tx.pool_id"], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	case transaction.TypeAddLiquidity:
+		txData := new(api_pb.AddLiquidityData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		if re.MatchString(txData.Coin0.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin0.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
+		if re.MatchString(txData.Coin1.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin1.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
+		txTags := tx.GetTags()
+		id, err := strconv.ParseUint(txTags["tx.pool_id"], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	case transaction.TypeRemoveLiquidity:
+		txData := new(api_pb.RemoveLiquidityData)
+		if err := tx.Data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		if re.MatchString(txData.Coin0.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin0.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
+		if re.MatchString(txData.Coin1.Symbol) {
+			p, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin1.Id)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, p.Id)
+		}
 		txTags := tx.GetTags()
 		id, err := strconv.ParseUint(txTags["tx.pool_id"], 10, 64)
 		if err != nil {
