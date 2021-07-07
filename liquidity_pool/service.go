@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -173,20 +174,31 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 			continue
 		}
 
-		g := new(errgroup.Group)
+		//g := new(errgroup.Group)
+		//for _, lp := range lps {
+		//	g.Go(func() error {
+		//		err := s.updateLiquidityPool(b.Height, lp)
+		//		if err != nil {
+		//			s.logger.Error(err)
+		//		}
+		//		return err
+		//	})
+		//}
+		//err = g.Wait()
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(lps))
 		for _, lp := range lps {
-			g.Go(func() error {
+			go func(lp models.LiquidityPool) {
 				err := s.updateLiquidityPool(b.Height, lp)
 				if err != nil {
 					s.logger.Error(err)
 				}
-				return err
-			})
+				wg.Done()
+			}(lp)
 		}
-		err = g.Wait()
-		if err != nil {
-			s.logger.Error(err)
-		}
+		wg.Wait()
+
 		lps, err = s.Storage.GetAllByIds(lpsList)
 		if err != nil {
 			s.logger.Error(err)
