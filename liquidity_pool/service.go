@@ -176,7 +176,7 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		g := new(errgroup.Group)
 		for _, lp := range lps {
 			g.Go(func() error {
-				err := s.updateLiquidityPool(b.Height, &lp)
+				err := s.updateLiquidityPool(b.Height, lp)
 				if err != nil {
 					s.logger.Error(err)
 				}
@@ -758,9 +758,11 @@ func (s *Service) bigFloatToPipString(f *big.Float) string {
 	return pip.String()
 }
 
-func (s *Service) updateLiquidityPool(height uint64, lp *models.LiquidityPool) error {
+func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) error {
 	var err error
 	var nodeLp *api_pb.SwapPoolResponse
+
+	s.logger.Info(fmt.Sprintf("Updating pool %s-%s (%d-%d)", lp.FirstCoin.Symbol, lp.SecondCoin.Symbol, lp.FirstCoinId, lp.SecondCoinId))
 
 	if s.chasingMode {
 		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId, height)
