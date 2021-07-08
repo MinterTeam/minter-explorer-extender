@@ -174,17 +174,11 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 			continue
 		}
 
-		//g := new(errgroup.Group)
-		//for _, lp := range lps {
-		//	g.Go(func() error {
-		//		err := s.updateLiquidityPool(b.Height, lp)
-		//		if err != nil {
-		//			s.logger.Error(err)
-		//		}
-		//		return err
-		//	})
-		//}
-		//err = g.Wait()
+		coinsForUpdate := make(map[uint64]struct{})
+		for _, lp := range lps {
+			coinsForUpdate[lp.TokenId] = struct{}{}
+		}
+		s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsForUpdate
 
 		wg := sync.WaitGroup{}
 		wg.Add(len(lps))
