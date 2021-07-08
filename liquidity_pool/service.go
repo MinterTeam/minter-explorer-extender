@@ -174,22 +174,14 @@ func (s *Service) addToLiquidityPool(tx *api_pb.TransactionResponse) error {
 		return err
 	}
 
-	txLiquidity, _ := big.NewInt(0).SetString(txTags["tx.liquidity"], 10)
 	coinId, err := strconv.ParseUint(txTags["tx.pool_token_id"], 10, 64)
 	if err != nil {
 		return err
 	}
-	c, err := s.coinService.Storage.GetById(uint(coinId))
-	if err != nil {
-		return err
-	}
-	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
-	coinLiquidity.Add(coinLiquidity, txLiquidity)
-	c.Volume = coinLiquidity.String()
-	err = s.coinService.Storage.Update(c)
-	if err != nil {
-		return err
-	}
+
+	coinsUpdate := make(map[uint64]struct{})
+	coinsUpdate[coinId] = struct{}{}
+	s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
 
 	return err
 }
@@ -293,6 +285,10 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 		return nil, err
 	}
 
+	coinsUpdate := make(map[uint64]struct{})
+	coinsUpdate[coinId] = struct{}{}
+	s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
+
 	return lp, err
 }
 
@@ -390,25 +386,9 @@ func (s *Service) removeFromLiquidityPool(tx *api_pb.TransactionResponse) error 
 	if err != nil {
 		return err
 	}
-	c, err := s.coinService.Storage.GetById(uint(coinId))
-	if err != nil {
-		return err
-	}
-
-	liquidity := big.NewInt(0)
-	if lp.Liquidity != "" {
-		liquidity, _ = big.NewInt(0).SetString(lp.Liquidity, 10)
-	}
-	txLiquidity, _ := big.NewInt(0).SetString(txData.Liquidity, 10)
-	liquidity.Sub(liquidity, txLiquidity)
-
-	coinLiquidity, _ := big.NewInt(0).SetString(c.Volume, 10)
-	coinLiquidity.Sub(coinLiquidity, txLiquidity)
-	c.Volume = coinLiquidity.String()
-	err = s.coinService.Storage.Update(c)
-	if err != nil {
-		return err
-	}
+	coinsUpdate := make(map[uint64]struct{})
+	coinsUpdate[coinId] = struct{}{}
+	s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
 
 	if nodeALP.Liquidity == "0" {
 		return s.Storage.DeleteAddressLiquidityPool(addressId, lp.Id)
@@ -475,6 +455,10 @@ func (s *Service) updateVolumesSwapPool(tx *api_pb.TransactionResponse) error {
 			lp.LiquidityBip = "0"
 		}
 
+		coinsUpdate := make(map[uint64]struct{})
+		coinsUpdate[lp.TokenId] = struct{}{}
+		s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
+
 		err = s.Storage.UpdateLiquidityPool(lp)
 		if err != nil {
 			return err
@@ -521,6 +505,10 @@ func (s *Service) updateVolumesByCommission(tx *api_pb.TransactionResponse) erro
 	} else {
 		lp.LiquidityBip = "0"
 	}
+
+	coinsUpdate := make(map[uint64]struct{})
+	coinsUpdate[lp.TokenId] = struct{}{}
+	s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
 
 	return s.Storage.UpdateLiquidityPool(lp)
 }
@@ -603,6 +591,10 @@ func (s *Service) updateAddressPoolVolumesByTxData(fromAddressId uint, from stri
 	if err != nil {
 		return err
 	}
+
+	coinsUpdate := make(map[uint64]struct{})
+	coinsUpdate[lp.TokenId] = struct{}{}
+	s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsUpdate
 
 	var nodeALPFrom *api_pb.SwapPoolResponse
 	if s.chasingMode {
