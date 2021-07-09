@@ -201,7 +201,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
 
 	return &Extender{
-		//Metrics:             metrics.New(),
+		Metrics:              metrics.New(),
 		env:                  env,
 		nodeApi:              nodeApi,
 		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
