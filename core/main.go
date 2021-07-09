@@ -15,6 +15,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
+	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
@@ -36,7 +37,7 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
-	//Metrics             *metrics.Metrics
+	Metrics              *metrics.Metrics
 	env                  *env.ExtenderEnvironment
 	nodeApi              *grpc_client.Client
 	blockService         *block.Service
