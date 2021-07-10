@@ -14,7 +14,8 @@
 
 The official repository of Minter Explorer Extender service.
 
-Extender is a service responsible for seeding the database from the blockchain network. Part of the Minter Explorer service.
+Extender is a service responsible for seeding the database from the blockchain network. Part of the Minter Explorer service.  
+It also broadcasts blockhain data changes to subscribers through Centrifuge RTM server. [See available channels](https://github.com/MinterTeam/rtm-explorer-doc)
 
 _NOTE: This project in active development stage so feel free to send us questions, issues, and wishes_
 
