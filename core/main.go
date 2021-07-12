@@ -309,7 +309,7 @@ func (ext *Extender) Run() {
 
 		go ext.handleEventResponse(height, eventsResponse)
 		ext.lpWorkerChannel <- blockResponse
-		ext.lpSnapshotChannel <- blockResponse
+		//ext.lpSnapshotChannel <- blockResponse
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -374,7 +374,7 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= 10; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
-	go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
+	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
 
 	//Broadcast
 	go ext.broadcastService.Manager()
