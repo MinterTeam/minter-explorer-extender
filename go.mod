@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/MinterTeam/explorer-genesis-uploader v1.3.9
-	github.com/MinterTeam/explorer-sdk v0.1.1-0.20210520193854-7b544102a0c7
+	github.com/MinterTeam/explorer-sdk v0.1.1-0.20210702075652-2a55f6bcc63b
 	github.com/MinterTeam/minter-explorer-api/v2 v2.0.3-0.20210316093312-79a20cc969c3
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
 	github.com/MinterTeam/minter-go-sdk/v2 v2.3.1-0.20210617122723-e88e232ca44f
