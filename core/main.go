@@ -303,8 +303,10 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.ChannelDataForUpdate() <- blockResponse
-		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
+		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
+			Block: blockResponse,
+			Event: eventsResponse,
+		}
 
 		go ext.handleEventResponse(height, eventsResponse)
 		ext.lpWorkerChannel <- blockResponse
@@ -352,7 +354,7 @@ func (ext *Extender) runWorkers() {
 
 	// Balances
 	go ext.balanceService.BalanceManager()
-	for w := 1; w <= 5; w++ {
+	for w := 1; w <= 10; w++ {
 		go ext.balanceService.BalanceUpdater()
 	}
 

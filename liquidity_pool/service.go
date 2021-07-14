@@ -122,6 +122,7 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 					lp, err := s.Storage.getLiquidityPoolByCoinIds(0, tx.GasCoin.Id)
 					if err != nil {
 						s.logger.WithFields(logrus.Fields{
+							"block": b.Height,
 							"coin0": 0,
 							"coin1": tx.GasCoin.Id,
 							"tx":    tx.RawTx,
