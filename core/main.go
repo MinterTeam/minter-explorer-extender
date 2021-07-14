@@ -152,13 +152,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		}
 	}
 
-	hookImpl := eventHook{
-		log:        logrus.New(),
-		beforeTime: time.Now(),
-	}
+	//hookImpl := eventHook{
+	//	log:        logrus.New(),
+	//	beforeTime: time.Now(),
+	//}
 
 	db := pg.Connect(pgOptions)
-	db.AddQueryHook(hookImpl)
+	//db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
