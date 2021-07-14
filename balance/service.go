@@ -78,9 +78,11 @@ func (s *Service) BalanceManager() {
 				}
 				go func(data []string, wg *sync.WaitGroup) {
 					err := s.updateAddresses(data)
-					s.logger.WithFields(logrus.Fields{
-						"address_count": len(data),
-					}).Error(err)
+					if err != nil {
+						s.logger.WithFields(logrus.Fields{
+							"address_count": len(data),
+						}).Error(err)
+					}
 					wg.Done()
 				}(addressesData[start:end], &wg)
 			}
