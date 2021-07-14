@@ -352,9 +352,9 @@ func (ext *Extender) runWorkers() {
 
 	// Balances
 	go ext.balanceService.BalanceManager()
-	for w := 1; w <= 100; w++ {
-		go ext.balanceService.BalanceUpdater()
-	}
+	//for w := 1; w <= 100; w++ {
+	go ext.balanceService.BalanceUpdater()
+	//}
 
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
