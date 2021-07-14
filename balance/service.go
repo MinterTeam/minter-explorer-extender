@@ -68,27 +68,23 @@ func (s *Service) BalanceManager() {
 
 		if len(addressesData) > 0 {
 			chunksCount := int(math.Ceil(float64(len(addressesData)) / float64(s.env.AddrChunkSize)))
+			wg := sync.WaitGroup{}
+			wg.Add(chunksCount)
 			for i := 0; i < chunksCount; i++ {
 				start := s.env.AddrChunkSize * i
 				end := start + s.env.AddrChunkSize
 				if end > len(addressesData) {
 					end = len(addressesData)
 				}
-				s.channelUpdate <- addressesData[start:end]
+				go func(data []string, wg *sync.WaitGroup) {
+					err := s.updateAddresses(data)
+					s.logger.WithFields(logrus.Fields{
+						"address_count": len(data),
+					}).Error(err)
+					wg.Done()
+				}(addressesData[start:end], &wg)
 			}
-		}
-	}
-}
-
-func (s *Service) BalanceUpdater() {
-	var err error
-	for {
-		data := <-s.channelUpdate
-		if len(data) > 0 {
-			err = s.updateAddresses(data)
-			if err != nil {
-				s.logger.Error(err)
-			}
+			wg.Wait()
 		}
 	}
 }
@@ -154,7 +150,6 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		coinRepository:             coinRepository,
 		broadcastService:           broadcastService,
 		updateFromResponsesChannel: make(chan models.BalanceUpdateData),
-		channelUpdate:              make(chan []string),
 		logger:                     logger,
 		chasingMode:                false,
 	}
@@ -171,5 +166,4 @@ type Service struct {
 	logger                     *logrus.Entry
 	chasingMode                bool
 	updateFromResponsesChannel chan models.BalanceUpdateData
-	channelUpdate              chan []string
 }
