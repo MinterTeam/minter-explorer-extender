@@ -91,7 +91,10 @@ func (s *Service) AddressLiquidityPoolWorker() {
 							s.logger.Error(err)
 						}
 					case transaction.TypeSend,
-						transaction.TypeMultisend:
+						transaction.TypeMultisend,
+						transaction.TypeBuySwapPool,
+						transaction.TypeSellSwapPool,
+						transaction.TypeSellAllSwapPool:
 						err = s.updateAddressPoolVolumes(tx)
 						if err != nil {
 							s.logger.Error(err)
@@ -102,9 +105,7 @@ func (s *Service) AddressLiquidityPoolWorker() {
 			}
 			wg.Done()
 		}
-
 		wg.Wait()
-
 		err = s.Storage.RemoveEmptyAddresses()
 		if err != nil {
 			s.logger.Error(err)
@@ -595,7 +596,7 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 
 		var re = regexp.MustCompile(`(?mi)lp-\d+`)
 		if re.MatchString(txData.Coin.Symbol) {
-			err = s.updateAddressPoolVolumesByTxData(fromAddressId, tx.From, tx.Height, txData)
+			err = s.updateAddressPoolVolumesBySendData(fromAddressId, tx.From, tx.Height, txData)
 		}
 
 	case transaction.TypeMultisend:
@@ -606,7 +607,50 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 		for _, data := range txData.List {
 			var re = regexp.MustCompile(`(?mi)lp-\d+`)
 			if re.MatchString(data.Coin.Symbol) {
-				err = s.updateAddressPoolVolumesByTxData(fromAddressId, tx.From, tx.Height, data)
+				err = s.updateAddressPoolVolumesBySendData(fromAddressId, tx.From, tx.Height, data)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+	case transaction.TypeBuySwapPool:
+		txData := new(api_pb.BuySwapPoolData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+		var re = regexp.MustCompile(`(?mi)lp-\d+`)
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				err := s.updateAddressPoolVolumesByBuySellData(fromAddressId, tx.From, tx.Height, c.Id)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	case transaction.TypeSellSwapPool:
+		txData := new(api_pb.SellSwapPoolData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+		var re = regexp.MustCompile(`(?mi)lp-\d+`)
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				err := s.updateAddressPoolVolumesByBuySellData(fromAddressId, tx.From, tx.Height, c.Id)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	case transaction.TypeSellAllSwapPool:
+		txData := new(api_pb.SellAllSwapPoolData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+		var re = regexp.MustCompile(`(?mi)lp-\d+`)
+		for _, c := range txData.Coins {
+			if re.MatchString(c.Symbol) {
+				err := s.updateAddressPoolVolumesByBuySellData(fromAddressId, tx.From, tx.Height, c.Id)
 				if err != nil {
 					return err
 				}
@@ -617,7 +661,35 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 	return err
 }
 
-func (s *Service) updateAddressPoolVolumesByTxData(fromAddressId uint, from string, height uint64, txData *api_pb.SendData) error {
+func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from string, height, lpTokenId uint64) error {
+
+	lp, err := s.Storage.getLiquidityPoolByTokenId(lpTokenId)
+	if err != nil {
+		return err
+	}
+
+	var nodeALP *api_pb.SwapPoolResponse
+	if s.chasingMode {
+		nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from, height)
+	} else {
+		nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from)
+	}
+	if err != nil {
+		return err
+	}
+
+	alp := &models.AddressLiquidityPool{
+		LiquidityPoolId:  lp.Id,
+		AddressId:        uint64(fromAddressId),
+		FirstCoinVolume:  nodeALP.Amount0,
+		SecondCoinVolume: nodeALP.Amount1,
+		Liquidity:        nodeALP.Liquidity,
+	}
+
+	return s.Storage.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alp})
+}
+
+func (s *Service) updateAddressPoolVolumesBySendData(fromAddressId uint, from string, height uint64, txData *api_pb.SendData) error {
 	toAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
 	if err != nil {
 		return err

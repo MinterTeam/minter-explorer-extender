@@ -518,7 +518,7 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 
-	critical := 5 * time.Second
+	critical := 7 * time.Second
 
 	if eet.Total > critical {
 		ext.log.WithFields(logrus.Fields{
