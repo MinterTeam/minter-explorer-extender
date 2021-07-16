@@ -689,6 +689,9 @@ func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from
 }
 
 func (s *Service) updateAddressPoolVolumesBySendData(fromAddressId uint, from string, height uint64, txData *api_pb.SendData) error {
+
+	s.logger.Warn(fmt.Sprintf("update address LP. Sent %s ", txData.Coin.Symbol))
+
 	toAddressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(txData.To))
 	if err != nil {
 		return err
