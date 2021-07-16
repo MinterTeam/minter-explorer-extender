@@ -795,13 +795,13 @@ func (s *Service) getLiquidityPoolTrades(transactions []*models.Transaction) ([]
 			if err != nil {
 				return nil, err
 			}
-			trades = append(trades, s.getPoolTradesFromTagsData(tx.BlockID, tx.ID, poolsData)...)
+			trades = append(trades, s.getPoolTradesFromTagsData(tx, poolsData)...)
 		}
 	}
 	return trades, nil
 }
 
-func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsData []models.TagLiquidityPool) []*models.LiquidityPoolTrade {
+func (s Service) getPoolTradesFromTagsData(tx *models.Transaction, poolsData []models.TagLiquidityPool) []*models.LiquidityPoolTrade {
 	var trades []*models.LiquidityPoolTrade
 	for _, p := range poolsData {
 		var fcv, scv string
@@ -813,11 +813,12 @@ func (s Service) getPoolTradesFromTagsData(blockId, transactionId uint64, poolsD
 			scv = p.ValueIn
 		}
 		trades = append(trades, &models.LiquidityPoolTrade{
-			BlockId:          blockId,
+			BlockId:          tx.BlockID,
 			LiquidityPoolId:  p.PoolID,
-			TransactionId:    transactionId,
+			TransactionId:    tx.ID,
 			FirstCoinVolume:  fcv,
 			SecondCoinVolume: scv,
+			CreatedAt:        tx.CreatedAt,
 		})
 	}
 	return trades
