@@ -30,8 +30,8 @@ func (s *Service) AddressLiquidityPoolWorker() {
 		txs := <-s.updateAddressPoolChannel
 		wg.Add(len(txs))
 		for _, tx := range txs {
-			if tx.Log == "" {
-				go func(tx *api_pb.TransactionResponse) {
+			go func(tx *api_pb.TransactionResponse) {
+				if tx.Log == "" {
 					switch transaction.Type(tx.Type) {
 					case transaction.TypeRemoveLiquidity,
 						transaction.TypeAddLiquidity:
@@ -100,10 +100,9 @@ func (s *Service) AddressLiquidityPoolWorker() {
 							s.logger.Error(err)
 						}
 					}
-
-				}(tx)
-			}
-			wg.Done()
+				}
+				wg.Done()
+			}(tx)
 		}
 		wg.Wait()
 		err = s.Storage.RemoveEmptyAddresses()

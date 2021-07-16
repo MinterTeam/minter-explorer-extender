@@ -369,7 +369,7 @@ func (ext *Extender) runWorkers() {
 	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
 	go ext.liquidityPoolService.AddressLiquidityPoolWorker()
 	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
-	for w := 1; w <= 10; w++ {
+	for w := 1; w <= 50; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
 	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
@@ -522,8 +522,13 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 
 	if eet.Total > critical {
 		ext.log.WithFields(logrus.Fields{
-			"block": eet.Height,
-			"time":  fmt.Sprintf("%s", eet.Total),
+			"getting block time":  eet.GettingBlock,
+			"getting events time": eet.GettingEvents,
+			"handle addresses":    eet.HandleAddressesFromResponses,
+			"handle coins":        eet.HandleCoinsFromTransactions,
+			"handle block":        eet.HandleBlockResponse,
+			"block":               eet.Height,
+			"time":                fmt.Sprintf("%s", eet.Total),
 		}).Error("Processing time is too height")
 	}
 
