@@ -637,7 +637,6 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 		if err = tx.Data.UnmarshalTo(txData); err != nil {
 			return err
 		}
-		s.logger.Warn(fmt.Sprintf("update address LP. Sent %s ", txData.Coin.Symbol))
 		var re = regexp.MustCompile(`(?mi)lp-\d+`)
 		if re.MatchString(txData.Coin.Symbol) {
 			err = s.updateAddressPoolVolumesBySendData(fromAddressId, tx.From, tx.Height, txData)
