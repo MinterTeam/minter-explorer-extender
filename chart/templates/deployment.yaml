@@ -26,6 +26,10 @@ spec:
           securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: prom
+              containerPort: 8011
+              protocol: TCP
           env:
             - name: EXTENDER_DEBUG
               value: {{ .Values.env.debug | quote }}
