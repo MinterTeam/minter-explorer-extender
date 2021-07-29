@@ -430,7 +430,14 @@ func (s *Service) SaveLiquidityPoolTradesWorker(data <-chan []*models.LiquidityP
 	for trades := range data {
 		err := s.Storage.SaveAllLiquidityPoolTrades(trades)
 		if err != nil {
-			s.logger.Error(err)
+
+			if len(data) > 0 {
+				s.logger.WithFields(logrus.Fields{
+					"data": trades,
+				}).Error(err)
+			} else {
+				s.logger.Error(err)
+			}
 		}
 	}
 }
