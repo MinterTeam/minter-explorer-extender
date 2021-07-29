@@ -151,8 +151,9 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 					txData := new(api_pb.SendData)
 					if err := tx.Data.UnmarshalTo(txData); err != nil {
 						s.logger.WithFields(logrus.Fields{
-							"block": b.Height,
-							"tx":    tx.RawTx,
+							"coinId": txData.Coin.Id,
+							"block":  b.Height,
+							"tx":     tx.RawTx,
 						}).Error(err)
 						continue
 					}
@@ -161,8 +162,9 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 						lp, err := s.Storage.getLiquidityPoolByTokenId(txData.Coin.Id)
 						if err != nil {
 							s.logger.WithFields(logrus.Fields{
-								"block": b.Height,
-								"tx":    tx.RawTx,
+								"coinId": txData.Coin.Id,
+								"block":  b.Height,
+								"tx":     tx.RawTx,
 							}).Error(err)
 							continue
 						}
