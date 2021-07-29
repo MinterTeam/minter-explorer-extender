@@ -434,9 +434,11 @@ func (s *Service) SaveLiquidityPoolTradesWorker(data <-chan []*models.LiquidityP
 		}
 		if err != nil {
 			if len(trades) > 0 {
-				s.logger.WithFields(logrus.Fields{
-					"data": trades,
-				}).Error(err)
+				lf := logrus.Fields{}
+				for index, i := range trades {
+					lf[fmt.Sprintf("%d", index)] = fmt.Sprintf("BlockId: %d, LpId: %d, TxId:  %d", i.BlockId, i.LiquidityPoolId, i.TransactionId)
+				}
+				s.logger.WithFields(lf).Error(err)
 			} else {
 				s.logger.Error(err)
 			}
