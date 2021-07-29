@@ -57,6 +57,7 @@ type Extender struct {
 	lastLPSnapshotHeight uint64
 	log                  *logrus.Entry
 	lpSnapshotChannel    chan *api_pb.BlockResponse
+	lpWorkerChannel      chan *api_pb.BlockResponse
 }
 
 type ExtenderElapsedTime struct {
@@ -144,7 +145,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
-		PoolSize: 50,
 	}
 	if os.Getenv("POSTGRES_SSL_ENABLED") == "true" {
 		pgOptions.TLSConfig = &tls.Config{
@@ -152,13 +152,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		}
 	}
 
-	hookImpl := eventHook{
-		log:        logrus.New(),
-		beforeTime: time.Now(),
-	}
+	//hookImpl := eventHook{
+	//	log:        logrus.New(),
+	//	beforeTime: time.Now(),
+	//}
 
 	db := pg.Connect(pgOptions)
-	db.AddQueryHook(hookImpl)
+	//db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
@@ -220,6 +220,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
 		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
+		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -302,11 +303,14 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.ChannelDataForUpdate() <- blockResponse
-		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
+		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
+			Block: blockResponse,
+			Event: eventsResponse,
+		}
 
 		go ext.handleEventResponse(height, eventsResponse)
-		ext.lpSnapshotChannel <- blockResponse
+		ext.lpWorkerChannel <- blockResponse
+		//ext.lpSnapshotChannel <- blockResponse
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -350,9 +354,6 @@ func (ext *Extender) runWorkers() {
 
 	// Balances
 	go ext.balanceService.BalanceManager()
-	for w := 1; w <= 100; w++ {
-		go ext.balanceService.BalanceUpdater()
-	}
 
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
@@ -365,12 +366,13 @@ func (ext *Extender) runWorkers() {
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
 
 	//LiquidityPool
-	go ext.liquidityPoolService.UpdateLiquidityPoolWorker(ext.liquidityPoolService.JobUpdateLiquidityPoolChannel())
+	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
+	go ext.liquidityPoolService.AddressLiquidityPoolWorker()
 	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
-	for w := 1; w <= 10; w++ {
+	for w := 1; w <= 50; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
-	go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
+	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
 
 	//Broadcast
 	go ext.broadcastService.Manager()
@@ -516,12 +518,17 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 
-	critical := 5 * time.Second
+	critical := 7 * time.Second
 
 	if eet.Total > critical {
 		ext.log.WithFields(logrus.Fields{
-			"block": eet.Height,
-			"time":  fmt.Sprintf("%s", eet.Total),
+			"getting block time":  eet.GettingBlock,
+			"getting events time": eet.GettingEvents,
+			"handle addresses":    eet.HandleAddressesFromResponses,
+			"handle coins":        eet.HandleCoinsFromTransactions,
+			"handle block":        eet.HandleBlockResponse,
+			"block":               eet.Height,
+			"time":                fmt.Sprintf("%s", eet.Total),
 		}).Error("Processing time is too height")
 	}
 

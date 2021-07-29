@@ -196,6 +196,7 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 			MaxSupply:        txData.MaxSupply,
 			Name:             txData.Name,
 			Symbol:           txData.Symbol,
+			Reserve:          "0",
 			CreatedAtBlockId: uint(blockId),
 			Burnable:         txData.Mintable,
 			Mintable:         txData.Mintable,
