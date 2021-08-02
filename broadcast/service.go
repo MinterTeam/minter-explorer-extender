@@ -67,11 +67,7 @@ func (s *Service) Manager() {
 		case txs := <-s.transactionsChannel:
 			go s.PublishTransactions(txs)
 		case b := <-s.balanceChannel:
-			if b != nil {
-
-			}
-			//TODO: enable in prod
-			//go s.PublishBalances(b)
+			go s.PublishBalances(b)
 		case tx := <-s.stakeChannel:
 			go s.PublishStake(tx)
 		case c := <-s.commissionsChannel:

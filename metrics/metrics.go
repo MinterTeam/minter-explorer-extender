@@ -9,27 +9,20 @@ import (
 )
 
 type Metrics struct {
-	RPTSummaryMs   prometheus.Summary
-	RPTHistogramMs prometheus.Histogram
+	BlockHistogramMs prometheus.SummaryVec
 }
 
 func New() *Metrics {
 
 	m := &Metrics{
-		RPTSummaryMs: prometheus.NewSummary(
-			prometheus.SummaryOpts{
-				Name:       "me_request_processing_time_summary_ms",
-				Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-			}),
-		RPTHistogramMs: prometheus.NewHistogram(
-			prometheus.HistogramOpts{
-				Name:    "me_request_processing_time_histogram_ms",
-				Buckets: prometheus.LinearBuckets(0, 10, 20),
-			}),
+		//BlockHistogramMs: prometheus.NewSummaryVec(
+		//	prometheus.SummaryOpts{
+		//		Name: "me_block_processing_ms",
+		//	},
+		//	[]string{"test"}),
 	}
 
-	prometheus.MustRegister(m.RPTSummaryMs)
-	prometheus.MustRegister(m.RPTHistogramMs)
+	//prometheus.MustRegister(m.BlockHistogramMs)
 
 	return m
 }
