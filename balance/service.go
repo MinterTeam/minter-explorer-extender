@@ -33,38 +33,38 @@ func (s *Service) BalanceManager() {
 			addressesData = append(addressesData, k)
 		}
 
-		var ids []uint
-		if len(addressesData) > 0 {
-			for _, a := range addressesData {
-				addressId, err := s.addressService.Storage.FindId(a)
-				if err != nil {
-					s.logger.WithFields(logrus.Fields{
-						"block":   data.Block.Height,
-						"address": a,
-					}).Error(err)
-				}
-				ids = append(ids, addressId)
-			}
-		}
-		if len(ids) > 0 {
-			chunksCount := int(math.Ceil(float64(len(ids)) / float64(s.env.AddrChunkSize)))
-			for i := 0; i < chunksCount; i++ {
-				start := s.env.AddrChunkSize * i
-				end := start + s.env.AddrChunkSize
-				if end > len(ids) {
-					end = len(ids)
-				}
-				err = s.repository.DeleteByAddressIds(ids[start:end])
-				if err != nil {
-					if err != nil {
-						s.logger.WithFields(logrus.Fields{
-							"block":         data.Block.Height,
-							"address_count": len(ids[start:end]),
-						}).Error(err)
-					}
-				}
-			}
-		}
+		//var ids []uint
+		//if len(addressesData) > 0 {
+		//	for _, a := range addressesData {
+		//		addressId, err := s.addressService.Storage.FindId(a)
+		//		if err != nil {
+		//			s.logger.WithFields(logrus.Fields{
+		//				"block":   data.Block.Height,
+		//				"address": a,
+		//			}).Error(err)
+		//		}
+		//		ids = append(ids, addressId)
+		//	}
+		//}
+		//if len(ids) > 0 {
+		//	chunksCount := int(math.Ceil(float64(len(ids)) / float64(s.env.AddrChunkSize)))
+		//	for i := 0; i < chunksCount; i++ {
+		//		start := s.env.AddrChunkSize * i
+		//		end := start + s.env.AddrChunkSize
+		//		if end > len(ids) {
+		//			end = len(ids)
+		//		}
+		//		err = s.repository.DeleteByAddressIds(ids[start:end])
+		//		if err != nil {
+		//			if err != nil {
+		//				s.logger.WithFields(logrus.Fields{
+		//					"block":         data.Block.Height,
+		//					"address_count": len(ids[start:end]),
+		//				}).Error(err)
+		//			}
+		//		}
+		//	}
+		//}
 
 		if len(addressesData) > 0 {
 			chunksCount := int(math.Ceil(float64(len(addressesData)) / float64(s.env.AddrChunkSize)))
@@ -120,6 +120,10 @@ func (s *Service) updateAddresses(list []string) error {
 		for _, val := range item.Balance {
 			_, err := s.coinRepository.GetById(uint(val.Coin.Id))
 			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"coin":    val.Coin.Id,
+					"address": adr,
+				}).Error(err)
 				continue
 			}
 			balances = append(balances, &models.Balance{
@@ -128,16 +132,38 @@ func (s *Service) updateAddresses(list []string) error {
 				Value:     val.Value,
 			})
 		}
-
 	}
 
 	if len(balances) > 0 {
+		var ids []uint
+		for _, a := range list {
+			addressId, err := s.addressService.Storage.FindId(a)
+			if err != nil {
+				s.logger.WithFields(logrus.Fields{
+					"address": a,
+				}).Error(err)
+			}
+			ids = append(ids, addressId)
+		}
+
+		if len(ids) > 0 {
+			err = s.repository.DeleteByAddressIds(ids)
+			if err != nil {
+				if err != nil {
+					s.logger.WithFields(logrus.Fields{
+						"address_count": len(ids),
+					}).Error(err)
+				}
+			}
+		}
+
 		err = s.repository.SaveAll(balances)
 		if err != nil {
 			return err
 		}
 		s.broadcastService.BalanceChannel() <- balances
 	}
+
 	return err
 }
 
