@@ -29,7 +29,7 @@ func (r *Repository) FindAllByAddress(addresses []string) ([]*models.Balance, er
 }
 
 func (r *Repository) SaveAll(balances []*models.Balance) error {
-	_, err := r.db.Model(&balances).OnConflict("(address_id, coin_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&balances).Insert()
 	return err
 }
 

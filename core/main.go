@@ -15,6 +15,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/events"
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
+	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
@@ -37,7 +38,7 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
-	//Metrics             *metrics.Metrics
+	Metrics              *metrics.Metrics
 	env                  *env.ExtenderEnvironment
 	nodeApi              *grpc_client.Client
 	blockService         *block.Service
@@ -147,7 +148,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		User:     env.DbUser,
 		Password: env.DbPassword,
 		Database: env.DbName,
-		PoolSize: 100,
 	}
 	if os.Getenv("POSTGRES_SSL_ENABLED") == "true" {
 		pgOptions.TLSConfig = &tls.Config{
@@ -155,13 +155,13 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		}
 	}
 
-	hookImpl := eventHook{
-		log:        logrus.New(),
-		beforeTime: time.Now(),
-	}
+	//hookImpl := eventHook{
+	//	log:        logrus.New(),
+	//	beforeTime: time.Now(),
+	//}
 
 	db := pg.Connect(pgOptions)
-	db.AddQueryHook(hookImpl)
+	//db.AddQueryHook(hookImpl)
 
 	uploader := genesisUploader.New()
 	err := uploader.Do()
@@ -205,7 +205,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
 
 	return &Extender{
-		//Metrics:             metrics.New(),
+		Metrics:              metrics.New(),
 		env:                  env,
 		nodeApi:              nodeApi,
 		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
@@ -309,12 +309,14 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.ChannelDataForUpdate() <- blockResponse
-		ext.balanceService.ChannelDataForUpdate() <- eventsResponse
+		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
+			Block: blockResponse,
+			Event: eventsResponse,
+		}
 
 		go ext.handleEventResponse(height, eventsResponse)
 		ext.lpWorkerChannel <- blockResponse
-		ext.lpSnapshotChannel <- blockResponse
+		//ext.lpSnapshotChannel <- blockResponse
 		ext.orderBookChannel <- blockResponse
 
 		eet.Total = time.Since(start)
@@ -360,9 +362,6 @@ func (ext *Extender) runWorkers() {
 
 	// Balances
 	go ext.balanceService.BalanceManager()
-	for w := 1; w <= 100; w++ {
-		go ext.balanceService.BalanceUpdater()
-	}
 
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
@@ -378,10 +377,10 @@ func (ext *Extender) runWorkers() {
 	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
 	go ext.liquidityPoolService.AddressLiquidityPoolWorker()
 	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
-	for w := 1; w <= 10; w++ {
+	for w := 1; w <= 50; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
-	go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
+	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
 
 	//OrderBook
 	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
@@ -530,12 +529,17 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 
-	critical := 5 * time.Second
+	critical := 7 * time.Second
 
 	if eet.Total > critical {
 		ext.log.WithFields(logrus.Fields{
-			"block": eet.Height,
-			"time":  fmt.Sprintf("%s", eet.Total),
+			"getting block time":  eet.GettingBlock,
+			"getting events time": eet.GettingEvents,
+			"handle addresses":    eet.HandleAddressesFromResponses,
+			"handle coins":        eet.HandleCoinsFromTransactions,
+			"handle block":        eet.HandleBlockResponse,
+			"block":               eet.Height,
+			"time":                fmt.Sprintf("%s", eet.Total),
 		}).Error("Processing time is too height")
 	}
 

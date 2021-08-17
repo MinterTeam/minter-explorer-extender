@@ -27,7 +27,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	//go ext.Metrics.RunApi()
+	go ext.Metrics.RunApi()
 
 	ext.Run()
 }
