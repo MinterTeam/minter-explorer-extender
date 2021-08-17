@@ -229,9 +229,9 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		//if s.chasingMode {
-		//	continue
-		//}
+		if s.chasingMode {
+			continue
+		}
 		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
