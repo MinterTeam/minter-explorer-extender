@@ -138,6 +138,9 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
+	if s.chasingMode {
+		return
+	}
 	defer func() {
 		if err := recover(); err != nil {
 			var list []models.Balance
@@ -210,6 +213,10 @@ func (s *Service) PublishCommissions(data api.Event) {
 }
 
 func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
+	if s.chasingMode {
+		return
+	}
+
 	var val *big.Int
 	channel := `stake/%s`
 	addressCache := make(map[string]*big.Int)
