@@ -11,10 +11,11 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
 )
 
 func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Order, error) {
-	txData := new(api_pb.AddOrderSwapPoolData)
+	txData := new(api_pb.AddLimitOrderData)
 	if err := tx.GetData().UnmarshalTo(txData); err != nil {
 		return nil, err
 	}
@@ -66,19 +67,28 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 
 func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 	for b := range data {
+		var orderMap sync.Map
 		var list []*models.Order
+		var wg sync.WaitGroup
+		wg.Add(len(b.Transactions))
 		for _, tx := range b.Transactions {
 			go func(tx *api_pb.TransactionResponse) {
 				switch transaction.Type(tx.Type) {
-				case transaction.TypeAddOrderSwapPool:
+				case transaction.TypeAddLimitOrder:
 					o, err := s.GetOrderDataFromTx(tx)
 					if err != nil {
 						s.logger.Error(err)
 					}
-					list = append(list, o)
+					orderMap.Store(o.Id, o)
 				}
+				wg.Done()
 			}(tx)
 		}
+		wg.Wait()
+		orderMap.Range(func(k, v interface{}) bool {
+			list = append(list, v.(*models.Order))
+			return true // if false, Range stops
+		})
 
 		if len(list) > 0 {
 			err := s.Storage.SaveAll(list)

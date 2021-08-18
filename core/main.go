@@ -277,7 +277,7 @@ func (ext *Extender) Run() {
 
 		//Pulling block data
 		countStart := time.Now()
-		blockResponse, err := ext.nodeApi.BlockExtended(height, true)
+		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue

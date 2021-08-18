@@ -9,7 +9,7 @@ type Repository struct {
 	db *pg.DB
 }
 
-func (r *Repository) SaveAll(list []*models.Order) interface{} {
+func (r *Repository) SaveAll(list []*models.Order) error {
 	_, err := r.db.Model(&list).Insert()
 	return err
 }
