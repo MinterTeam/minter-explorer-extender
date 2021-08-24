@@ -80,6 +80,10 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						s.logger.Error(err)
 					}
 					orderMap.Store(o.Id, o)
+
+				case transaction.TypeRemoveLimitOrder:
+					//TODO: implement
+					s.logger.Info("delete")
 				}
 				wg.Done()
 			}(tx)
@@ -89,7 +93,6 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 			list = append(list, v.(*models.Order))
 			return true // if false, Range stops
 		})
-
 		if len(list) > 0 {
 			err := s.Storage.SaveAll(list)
 			if err != nil {

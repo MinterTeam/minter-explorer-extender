@@ -33,39 +33,6 @@ func (s *Service) BalanceManager() {
 			addressesData = append(addressesData, k)
 		}
 
-		//var ids []uint
-		//if len(addressesData) > 0 {
-		//	for _, a := range addressesData {
-		//		addressId, err := s.addressService.Storage.FindId(a)
-		//		if err != nil {
-		//			s.logger.WithFields(logrus.Fields{
-		//				"block":   data.Block.Height,
-		//				"address": a,
-		//			}).Error(err)
-		//		}
-		//		ids = append(ids, addressId)
-		//	}
-		//}
-		//if len(ids) > 0 {
-		//	chunksCount := int(math.Ceil(float64(len(ids)) / float64(s.env.AddrChunkSize)))
-		//	for i := 0; i < chunksCount; i++ {
-		//		start := s.env.AddrChunkSize * i
-		//		end := start + s.env.AddrChunkSize
-		//		if end > len(ids) {
-		//			end = len(ids)
-		//		}
-		//		err = s.repository.DeleteByAddressIds(ids[start:end])
-		//		if err != nil {
-		//			if err != nil {
-		//				s.logger.WithFields(logrus.Fields{
-		//					"block":         data.Block.Height,
-		//					"address_count": len(ids[start:end]),
-		//				}).Error(err)
-		//			}
-		//		}
-		//	}
-		//}
-
 		if len(addressesData) > 0 {
 			chunksCount := int(math.Ceil(float64(len(addressesData)) / float64(s.env.AddrChunkSize)))
 			wg := sync.WaitGroup{}

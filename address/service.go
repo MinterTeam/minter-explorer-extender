@@ -1,7 +1,9 @@
 package address
 
 import (
+	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
@@ -9,6 +11,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
+	"strings"
 	"sync"
 )
 
@@ -99,6 +102,24 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 				return nil, err, nil
 			}
 			mapAddresses[helpers.RemovePrefix(sender)] = struct{}{}
+
+		case transaction.TypeBuySwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeSellAllSwapPool:
+			tags := tx.GetTags()
+			jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+			tagPools := new(models.BuySwapPoolTag)
+			err := json.Unmarshal([]byte(jsonString), tagPools)
+			if err != nil {
+				s.logger.Error(err)
+				return nil, err, nil
+			}
+			for _, i := range tagPools.Details.Orders {
+				mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+			}
+			for _, i := range tagPools.Sellers {
+				mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+			}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
