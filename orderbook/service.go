@@ -68,6 +68,7 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 	for b := range data {
 		var orderMap sync.Map
+		var deleteOrderMap sync.Map
 		var list []*models.Order
 		var wg sync.WaitGroup
 		wg.Add(len(b.Transactions))
@@ -78,12 +79,15 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					o, err := s.GetOrderDataFromTx(tx)
 					if err != nil {
 						s.logger.Error(err)
+					} else {
+						orderMap.Store(o.Id, o)
 					}
-					orderMap.Store(o.Id, o)
-
 				case transaction.TypeRemoveLimitOrder:
-					//TODO: implement
-					s.logger.Info("delete")
+					txData := new(api_pb.RemoveLimitOrderData)
+					if err := tx.GetData().UnmarshalTo(txData); err != nil {
+						return
+					}
+					deleteOrderMap.Store(txData.Id, txData)
 				}
 				wg.Done()
 			}(tx)
@@ -95,6 +99,19 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		})
 		if len(list) > 0 {
 			err := s.Storage.SaveAll(list)
+			if err != nil {
+				s.logger.Error(err)
+			}
+		}
+
+		var idForDelete []uint64
+		deleteOrderMap.Range(func(k, v interface{}) bool {
+			idForDelete = append(idForDelete, k.(uint64))
+			return true
+		})
+
+		if len(idForDelete) > 0 {
+			err := s.Storage.DeleteByIdList(idForDelete)
 			if err != nil {
 				s.logger.Error(err)
 			}

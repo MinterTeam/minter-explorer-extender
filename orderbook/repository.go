@@ -14,6 +14,13 @@ func (r *Repository) SaveAll(list []*models.Order) error {
 	return err
 }
 
+func (r *Repository) DeleteByIdList(forDelete []uint64) error {
+	_, err := r.db.Model((*models.Order)(nil)).
+		Where("id IN (?)", pg.In(forDelete)).
+		Delete()
+	return err
+}
+
 func NewRepository(db *pg.DB) *Repository {
 	return &Repository{
 		db: db,
