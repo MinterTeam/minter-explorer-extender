@@ -47,7 +47,7 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 }
 
 func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.TransactionResponse) ([]string, error, map[string]struct{}) {
-	var mapAddresses = make(map[string]struct{}) //use as unique array
+	var mapAddresses = make(map[string]struct{})
 	for _, tx := range transactions {
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 
@@ -108,17 +108,19 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			transaction.TypeSellAllSwapPool:
 			tags := tx.GetTags()
 			jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
-			tagPools := new(models.BuySwapPoolTag)
-			err := json.Unmarshal([]byte(jsonString), tagPools)
+			var tagPools []models.BuySwapPoolTag
+			err := json.Unmarshal([]byte(jsonString), &tagPools)
 			if err != nil {
 				s.logger.Error(err)
 				return nil, err, nil
 			}
-			for _, i := range tagPools.Details.Orders {
-				mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
-			}
-			for _, i := range tagPools.Sellers {
-				mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+			for _, p := range tagPools {
+				for _, i := range p.Details.Orders {
+					mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+				}
+				for _, i := range p.Sellers {
+					mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+				}
 			}
 		}
 	}

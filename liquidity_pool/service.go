@@ -644,6 +644,8 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 		return err
 	}
 
+	var mapForUpdate = make(map[uint64][]string)
+
 	switch transaction.Type(tx.Type) {
 	case transaction.TypeSend:
 		txData := new(api_pb.SendData)
@@ -684,6 +686,11 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+
 	case transaction.TypeSellSwapPool:
 		txData := new(api_pb.SellSwapPoolData)
 		if err = tx.Data.UnmarshalTo(txData); err != nil {
@@ -698,6 +705,11 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+
 	case transaction.TypeSellAllSwapPool:
 		txData := new(api_pb.SellAllSwapPoolData)
 		if err = tx.Data.UnmarshalTo(txData); err != nil {
@@ -712,9 +724,72 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(mapForUpdate) > 0 {
+		err = s.updateAddressesVolumesFromMap(mapForUpdate, tx.Height)
 	}
 
 	return err
+}
+
+func (s *Service) updateAddressesVolumesFromMap(addresses map[uint64][]string, height uint64) error {
+	wg := sync.WaitGroup{}
+	var alpMap sync.Map
+	for poolId, addressList := range addresses {
+		lp, err := s.Storage.getLiquidityPoolById(poolId)
+		if err != nil {
+			return err
+		}
+
+		wg.Add(len(addressList))
+		go func(addresses []string, poolId, height uint64) {
+			for _, a := range addresses {
+				addressId, err := s.addressRepository.FindIdOrCreate(a)
+				if err != nil {
+					s.logger.Error(err)
+					wg.Done()
+					return
+				}
+
+				var nodeALP *api_pb.SwapPoolResponse
+				if s.chasingMode {
+					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a), height)
+				} else {
+					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a))
+				}
+				if err != nil {
+					s.logger.Error(err)
+					wg.Done()
+					return
+				}
+				alpMap.Store(fmt.Sprintf("%d-%d", poolId, addressId), &models.AddressLiquidityPool{
+					LiquidityPoolId:  poolId,
+					AddressId:        uint64(addressId),
+					FirstCoinVolume:  nodeALP.Amount0,
+					SecondCoinVolume: nodeALP.Amount1,
+					Liquidity:        nodeALP.Liquidity,
+				})
+				wg.Done()
+			}
+		}(addressList, poolId, height)
+	}
+
+	var forUpdate []*models.AddressLiquidityPool
+	alpMap.Range(func(k, v interface{}) bool {
+		forUpdate = append(forUpdate, v.(*models.AddressLiquidityPool))
+		return true
+	})
+
+	if len(forUpdate) > 0 {
+		return s.Storage.UpdateAllLiquidityPool(forUpdate)
+	}
+
+	return nil
 }
 
 func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from string, height, lpTokenId uint64) error {
@@ -883,6 +958,36 @@ func (s Service) getPoolTradesFromTagsData(tx *models.Transaction, poolsData []m
 
 func (s *Service) SetChasingMode(chasingMode bool) {
 	s.chasingMode = chasingMode
+}
+
+func (s *Service) getAddressesForVolUpdateFromTag(tx *api_pb.TransactionResponse) (map[uint64][]string, error) {
+	tags := tx.GetTags()
+	jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+	var tagPools []models.BuySwapPoolTag
+	err := json.Unmarshal([]byte(jsonString), &tagPools)
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
+	var mapPoolAddresses = make(map[uint64][]string)
+	for _, p := range tagPools {
+		var mapAddresses = make(map[string]struct{})
+		for _, i := range p.Details.Orders {
+			mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+		}
+		for _, i := range p.Sellers {
+			mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+		}
+
+		var list []string
+		for a := range mapAddresses {
+			list = append(list, a)
+		}
+		mapPoolAddresses[p.PoolId] = list
+	}
+
+	return mapPoolAddresses, err
 }
 
 func (s *Service) bigFloatToPipString(f *big.Float) string {
