@@ -49,8 +49,10 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.TransactionResponse) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{})
 	for _, tx := range transactions {
+		if tx.Log != "" {
+			continue
+		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
-
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeSend:
 			txData := new(api_pb.SendData)

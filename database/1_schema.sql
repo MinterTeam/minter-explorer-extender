@@ -239,7 +239,7 @@ CREATE TABLE liquidity_pools
     second_coin_volume  numeric(100, 0) NOT NULL,
     liquidity           numeric(100, 0) NOT NULL,
     liquidity_bip       numeric(100, 0),
-    updated_at_block_id integer         not null references blocks (id) on delete cascade,
+    updated_at_block_id integer         not null,
     unique (first_coin_id, second_coin_id)
 );
 CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);
@@ -301,13 +301,14 @@ CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (va
 
 CREATE TABLE orders
 (
-    id                bigserial primary key,
+    id                bigint primary key,
     address_id        bigint          not null references addresses (id) on delete cascade,
     liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
     coin_sell_id      bigint          NOT NULL,
     coin_sell_volume  numeric(100, 0) NOT NULL,
     coin_buy_id       bigint          NOT NULL,
-    coin_buy_volume   numeric(100, 0) NOT NULL
+    coin_buy_volume   numeric(100, 0) NOT NULL,
+    created_at_block  bigint          not null references blocks (id) on delete cascade
 );
 CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
