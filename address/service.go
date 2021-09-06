@@ -142,6 +142,27 @@ func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse
 			mapAddresses[helpers.RemovePrefix(stake.GetAddress())] = struct{}{}
 		}
 	}
+
+	for _, event := range response.Events {
+		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		if err != nil {
+			return nil, mapAddresses
+		}
+
+		switch e := eventStruct.(type) {
+		case *api.RewardEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.SlashEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.StakeKickEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.UnbondEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.OrderExpiredEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		}
+	}
+
 	addresses := addressesMapToSlice(mapAddresses)
 	return addresses, mapAddresses
 }

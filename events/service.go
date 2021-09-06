@@ -9,6 +9,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
@@ -32,6 +33,7 @@ type Service struct {
 	balanceRepository   *balance.Repository
 	blockRepository     *block.Repository
 	broadcastService    *broadcast.Service
+	orderRepository     *orderbook.Repository
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	startBlock          uint64
@@ -40,7 +42,7 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	blockRepository *block.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
+	blockRepository *block.Repository, orderRepository *orderbook.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry, startBlock uint64) *Service {
 	return &Service{
 		env:                 env,
@@ -51,6 +53,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		coinService:         coinService,
 		balanceRepository:   balanceRepository,
 		blockRepository:     blockRepository,
+		orderRepository:     orderRepository,
 		broadcastService:    broadcastService,
 		startBlock:          startBlock,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
@@ -169,6 +172,11 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			}
 
 			err = s.validatorRepository.SaveBan(ban)
+			if err != nil {
+				s.logger.Error(err)
+			}
+		case *api.OrderExpiredEvent:
+			err := s.orderRepository.CancelByIdList([]uint64{e.ID})
 			if err != nil {
 				s.logger.Error(err)
 			}

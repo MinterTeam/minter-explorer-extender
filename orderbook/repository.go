@@ -14,10 +14,11 @@ func (r *Repository) SaveAll(list []*models.Order) error {
 	return err
 }
 
-func (r *Repository) DeleteByIdList(forDelete []uint64) error {
-	_, err := r.db.Model((*models.Order)(nil)).
-		Where("id IN (?)", pg.In(forDelete)).
-		Delete()
+func (r *Repository) CancelByIdList(forCancel []uint64) error {
+	_, err := r.db.Model().Exec(`
+		UPDATE orders SET is_canceled = true
+		WHERE id NOT IN (?);
+	`, pg.In(forCancel))
 	return err
 }
 

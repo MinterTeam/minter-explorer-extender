@@ -191,6 +191,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	liquidityPoolRepository := liquidity_pool.NewRepository(db)
 
+	orderbookRepository := orderbook.NewRepository(db)
+
 	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
 
 	// Services
@@ -201,7 +203,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	swapService := swap.NewService(db)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
-	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
+	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
 	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
 
 	return &Extender{
