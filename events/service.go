@@ -165,7 +165,8 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 
 			ban := &models.ValidatorBan{
 				ValidatorId: validatorId,
-				BlockId:     blockId,
+				BlockId:     blockHeight,
+				ToBlockId:   blockId,
 			}
 
 			err = s.validatorRepository.SaveBan(ban)
