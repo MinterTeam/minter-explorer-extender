@@ -176,7 +176,13 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				s.logger.Error(err)
 			}
 		case *api.OrderExpiredEvent:
-			err := s.orderRepository.CancelByIdList([]uint64{e.ID})
+			orderId, err := strconv.ParseUint(e.ID, 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			err = s.orderRepository.CancelByIdList([]uint64{orderId})
 			if err != nil {
 				s.logger.Error(err)
 			}
