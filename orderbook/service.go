@@ -61,7 +61,7 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 		CoinSellId:      txData.CoinToSell.Id,
 		CoinSellVolume:  txData.ValueToSell,
 		CoinBuyId:       txData.CoinToBuy.Id,
-		CoinBuyVolume:   txData.ValueToSell,
+		CoinBuyVolume:   txData.ValueToBuy,
 		CreatedAtBlock:  tx.Height,
 	}, nil
 
