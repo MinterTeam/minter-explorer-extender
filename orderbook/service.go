@@ -55,7 +55,7 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 
 	return &models.Order{
 		Id:              orderId,
-		IsCanceled:      false,
+		Status:          models.OrderTypeNew,
 		AddressId:       uint64(addressId),
 		LiquidityPoolId: lpId,
 		CoinSellId:      txData.CoinToSell.Id,
@@ -113,7 +113,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		})
 
 		if len(idForDelete) > 0 {
-			err := s.Storage.CancelByIdList(idForDelete)
+			err := s.Storage.CancelByIdList(idForDelete, models.OrderTypeUserCanceled)
 			if err != nil {
 				s.logger.Error(err)
 			}
