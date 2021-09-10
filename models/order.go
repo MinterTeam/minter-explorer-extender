@@ -4,11 +4,10 @@ type OrderType byte
 
 const (
 	_ OrderType = iota
-	OrderTypeNew
+	OrderTypeActive
 	OrderTypePartiallyFilled
 	OrderTypeFilled
-	OrderTypePartiallyCanceled
-	OrderTypeUserCanceled
+	OrderTypeCanceled
 	OrderTypeExpired
 )
 

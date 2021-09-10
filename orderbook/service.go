@@ -55,7 +55,7 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 
 	return &models.Order{
 		Id:              orderId,
-		Status:          models.OrderTypeNew,
+		Status:          models.OrderTypeActive,
 		AddressId:       uint64(addressId),
 		LiquidityPoolId: lpId,
 		CoinSellId:      txData.CoinToSell.Id,
@@ -97,7 +97,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		wg.Wait()
 		orderMap.Range(func(k, v interface{}) bool {
 			list = append(list, v.(*models.Order))
-			return true // if false, Range stops
+			return true
 		})
 		if len(list) > 0 {
 			err := s.Storage.SaveAll(list)
@@ -113,7 +113,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		})
 
 		if len(idForDelete) > 0 {
-			err := s.Storage.CancelByIdList(idForDelete, models.OrderTypeUserCanceled)
+			err := s.Storage.CancelByIdList(idForDelete, models.OrderTypeCanceled)
 			if err != nil {
 				s.logger.Error(err)
 			}

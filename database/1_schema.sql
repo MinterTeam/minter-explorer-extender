@@ -116,6 +116,8 @@ CREATE TABLE transactions
 CREATE INDEX transactions_block_id_from_address_id_index ON transactions USING btree (block_id DESC, from_address_id);
 CREATE INDEX transactions_from_address_id_index ON transactions USING btree (from_address_id);
 CREATE INDEX transactions_hash_index ON transactions USING hash (hash);
+CREATE INDEX transactions_tag_order_id_gin_index ON transactions USING gin (tags jsonb_path_ops);
+CREATE INDEX transactions_tag_order_id_index ON transactions USING btree (((tags ->> 'tx.order_id')::int));
 
 CREATE TABLE invalid_transactions
 (
