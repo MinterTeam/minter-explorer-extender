@@ -1,6 +1,7 @@
 package orderbook
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
@@ -12,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math/big"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -203,20 +205,20 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 				case transaction.TypeBuySwapPool,
 					transaction.TypeSellSwapPool,
 					transaction.TypeSellAllSwapPool:
-					//tags := tx.GetTags()
-					//jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
-					//var tagPools []models.BuySwapPoolTag
-					//err := json.Unmarshal([]byte(jsonString), &tagPools)
-					//if err != nil {
-					//	s.logger.Error(err)
-					//	wg.Done()
-					//	return
-					//}
-					//for _, p := range tagPools {
-					//	for _, i := range p.Details.Orders {
-					//		updateOrderMap.Store(fmt.Sprintf("%d-%s", i.Id, i.Seller), i)
-					//	}
-					//}
+					tags := tx.GetTags()
+					jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+					var tagPools []models.BuySwapPoolTag
+					err := json.Unmarshal([]byte(jsonString), &tagPools)
+					if err != nil {
+						s.logger.Error(err)
+						wg.Done()
+						return
+					}
+					for _, p := range tagPools {
+						for _, i := range p.Details.Orders {
+							updateOrderMap.Store(fmt.Sprintf("%d-%s", i.Id, i.Seller), i)
+						}
+					}
 				}
 				wg.Done()
 			}(tx)
