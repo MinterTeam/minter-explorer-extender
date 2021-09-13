@@ -387,6 +387,7 @@ func (ext *Extender) runWorkers() {
 
 	//OrderBook
 	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
+	go ext.orderBookService.UpdateOrderBookWorker(ext.orderBookService.UpdateOrderChannel())
 
 	//Broadcast
 	go ext.broadcastService.Manager()
