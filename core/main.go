@@ -383,7 +383,6 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= 50; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
-	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
 
 	//OrderBook
 	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
