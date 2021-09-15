@@ -318,9 +318,10 @@ func (ext *Extender) Run() {
 
 		go ext.handleEventResponse(height, eventsResponse)
 
-		ext.lpWorkerChannel <- blockResponse
-
-		ext.orderBookChannel <- blockResponse
+		if len(blockResponse.Transactions) > 0 {
+			ext.lpWorkerChannel <- blockResponse
+			ext.orderBookChannel <- blockResponse
+		}
 
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)

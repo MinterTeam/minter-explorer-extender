@@ -310,7 +310,9 @@ CREATE TABLE orders
     coin_sell_volume  numeric(100, 0) NOT NULL,
     coin_buy_id       bigint          NOT NULL,
     coin_buy_volume   numeric(100, 0) NOT NULL,
+    status            int             not null,
     created_at_block  bigint          not null references blocks (id) on delete cascade
 );
 CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
+CREATE INDEX orders_status_index ON orders USING btree (liquidity_pool_id);

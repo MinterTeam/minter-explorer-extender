@@ -185,8 +185,12 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		var updateOrderMap sync.Map
 		var list []*models.Order
 		var wg sync.WaitGroup
-		wg.Add(len(b.Transactions))
+
 		for _, tx := range b.Transactions {
+			if tx.Log != "" {
+				continue
+			}
+			wg.Add(1)
 			go func(tx *api_pb.TransactionResponse) {
 				switch transaction.Type(tx.Type) {
 				case transaction.TypeAddLimitOrder:
@@ -211,12 +215,11 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					err := json.Unmarshal([]byte(jsonString), &tagPools)
 					if err != nil {
 						s.logger.Error(err)
-						wg.Done()
-						return
-					}
-					for _, p := range tagPools {
-						for _, i := range p.Details.Orders {
-							updateOrderMap.Store(fmt.Sprintf("%d-%s", i.Id, i.Seller), i)
+					} else {
+						for _, p := range tagPools {
+							for _, i := range p.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%d-%s", i.Id, i.Seller), i)
+							}
 						}
 					}
 				}
@@ -246,7 +249,10 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 			forUpdate = append(forUpdate, v.(models.TxTagDetailsOrder))
 			return true
 		})
-		s.updateOrderChannel <- forUpdate
+
+		if len(forUpdate) > 0 {
+			s.updateOrderChannel <- forUpdate
+		}
 
 		if len(idForDelete) > 0 {
 			err := s.Storage.CancelByIdList(idForDelete, models.OrderTypeCanceled)
@@ -272,9 +278,10 @@ func (s *Service) UpdateOrderChannel() chan []models.TxTagDetailsOrder {
 func NewService(db *pg.DB, addressRepository *address.Repository, lpService *liquidity_pool.Service,
 	logger *logrus.Entry) *Service {
 	return &Service{
-		Storage:           NewRepository(db),
-		addressRepository: addressRepository,
-		liquidityPool:     lpService,
-		logger:            logger,
+		updateOrderChannel: make(chan []models.TxTagDetailsOrder),
+		Storage:            NewRepository(db),
+		addressRepository:  addressRepository,
+		liquidityPool:      lpService,
+		logger:             logger,
 	}
 }
