@@ -182,7 +182,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				continue
 			}
 
-			err = s.orderRepository.CancelByIdList([]uint64{orderId}, models.OrderTypeExpired)
+			err = s.orderRepository.CancelByIdList([]uint64{orderId})
 			if err != nil {
 				s.logger.Error(err)
 			}
