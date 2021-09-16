@@ -16,9 +16,9 @@ type Order struct {
 	AddressId       uint64         `json:"address_id"`
 	LiquidityPoolId uint64         `json:"liquidity_pool_id"`
 	CoinSellId      uint64         `json:"coin_sell_id"      pg:",use_zero"`
-	CoinSellVolume  string         `json:"coin_sell_volume"`
+	CoinSellVolume  string         `json:"coin_sell_volume"  pg:"type:numeric(100)"`
 	CoinBuyId       uint64         `json:"coin_buy_id"       pg:",use_zero"`
-	CoinBuyVolume   string         `json:"coin_buy_volume"`
+	CoinBuyVolume   string         `json:"coin_buy_volume"   pg:"type:numeric(100)"`
 	CreatedAtBlock  uint64         `json:"created_at_block"`
 	Status          OrderType      `json:"status"`
 	Address         *Address       `json:"address"           pg:"rel:has-one,fk:address_id"`

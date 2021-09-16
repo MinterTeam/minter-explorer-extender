@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 func (s *Service) AddressLiquidityPoolWorker() {
@@ -395,29 +394,6 @@ func (s *Service) GetLiquidityPoolsIdFromTx(tx *api_pb.TransactionResponse) ([]u
 		ids = append(ids, id)
 	}
 	return ids, err
-}
-
-func (s *Service) CreateSnapshot(height uint64, date time.Time) error {
-	list, err := s.Storage.GetAll()
-	if err != nil && err != pg.ErrNoRows {
-		return err
-	}
-	if err != nil && err == pg.ErrNoRows {
-		return nil
-	}
-	var snap []models.LiquidityPoolSnapshot
-	for _, p := range list {
-		snap = append(snap, models.LiquidityPoolSnapshot{
-			BlockId:          height,
-			LiquidityPoolId:  p.Id,
-			FirstCoinVolume:  p.FirstCoinVolume,
-			SecondCoinVolume: p.SecondCoinVolume,
-			Liquidity:        p.Liquidity,
-			LiquidityBip:     p.LiquidityBip,
-			CreatedAt:        date,
-		})
-	}
-	return s.Storage.SaveLiquidityPoolSnapshots(snap)
 }
 
 func (s *Service) LiquidityPoolTradesChannel() chan []*models.Transaction {
