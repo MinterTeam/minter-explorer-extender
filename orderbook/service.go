@@ -2,6 +2,7 @@ package orderbook
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
@@ -56,9 +57,21 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 		lpId = lp.Id
 	}
 
+	sell, ok := big.NewInt(0).SetString(txData.ValueToSell, 10)
+	if !ok {
+		return nil, errors.New("can't convert to big.int")
+	}
+	buy, ok := big.NewInt(0).SetString(txData.ValueToBuy, 10)
+	if !ok {
+		return nil, errors.New("can't convert to big.int ")
+	}
+
+	price := sell.Quo(sell, buy)
+
 	return &models.Order{
 		Id:              orderId,
-		Status:          models.OrderTypeActive,
+		Price:           price.String(),
+		Status:          models.OrderTypeNew,
 		AddressId:       uint64(addressId),
 		LiquidityPoolId: lpId,
 		CoinSellId:      txData.CoinToSell.Id,
@@ -140,7 +153,7 @@ func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) 
 			newSellValue := big.NewInt(0)
 			newSellValue = newSellValue.Sub(orderSellValue, sellValue)
 
-			status := models.OrderTypePartiallyFilled
+			status := models.OrderTypeActive
 			if newBuyValue.Cmp(big.NewInt(0)) <= 0 || newSellValue.Cmp(big.NewInt(0)) <= 0 {
 				status = models.OrderTypeFilled
 			}
@@ -155,6 +168,7 @@ func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) 
 
 			mapOrders[o.Id] = models.Order{
 				Id:              o.Id,
+				Price:           mapOrders[o.Id].Price,
 				AddressId:       mapOrders[o.Id].AddressId,
 				LiquidityPoolId: mapOrders[o.Id].LiquidityPoolId,
 				CoinSellId:      mapOrders[o.Id].CoinSellId,
@@ -255,7 +269,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		}
 
 		if len(idForDelete) > 0 {
-			err := s.Storage.CancelByIdList(idForDelete, models.OrderTypeCanceled)
+			err := s.Storage.CancelByIdList(idForDelete)
 			if err != nil {
 				s.logger.Error(err)
 			}

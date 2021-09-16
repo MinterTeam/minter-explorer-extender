@@ -76,7 +76,7 @@ CREATE TABLE coins
     max_supply          numeric(70, 0),
     version             integer,
     owner_address_id    bigint REFERENCES addresses (id) on delete cascade,
-    created_at_block_id bigint REFERENCES blocks (id) on delete cascade,
+    created_at_block_id bigint,
     burnable            boolean,
     mintable            boolean,
     created_at          timestamp with time zone DEFAULT current_timestamp,
@@ -294,6 +294,7 @@ CREATE TABLE orders
     id                bigint primary key,
     address_id        bigint          not null references addresses (id) on delete cascade,
     liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
+    price             numeric(100, 0) NOT NULL,
     coin_sell_id      bigint          NOT NULL,
     coin_sell_volume  numeric(100, 0) NOT NULL,
     coin_buy_id       bigint          NOT NULL,
@@ -304,3 +305,4 @@ CREATE TABLE orders
 CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
 CREATE INDEX orders_status_index ON orders USING btree (liquidity_pool_id);
+CREATE INDEX orders_price_index ON orders USING btree (price);

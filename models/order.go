@@ -4,6 +4,7 @@ type OrderType byte
 
 const (
 	_ OrderType = iota
+	OrderTypeNew
 	OrderTypeActive
 	OrderTypePartiallyFilled
 	OrderTypeFilled
@@ -15,6 +16,7 @@ type Order struct {
 	Id              uint64         `json:"id"`
 	AddressId       uint64         `json:"address_id"`
 	LiquidityPoolId uint64         `json:"liquidity_pool_id"`
+	Price           string         `json:"price"             pg:"type:numeric(100)"`
 	CoinSellId      uint64         `json:"coin_sell_id"      pg:",use_zero"`
 	CoinSellVolume  string         `json:"coin_sell_volume"  pg:"type:numeric(100)"`
 	CoinBuyId       uint64         `json:"coin_buy_id"       pg:",use_zero"`

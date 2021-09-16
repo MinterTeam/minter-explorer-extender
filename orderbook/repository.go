@@ -14,23 +14,32 @@ func (r *Repository) SaveAll(list []*models.Order) error {
 	return err
 }
 
-func (r *Repository) CancelByIdList(idList []uint64, cancelType models.OrderType) error {
+func (r *Repository) CancelByIdList(idList []uint64) error {
 	var list []models.Order
 	err := r.db.Model(&list).Where("id in (?)", pg.In(idList)).Select()
 	if err != nil {
 
 	}
-	var ids []uint64
+	var idsCanseled []uint64
+	var idsPartiallyFilled []uint64
 	for _, o := range list {
-		if o.Status != models.OrderTypeCanceled && o.Status != models.OrderTypeFilled {
-			ids = append(ids, o.Id)
+		switch o.Status {
+		case models.OrderTypeNew:
+			idsCanseled = append(idsCanseled, o.Id)
+		case models.OrderTypeActive:
+			idsPartiallyFilled = append(idsPartiallyFilled, o.Id)
 		}
 	}
 
 	_, err = r.db.Model().Exec(`
 		UPDATE orders SET status = ?
 		WHERE id IN (?);
-	`, cancelType, pg.In(ids))
+	`, models.OrderTypeCanceled, pg.In(idsCanseled))
+
+	_, err = r.db.Model().Exec(`
+		UPDATE orders SET status = ?
+		WHERE id IN (?);
+	`, models.OrderTypePartiallyFilled, pg.In(idsPartiallyFilled))
 	return err
 }
 
