@@ -57,20 +57,18 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 		lpId = lp.Id
 	}
 
-	sell, ok := big.NewInt(0).SetString(txData.ValueToSell, 10)
+	sell, ok := big.NewFloat(0).SetString(txData.ValueToSell)
 	if !ok {
 		return nil, errors.New("can't convert to big.int")
 	}
-	buy, ok := big.NewInt(0).SetString(txData.ValueToBuy, 10)
+	buy, ok := big.NewFloat(0).SetString(txData.ValueToBuy)
 	if !ok {
 		return nil, errors.New("can't convert to big.int ")
 	}
-
 	price := sell.Quo(sell, buy)
-
 	return &models.Order{
 		Id:              orderId,
-		Price:           price.String(),
+		Price:           price.Text('f', 5),
 		Status:          models.OrderTypeNew,
 		AddressId:       uint64(addressId),
 		LiquidityPoolId: lpId,

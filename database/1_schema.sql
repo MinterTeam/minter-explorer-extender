@@ -241,7 +241,7 @@ CREATE TABLE liquidity_pools
     second_coin_volume  numeric(100, 0) NOT NULL,
     liquidity           numeric(100, 0) NOT NULL,
     liquidity_bip       numeric(100, 0),
-    created_at_block_id integer         not null references blocks (id) on delete cascade,
+    created_at_block_id integer references blocks (id) on delete cascade,
     updated_at_block_id integer         not null,
     unique (first_coin_id, second_coin_id)
 );
