@@ -11,11 +11,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 func (s *Service) BalanceManager() {
 	for {
 		data := <-s.updateFromResponsesChannel
+
+		//chasingMode, ok := s.chasingMode.Load().(bool)
+		//if !ok{
+		//	s.logger.Error("chasing mode setup error")
+		//	return
+		//}
+		//if chasingMode {
+		//	return
+		//}
 
 		_, err, addressesMap := s.addressService.ExtractAddressesFromTransactions(data.Block.Transactions)
 		if err != nil {
@@ -62,8 +72,8 @@ func (s *Service) UpdateChannel() chan models.BalanceUpdateData {
 	return s.updateFromResponsesChannel
 }
 
-func (s *Service) SetChasingMode(chasingMode bool) {
-	s.chasingMode = chasingMode
+func (s *Service) SetChasingMode(val bool) {
+	s.chasingMode.Store(val)
 }
 
 func (s *Service) updateAddresses(list []string) error {
@@ -137,6 +147,10 @@ func (s *Service) updateAddresses(list []string) error {
 func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *grpc_client.Client,
 	addressService *address.Service, coinRepository *coin.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry) *Service {
+
+	chasingMode := atomic.Value{}
+	chasingMode.Store(false)
+
 	return &Service{
 		env:                        env,
 		repository:                 repository,
@@ -146,7 +160,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		broadcastService:           broadcastService,
 		updateFromResponsesChannel: make(chan models.BalanceUpdateData),
 		logger:                     logger,
-		chasingMode:                false,
+		chasingMode:                chasingMode,
 	}
 }
 
@@ -159,6 +173,6 @@ type Service struct {
 	broadcastService           *broadcast.Service
 	wgBalances                 sync.WaitGroup
 	logger                     *logrus.Entry
-	chasingMode                bool
+	chasingMode                atomic.Value
 	updateFromResponsesChannel chan models.BalanceUpdateData
 }
