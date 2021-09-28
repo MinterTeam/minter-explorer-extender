@@ -294,7 +294,7 @@ CREATE TABLE orders
     id                bigint primary key,
     address_id        bigint          not null references addresses (id) on delete cascade,
     liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
-    price             numeric(100, 0) NOT NULL,
+    price             numeric(25, 18) NOT NULL,
     coin_sell_id      bigint          NOT NULL,
     coin_sell_volume  numeric(100, 0) NOT NULL,
     coin_buy_id       bigint          NOT NULL,

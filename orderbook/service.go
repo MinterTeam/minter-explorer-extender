@@ -66,9 +66,14 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 		return nil, errors.New("can't convert to big.int ")
 	}
 	price := sell.Quo(sell, buy)
+
+	if price.Cmp(big.NewFloat(0)) <= 0 {
+		s.logger.Error("zero price")
+	}
+
 	return &models.Order{
 		Id:              orderId,
-		Price:           price.Text('f', 5),
+		Price:           price.Text('f', 18),
 		Status:          models.OrderTypeNew,
 		AddressId:       uint64(addressId),
 		LiquidityPoolId: lpId,
@@ -78,7 +83,6 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 		CoinBuyVolume:   txData.ValueToBuy,
 		CreatedAtBlock:  tx.Height,
 	}, nil
-
 }
 
 func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) {
@@ -164,6 +168,14 @@ func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) 
 				}).Error("negative value")
 			}
 
+			if mapOrders[o.Id].Price == "0" {
+				s.logger.WithFields(logrus.Fields{
+					"order_id": o.Id,
+					"buy":      newBuyValue.String(),
+					"sell":     newSellValue.String(),
+				}).Error("zero price")
+			}
+
 			mapOrders[o.Id] = models.Order{
 				Id:              o.Id,
 				Price:           mapOrders[o.Id].Price,
@@ -184,6 +196,9 @@ func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) 
 		}
 
 		err = s.Storage.UpdateOrders(&list)
+		if err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 
