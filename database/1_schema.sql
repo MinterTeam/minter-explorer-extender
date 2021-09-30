@@ -306,3 +306,12 @@ CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
 CREATE INDEX orders_status_index ON orders USING btree (liquidity_pool_id);
 CREATE INDEX orders_price_index ON orders USING btree (price);
+
+create table events
+(
+    block_id integer not null references blocks (id) on delete cascade,
+    type     varchar not null,
+    data     jsonb   not null
+);
+CREATE INDEX events_block_id_index ON events USING btree (block_id);
+CREATE INDEX events_type_index ON events USING btree (type);

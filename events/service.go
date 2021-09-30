@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
@@ -65,6 +66,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 // HandleEventResponse Handle response and save block to DB
 func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
 	var (
+		eventList         []models.Event
 		rewards           []*models.Reward
 		slashes           []*models.Slash
 		coinsForUpdateMap = make(map[uint64]struct{})
@@ -75,6 +77,17 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 		if err != nil {
 			return err
 		}
+
+		jsonEvent, err := json.Marshal(eventStruct)
+		if err != nil {
+			return err
+		}
+
+		eventList = append(eventList, models.Event{
+			BlockId: blockHeight,
+			Type:    fmt.Sprintf("%s", eventStruct.Type()),
+			Data:    jsonEvent,
+		})
 
 		switch e := eventStruct.(type) {
 		case *api.RewardEvent:
@@ -100,10 +113,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				continue
 			}
 
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"public_key": e.GetValidatorPublicKey(),
+					"public_key": e.GetPublicKey(),
 				}).Error(err)
 				continue
 			}
@@ -154,7 +167,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 		case *api.UpdateCommissionsEvent:
 			s.broadcastService.CommissionsChannel() <- eventStruct
 		case *api.JailEvent:
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -186,6 +199,13 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			if err != nil {
 				s.logger.Error(err)
 			}
+		}
+	}
+
+	if len(eventList) > 0 {
+		err := s.repository.Add(eventList)
+		if err != nil {
+			s.logger.Error(err)
 		}
 	}
 
@@ -332,10 +352,10 @@ func (s *Service) handleRewardEvent(blockHeight uint64, e *api.RewardEvent) (*mo
 		return nil, err
 	}
 
-	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
-			"public_key": e.GetValidatorPublicKey(),
+			"public_key": e.GetPublicKey(),
 		}).Error(err)
 		return nil, err
 	}
