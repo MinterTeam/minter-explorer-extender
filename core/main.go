@@ -509,12 +509,14 @@ func (ext *Extender) getNodeLastBlockId() (uint64, error) {
 
 func (ext *Extender) findOutChasingMode(height uint64) {
 	var err error
+
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
 			ext.log.Fatal(err)
 		}
 	}
+
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
