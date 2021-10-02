@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"errors"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
@@ -53,7 +54,7 @@ func (r *Repository) AddPk(id uint, pk string) error {
 	return err
 }
 
-//Find validator with public key.
+// FindIdByPk Find validator with public key.
 //Return Validator ID
 func (r *Repository) FindIdByPk(pk string) (uint, error) {
 	//First look in the cache
@@ -61,20 +62,34 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 	if ok {
 		return id.(uint), nil
 	}
-	validator := new(models.ValidatorPublicKeys)
-	err := r.db.Model(validator).Where("key = ?", pk).Select()
+
+	valId := uint(0)
+	validator := new(models.Validator)
+	err := r.db.Model(validator).Where("public_key = ?", pk).Select()
 	if err != nil {
-		return 0, err
+		validatorPk := new(models.ValidatorPublicKeys)
+		err = r.db.Model(validator).Where("key = ?", pk).Select()
+		if err != nil {
+			return 0, err
+		}
+		valId = validatorPk.ValidatorId
+	} else {
+		valId = validator.ID
 	}
-	r.cache.Store(pk, validator.ValidatorId)
-	return validator.ValidatorId, nil
+
+	if valId == 0 {
+		return 0, errors.New("validator not found")
+	}
+
+	r.cache.Store(pk, valId)
+	return valId, nil
 }
 
-//Find validator with public key or create if not exist.
+// FindIdByPkOrCreate Find validator with public key or create if not exist.
 //Return Validator ID
 func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 	id, err := r.FindIdByPk(pk)
-	if err != nil && err.Error() != "pg: no rows in result set" {
+	if err != nil && err != pg.ErrNoRows {
 		return 0, err
 	}
 	if id == 0 {
@@ -103,7 +118,7 @@ func (r *Repository) FindIdByPkOrCreate(pk string) (uint, error) {
 	return id, nil
 }
 
-// Save list of validators if not exist
+// SaveAllIfNotExist Save list of validators if not exist
 func (r *Repository) SaveAllIfNotExist(validators map[string]struct{}) error {
 	for pk, _ := range validators {
 		_, err := r.FindIdByPkOrCreate(pk)
