@@ -9,7 +9,8 @@ require (
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
 	github.com/MinterTeam/minter-go-sdk/v2 v2.3.1-0.20210930112244-8ae67d6745ca
 	github.com/MinterTeam/node-grpc-gateway v1.4.3-0.20210901204935-9c018d5064bc
-	github.com/centrifugal/gocent v2.1.0+incompatible
+	//github.com/centrifugal/gocent v2.1.0+incompatible
+	github.com/centrifugal/gocent/v3 v3.0.0
 	github.com/go-pg/pg/v10 v10.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/joho/godotenv v1.3.0

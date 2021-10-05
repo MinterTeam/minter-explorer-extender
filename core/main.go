@@ -280,6 +280,7 @@ func (ext *Extender) Run() {
 		countStart := time.Now()
 		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
 		if err != nil {
+			ext.log.Error(err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
