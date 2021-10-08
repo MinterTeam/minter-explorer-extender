@@ -24,7 +24,6 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 	"math"
@@ -176,7 +175,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		panic(err)
 	}
 
-	status, err := nodeApi.Status()
+	nosdeStatus, err := nodeApi.Status()
 	if err != nil {
 		panic(err)
 	}
@@ -204,7 +203,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	swapService := swap.NewService(db)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
-	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
+	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, nosdeStatus.InitialHeight+1)
 	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
 
 	return &Extender{
@@ -225,7 +224,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		orderBookService:     orderBookService,
 		chasingMode:          false,
 		currentNodeHeight:    0,
-		startBlockHeight:     status.InitialHeight + 1,
+		startBlockHeight:     nosdeStatus.InitialHeight + 1,
 		log:                  contextLogger,
 		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
 		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
@@ -287,16 +286,7 @@ func (ext *Extender) Run() {
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			details := make(map[string]string)
-			for _, v := range grpcErr.Details() {
-				dd, ok := v.(*structpb.Struct)
-				if ok {
-					for k, v := range dd.AsMap() {
-						details[k] = v.(string)
-					}
-				}
-			}
-			if details["code"] == "NotFound" {
+			if grpcErr.Message() == "Block not found" {
 				time.Sleep(2 * time.Second)
 				continue
 			}
