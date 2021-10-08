@@ -68,7 +68,7 @@ func (r *Repository) FindIdByPk(pk string) (uint, error) {
 	err := r.db.Model(validator).Where("public_key = ?", pk).Select()
 	if err != nil {
 		validatorPk := new(models.ValidatorPublicKeys)
-		err = r.db.Model(validator).Where("key = ?", pk).Select()
+		err = r.db.Model(validatorPk).Where("key = ?", pk).Select()
 		if err != nil {
 			return 0, err
 		}
