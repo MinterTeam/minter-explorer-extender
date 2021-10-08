@@ -24,7 +24,9 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
 	"math"
 	"os"
 	"regexp"
@@ -274,15 +276,31 @@ func (ext *Extender) Run() {
 		}
 
 		start := time.Now()
-		//ext.findOutChasingMode(height)
+		ext.findOutChasingMode(height)
 
 		//Pulling block data
 		countStart := time.Now()
 		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
 		if err != nil {
-			ext.log.Error(err)
-			time.Sleep(2 * time.Second)
-			continue
+			grpcErr, ok := status.FromError(err)
+			if !ok {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			details := make(map[string]string)
+			for _, v := range grpcErr.Details() {
+				dd, ok := v.(*structpb.Struct)
+				if ok {
+					for k, v := range dd.AsMap() {
+						details[k] = v.(string)
+					}
+				}
+			}
+			if details["code"] == "NotFound" {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			ext.log.Fatal(err)
 		}
 
 		eet.GettingBlock = time.Since(countStart)
@@ -527,10 +545,10 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
 
-	//ext.validatorService.SetChasingMode(ext.chasingMode)
-	//ext.broadcastService.SetChasingMode(ext.chasingMode)
-	//ext.balanceService.SetChasingMode(ext.chasingMode)
-	//ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
+	ext.validatorService.SetChasingMode(ext.chasingMode)
+	ext.broadcastService.SetChasingMode(ext.chasingMode)
+	ext.balanceService.SetChasingMode(ext.chasingMode)
+	ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
 }
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
