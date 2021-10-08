@@ -274,17 +274,13 @@ func (ext *Extender) Run() {
 		}
 
 		start := time.Now()
-		ext.findOutChasingMode(height)
-
-		if height == 3279850 {
-			println("")
-		}
+		//ext.findOutChasingMode(height)
 
 		//Pulling block data
 		countStart := time.Now()
 		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
 		if err != nil {
-			//ext.log.Error(err)
+			ext.log.Error(err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
