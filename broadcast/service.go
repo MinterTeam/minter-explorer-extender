@@ -44,7 +44,7 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	})
 
 	chasingMode := atomic.Value{}
-	chasingMode.Store(true)
+	chasingMode.Store(false)
 
 	return &Service{
 		client:              wsClient,

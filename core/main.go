@@ -221,7 +221,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		broadcastService:     broadcastService,
 		liquidityPoolService: liquidityPoolService,
 		orderBookService:     orderBookService,
-		chasingMode:          true,
+		chasingMode:          false,
 		currentNodeHeight:    0,
 		startBlockHeight:     status.InitialHeight + 1,
 		log:                  contextLogger,
@@ -531,10 +531,10 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
 
-	ext.validatorService.SetChasingMode(ext.chasingMode)
-	ext.broadcastService.SetChasingMode(ext.chasingMode)
-	ext.balanceService.SetChasingMode(ext.chasingMode)
-	ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
+	//ext.validatorService.SetChasingMode(ext.chasingMode)
+	//ext.broadcastService.SetChasingMode(ext.chasingMode)
+	//ext.balanceService.SetChasingMode(ext.chasingMode)
+	//ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
 }
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
