@@ -283,10 +283,11 @@ func (ext *Extender) Run() {
 		if err != nil {
 			grpcErr, ok := status.FromError(err)
 			if !ok {
+				ext.log.Error(err)
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			if grpcErr.Message() == "Block not found" {
+			if grpcErr.Message() == "Block not found" || grpcErr.Message() == "Block results not found" {
 				time.Sleep(2 * time.Second)
 				continue
 			}
