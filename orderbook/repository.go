@@ -52,7 +52,11 @@ func (r *Repository) GetAllById(id []uint64) ([]models.Order, error) {
 }
 
 func (r *Repository) UpdateOrders(list *[]models.Order) error {
-	_, err := r.db.Model(list).WherePK().Update()
+	_, err := r.db.
+		Model(list).
+		Column("coin_sell_volume", "coin_buy_volume", "status").
+		WherePK().
+		Update()
 	return err
 }
 
