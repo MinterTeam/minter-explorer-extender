@@ -77,10 +77,10 @@ func (s *Service) SetChasingMode(val bool) {
 }
 
 func (s *Service) updateAddresses(list []string) error {
-	chasingMode, ok := s.chasingMode.Load().(bool)
-	if !ok {
-		chasingMode = false
-	}
+	//chasingMode, ok := s.chasingMode.Load().(bool)
+	//if !ok {
+	//	chasingMode = false
+	//}
 
 	var balances []*models.Balance
 
@@ -102,12 +102,12 @@ func (s *Service) updateAddresses(list []string) error {
 		for _, val := range item.Balance {
 			_, err := s.coinRepository.GetById(uint(val.Coin.Id))
 			if err != nil {
-				if !chasingMode {
-					s.logger.WithFields(logrus.Fields{
-						"coin":    val.Coin.Id,
-						"address": adr,
-					}).Error(err)
-				}
+				//if !chasingMode {
+				//	s.logger.WithFields(logrus.Fields{
+				//		"coin":    val.Coin.Id,
+				//		"address": adr,
+				//	}).Error(err)
+				//}
 				continue
 			}
 			balances = append(balances, &models.Balance{
