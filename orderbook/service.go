@@ -213,7 +213,6 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 		var orderMap sync.Map
 		var deleteOrderMap sync.Map
 		var updateOrderMap sync.Map
-		var list []*models.Order
 		var wg sync.WaitGroup
 
 		for _, tx := range b.Transactions {
@@ -257,14 +256,26 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 			}(tx)
 		}
 		wg.Wait()
+
+		//var list []*models.Order
+		newOrdersMap := make(map[int][]*models.Order)
+		index := 0
 		orderMap.Range(func(k, v interface{}) bool {
-			list = append(list, v.(*models.Order))
+			if newOrdersMap[index] == nil {
+				newOrdersMap[index] = []*models.Order{}
+			}
+			newOrdersMap[index] = append(newOrdersMap[index], v.(*models.Order))
+			if len(newOrdersMap[index]) > 50000 {
+				index++
+			}
 			return true
 		})
-		if len(list) > 0 {
-			err := s.Storage.SaveAll(list)
-			if err != nil {
-				s.logger.Error(err)
+		if len(newOrdersMap) > 0 {
+			for _, orders := range newOrdersMap {
+				err := s.Storage.SaveAll(orders)
+				if err != nil {
+					s.logger.Error(err)
+				}
 			}
 		}
 
@@ -274,15 +285,23 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 			return true
 		})
 
-		var forUpdate []models.TxTagDetailsOrder
+		uom := make(map[int][]models.TxTagDetailsOrder)
+		index = 0
 		updateOrderMap.Range(func(k, v interface{}) bool {
-			forUpdate = append(forUpdate, v.(models.TxTagDetailsOrder))
+			if uom[index] == nil {
+				uom[index] = []models.TxTagDetailsOrder{}
+			}
+			uom[index] = append(uom[index], v.(models.TxTagDetailsOrder))
+			if len(uom[index]) > 50000 {
+				index++
+			}
 			return true
 		})
 
-		if len(forUpdate) > 0 {
-			//s.updateOrderChannel <- forUpdate
-			s.updateOrders(forUpdate)
+		if len(uom) > 0 {
+			for _, orders := range uom {
+				s.updateOrders(orders)
+			}
 		}
 
 		if len(idForDelete) > 0 {
