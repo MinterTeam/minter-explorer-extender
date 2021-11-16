@@ -87,118 +87,121 @@ func (s *Service) GetOrderDataFromTx(tx *api_pb.TransactionResponse) (*models.Or
 
 func (s *Service) UpdateOrderBookWorker(data <-chan []models.TxTagDetailsOrder) {
 	for orders := range data {
+		s.updateOrders(orders)
+	}
+}
 
-		mapId := make(map[uint64]struct{})
-		for _, o := range orders {
-			mapId[o.Id] = struct{}{}
-		}
+func (s *Service) updateOrders(orders []models.TxTagDetailsOrder) {
+	mapId := make(map[uint64]struct{})
+	for _, o := range orders {
+		mapId[o.Id] = struct{}{}
+	}
 
-		var listId []uint64
-		for id := range mapId {
-			listId = append(listId, id)
-		}
+	var listId []uint64
+	for id := range mapId {
+		listId = append(listId, id)
+	}
 
-		orderList, err := s.Storage.GetAllById(listId)
-		if err != nil {
-			s.logger.Error(err)
+	orderList, err := s.Storage.GetAllById(listId)
+	if err != nil {
+		s.logger.Error(err)
+		return
+	}
+	mapOrders := make(map[uint64]models.Order)
+	for _, o := range orderList {
+		mapOrders[o.Id] = o
+	}
+
+	for _, o := range orders {
+		buyValue, ok := big.NewInt(0).SetString(o.Buy, 10)
+		if !ok {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      o.Buy,
+				"sell":     o.Sell,
+				"address":  o.Seller,
+			}).Error("can't parse big.Int")
 			continue
 		}
-		mapOrders := make(map[uint64]models.Order)
-		for _, o := range orderList {
-			mapOrders[o.Id] = o
+		sellValue, ok := big.NewInt(0).SetString(o.Sell, 10)
+		if !ok {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      o.Buy,
+				"sell":     o.Sell,
+				"address":  o.Seller,
+			}).Error("can't parse big.Int")
+			continue
 		}
 
-		for _, o := range orders {
-			buyValue, ok := big.NewInt(0).SetString(o.Buy, 10)
-			if !ok {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      o.Buy,
-					"sell":     o.Sell,
-					"address":  o.Seller,
-				}).Error("can't parse big.Int")
-				continue
-			}
-			sellValue, ok := big.NewInt(0).SetString(o.Sell, 10)
-			if !ok {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      o.Buy,
-					"sell":     o.Sell,
-					"address":  o.Seller,
-				}).Error("can't parse big.Int")
-				continue
-			}
-
-			orderBuyValue, ok := big.NewInt(0).SetString(mapOrders[o.Id].CoinBuyVolume, 10)
-			if !ok {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      mapOrders[o.Id].CoinBuyVolume,
-					"sell":     mapOrders[o.Id].CoinSellVolume,
-				}).Error("can't parse big.Int")
-				continue
-			}
-			orderSellValue, ok := big.NewInt(0).SetString(mapOrders[o.Id].CoinSellVolume, 10)
-			if !ok {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      mapOrders[o.Id].CoinBuyVolume,
-					"sell":     mapOrders[o.Id].CoinSellVolume,
-				}).Error("can't parse big.Int")
-				continue
-			}
-
-			newBuyValue := big.NewInt(0)
-			newBuyValue = newBuyValue.Sub(orderBuyValue, buyValue)
-
-			newSellValue := big.NewInt(0)
-			newSellValue = newSellValue.Sub(orderSellValue, sellValue)
-
-			status := models.OrderTypeActive
-			if newBuyValue.Cmp(big.NewInt(0)) <= 0 || newSellValue.Cmp(big.NewInt(0)) <= 0 {
-				status = models.OrderTypeFilled
-			}
-
-			if newBuyValue.Cmp(big.NewInt(0)) < 0 || newSellValue.Cmp(big.NewInt(0)) < 0 {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      newBuyValue.String(),
-					"sell":     newSellValue.String(),
-				}).Error("negative value")
-			}
-
-			if mapOrders[o.Id].Price == "0" {
-				s.logger.WithFields(logrus.Fields{
-					"order_id": o.Id,
-					"buy":      newBuyValue.String(),
-					"sell":     newSellValue.String(),
-				}).Error("zero price")
-			}
-
-			mapOrders[o.Id] = models.Order{
-				Id:              o.Id,
-				Price:           mapOrders[o.Id].Price,
-				AddressId:       mapOrders[o.Id].AddressId,
-				LiquidityPoolId: mapOrders[o.Id].LiquidityPoolId,
-				CoinSellId:      mapOrders[o.Id].CoinSellId,
-				CoinSellVolume:  newSellValue.String(),
-				CoinBuyId:       mapOrders[o.Id].CoinBuyId,
-				CoinBuyVolume:   newBuyValue.String(),
-				CreatedAtBlock:  mapOrders[o.Id].CreatedAtBlock,
-				Status:          status,
-			}
+		orderBuyValue, ok := big.NewInt(0).SetString(mapOrders[o.Id].CoinBuyVolume, 10)
+		if !ok {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      mapOrders[o.Id].CoinBuyVolume,
+				"sell":     mapOrders[o.Id].CoinSellVolume,
+			}).Error("can't parse big.Int")
+			continue
+		}
+		orderSellValue, ok := big.NewInt(0).SetString(mapOrders[o.Id].CoinSellVolume, 10)
+		if !ok {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      mapOrders[o.Id].CoinBuyVolume,
+				"sell":     mapOrders[o.Id].CoinSellVolume,
+			}).Error("can't parse big.Int")
+			continue
 		}
 
-		var list []models.Order
-		for _, o := range mapOrders {
-			list = append(list, o)
+		newBuyValue := big.NewInt(0)
+		newBuyValue = newBuyValue.Sub(orderBuyValue, buyValue)
+
+		newSellValue := big.NewInt(0)
+		newSellValue = newSellValue.Sub(orderSellValue, sellValue)
+
+		status := models.OrderTypeActive
+		if newBuyValue.Cmp(big.NewInt(0)) <= 0 || newSellValue.Cmp(big.NewInt(0)) <= 0 {
+			status = models.OrderTypeFilled
 		}
 
-		err = s.Storage.UpdateOrders(&list)
-		if err != nil {
-			s.logger.Error(err)
+		if newBuyValue.Cmp(big.NewInt(0)) < 0 || newSellValue.Cmp(big.NewInt(0)) < 0 {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      newBuyValue.String(),
+				"sell":     newSellValue.String(),
+			}).Error("negative value")
 		}
+
+		if mapOrders[o.Id].Price == "0" {
+			s.logger.WithFields(logrus.Fields{
+				"order_id": o.Id,
+				"buy":      newBuyValue.String(),
+				"sell":     newSellValue.String(),
+			}).Error("zero price")
+		}
+
+		mapOrders[o.Id] = models.Order{
+			Id:              o.Id,
+			Price:           mapOrders[o.Id].Price,
+			AddressId:       mapOrders[o.Id].AddressId,
+			LiquidityPoolId: mapOrders[o.Id].LiquidityPoolId,
+			CoinSellId:      mapOrders[o.Id].CoinSellId,
+			CoinSellVolume:  newSellValue.String(),
+			CoinBuyId:       mapOrders[o.Id].CoinBuyId,
+			CoinBuyVolume:   newBuyValue.String(),
+			CreatedAtBlock:  mapOrders[o.Id].CreatedAtBlock,
+			Status:          status,
+		}
+	}
+
+	var list []models.Order
+	for _, o := range mapOrders {
+		list = append(list, o)
+	}
+
+	err = s.Storage.UpdateOrders(&list)
+	if err != nil {
+		s.logger.Error(err)
 	}
 }
 
@@ -273,7 +276,11 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 
 		var forUpdate []models.TxTagDetailsOrder
 		updateOrderMap.Range(func(k, v interface{}) bool {
-			forUpdate = append(forUpdate, v.(models.TxTagDetailsOrder))
+			o := v.(models.TxTagDetailsOrder)
+			_, ok := deleteOrderMap.Load(o.Id)
+			if !ok {
+				forUpdate = append(forUpdate, o)
+			}
 			return true
 		})
 
