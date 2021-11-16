@@ -27,3 +27,26 @@ type TxTagDetailsOrder struct {
 	Seller string `json:"seller"`
 	Id     uint64 `json:"id"`
 }
+
+type TagCommissionDetails struct {
+	PoolID   uint64                        `json:"pool_id"`
+	CoinIn   uint64                        `json:"coin_in"`
+	ValueIn  string                        `json:"value_in"`
+	CoinOut  uint64                        `json:"coin_out"`
+	ValueOut string                        `json:"value_out"`
+	Details  CommissionDetails             `json:"details"`
+	Sellers  []CommissionDetailOrderSeller `json:"sellers"`
+}
+
+type CommissionDetails struct {
+	AmountIn            string              `json:"amount_in"`
+	AmountOut           string              `json:"amount_out"`
+	CommissionAmountIn  string              `json:"commission_amount_in"`
+	CommissionAmountOut string              `json:"commission_amount_out"`
+	Orders              []TxTagDetailsOrder `json:"orders"`
+}
+
+type CommissionDetailOrderSeller struct {
+	Seller string `json:"seller"`
+	Value  string `json:"value"`
+}

@@ -1,6 +1,6 @@
 module github.com/MinterTeam/minter-explorer-extender/v2
 
-go 1.16
+go 1.17
 
 require (
 	github.com/MinterTeam/explorer-genesis-uploader v1.3.9
@@ -14,6 +14,7 @@ require (
 	github.com/go-pg/pg/v10 v10.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/joho/godotenv v1.3.0
+	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v1.4.1
 	github.com/sirupsen/logrus v1.7.0
 	google.golang.org/grpc v1.40.0

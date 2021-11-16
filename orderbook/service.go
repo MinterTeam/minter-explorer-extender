@@ -11,6 +11,7 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
+	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 	"math/big"
 	"strconv"
@@ -229,12 +230,35 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					} else {
 						orderMap.Store(o.Id, o)
 					}
+					tags := tx.GetTags()
+					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+					var tag models.TagCommissionDetails
+					err = json.Unmarshal([]byte(jsonString), &tag)
+					if err != nil {
+						s.logger.Error(err)
+					} else {
+						for _, orderDetail := range tag.Details.Orders {
+							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+						}
+					}
 				case transaction.TypeRemoveLimitOrder:
 					txData := new(api_pb.RemoveLimitOrderData)
 					if err := tx.GetData().UnmarshalTo(txData); err != nil {
-						return
+						s.logger.Error(err)
+					} else {
+						deleteOrderMap.Store(txData.Id, txData)
 					}
-					deleteOrderMap.Store(txData.Id, txData)
+					tags := tx.GetTags()
+					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+					var tag models.TagCommissionDetails
+					err := json.Unmarshal([]byte(jsonString), &tag)
+					if err != nil {
+						s.logger.Error(err)
+					} else {
+						for _, orderDetail := range tag.Details.Orders {
+							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+						}
+					}
 				case transaction.TypeBuySwapPool,
 					transaction.TypeSellSwapPool,
 					transaction.TypeSellAllSwapPool:
@@ -246,9 +270,31 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						s.logger.Error(err)
 					} else {
 						for _, p := range tagPools {
-							for _, i := range p.Details.Orders {
-								updateOrderMap.Store(fmt.Sprintf("%d-%s", i.Id, i.Seller), i)
+							for _, tagOrderDetail := range p.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), tagOrderDetail)
 							}
+						}
+					}
+					jsonString = strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+					var tag models.TagCommissionDetails
+					err = json.Unmarshal([]byte(jsonString), &tag)
+					if err != nil {
+						s.logger.Error(err)
+					} else {
+						for _, orderDetail := range tag.Details.Orders {
+							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+						}
+					}
+				default:
+					tags := tx.GetTags()
+					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+					var tag models.TagCommissionDetails
+					err := json.Unmarshal([]byte(jsonString), &tag)
+					if err != nil {
+						s.logger.Error(err)
+					} else {
+						for _, orderDetail := range tag.Details.Orders {
+							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
 						}
 					}
 				}
