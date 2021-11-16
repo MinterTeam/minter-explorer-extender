@@ -555,7 +555,7 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 			"handle block":        eet.HandleBlockResponse,
 			"block":               eet.Height,
 			"time":                fmt.Sprintf("%s", eet.Total),
-		}).Error("Processing time is too height")
+		}).Warning("Processing time is too height")
 	}
 
 	ext.log.WithFields(logrus.Fields{

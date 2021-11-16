@@ -276,16 +276,13 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 
 		var forUpdate []models.TxTagDetailsOrder
 		updateOrderMap.Range(func(k, v interface{}) bool {
-			o := v.(models.TxTagDetailsOrder)
-			_, ok := deleteOrderMap.Load(o.Id)
-			if !ok {
-				forUpdate = append(forUpdate, o)
-			}
+			forUpdate = append(forUpdate, v.(models.TxTagDetailsOrder))
 			return true
 		})
 
 		if len(forUpdate) > 0 {
-			s.updateOrderChannel <- forUpdate
+			//s.updateOrderChannel <- forUpdate
+			s.updateOrders(forUpdate)
 		}
 
 		if len(idForDelete) > 0 {
