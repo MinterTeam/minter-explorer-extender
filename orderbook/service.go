@@ -231,14 +231,16 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						orderMap.Store(o.Id, o)
 					}
 					tags := tx.GetTags()
-					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
-					var tag models.TagCommissionDetails
-					err = json.Unmarshal([]byte(jsonString), &tag)
-					if err != nil {
-						s.logger.Error(err)
-					} else {
-						for _, orderDetail := range tag.Details.Orders {
-							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+					if tags["tx.commission_conversion"] == "pool" {
+						jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+						var tag models.TagCommissionDetails
+						err = json.Unmarshal([]byte(jsonString), &tag)
+						if err != nil {
+							s.logger.Error(err)
+						} else {
+							for _, orderDetail := range tag.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+							}
 						}
 					}
 				case transaction.TypeRemoveLimitOrder:
@@ -249,14 +251,16 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						deleteOrderMap.Store(txData.Id, txData)
 					}
 					tags := tx.GetTags()
-					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
-					var tag models.TagCommissionDetails
-					err := json.Unmarshal([]byte(jsonString), &tag)
-					if err != nil {
-						s.logger.Error(err)
-					} else {
-						for _, orderDetail := range tag.Details.Orders {
-							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+					if tags["tx.commission_conversion"] == "pool" {
+						jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+						var tag models.TagCommissionDetails
+						err := json.Unmarshal([]byte(jsonString), &tag)
+						if err != nil {
+							s.logger.Error(err)
+						} else {
+							for _, orderDetail := range tag.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+							}
 						}
 					}
 				case transaction.TypeBuySwapPool,
@@ -275,26 +279,30 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 							}
 						}
 					}
-					jsonString = strings.Replace(tags["tx.commission_details"], `\`, "", -1)
-					var tag models.TagCommissionDetails
-					err = json.Unmarshal([]byte(jsonString), &tag)
-					if err != nil {
-						s.logger.Error(err)
-					} else {
-						for _, orderDetail := range tag.Details.Orders {
-							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+					if tags["tx.commission_conversion"] == "pool" {
+						jsonString = strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+						var tag models.TagCommissionDetails
+						err = json.Unmarshal([]byte(jsonString), &tag)
+						if err != nil {
+							s.logger.Error(err)
+						} else {
+							for _, orderDetail := range tag.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+							}
 						}
 					}
 				default:
 					tags := tx.GetTags()
-					jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
-					var tag models.TagCommissionDetails
-					err := json.Unmarshal([]byte(jsonString), &tag)
-					if err != nil {
-						s.logger.Error(err)
-					} else {
-						for _, orderDetail := range tag.Details.Orders {
-							updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+					if tags["tx.commission_conversion"] == "pool" {
+						jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+						var tag models.TagCommissionDetails
+						err := json.Unmarshal([]byte(jsonString), &tag)
+						if err != nil {
+							s.logger.Error(err)
+						} else {
+							for _, orderDetail := range tag.Details.Orders {
+								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
+							}
 						}
 					}
 				}
