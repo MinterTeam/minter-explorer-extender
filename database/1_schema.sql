@@ -284,7 +284,8 @@ CREATE INDEX pool_trades_transaction_id_index ON liquidity_pool_trades USING btr
 CREATE TABLE validator_bans
 (
     validator_id bigint not null references validators (id) on delete cascade,
-    block_id     bigint not null
+    block_id     bigint not null references blocks (id) on delete cascade,
+    to_block_id  bigint not null
 );
 CREATE INDEX validator_bans_block_id_index ON validator_bans USING btree (block_id);
 CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (validator_id);
@@ -300,7 +301,7 @@ CREATE TABLE orders
     coin_buy_id       bigint          NOT NULL,
     coin_buy_volume   numeric(100, 0) NOT NULL,
     status            int             not null,
-    created_at_block  bigint          not null references blocks (id) on delete cascade
+    created_at_block  bigint          not null
 );
 CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);

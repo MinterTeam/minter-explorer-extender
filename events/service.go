@@ -83,11 +83,13 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			return err
 		}
 
-		eventList = append(eventList, models.Event{
-			BlockId: blockHeight,
-			Type:    fmt.Sprintf("%s", eventStruct.Type()),
-			Data:    jsonEvent,
-		})
+		if fmt.Sprintf("%s", eventStruct.Type()) != "minter/RewardEvent" {
+			eventList = append(eventList, models.Event{
+				BlockId: blockHeight,
+				Type:    fmt.Sprintf("%s", eventStruct.Type()),
+				Data:    jsonEvent,
+			})
+		}
 
 		switch e := eventStruct.(type) {
 		case *api.RewardEvent:

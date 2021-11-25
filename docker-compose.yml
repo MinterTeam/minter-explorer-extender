@@ -13,6 +13,12 @@ services:
     volumes:
       - ./tmp/postgresql:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: pg_isready -U minter -d explorer
+      interval: 1s
+      timeout: 10s
+      retries: 3
+      start_period: 0s
   centrifugo:
     image: centrifugo/centrifugo:v3
     volumes:
