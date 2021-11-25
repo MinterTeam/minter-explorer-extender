@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -29,15 +30,18 @@ type Service struct {
 	jobUpdateStakes     chan int
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
-	chasingMode         bool
+	chasingMode         atomic.Value
 	logger              *logrus.Entry
 }
 
-func (s *Service) SetChasingMode(chasingMode bool) {
-	s.chasingMode = chasingMode
+func (s *Service) SetChasingMode(val bool) {
+	s.chasingMode.Store(val)
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
+	chasingMode := atomic.Value{}
+	chasingMode.Store(false)
+
 	return &Service{
 		env:                 env,
 		nodeApi:             nodeApi,
@@ -45,7 +49,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		logger:              logger,
-		chasingMode:         false,
+		chasingMode:         chasingMode,
 		jobUpdateValidators: make(chan int, 1),
 		jobUpdateStakes:     make(chan int, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
@@ -229,9 +233,14 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		//if s.chasingMode {
-		//	continue
-		//}
+		chasingMode, ok := s.chasingMode.Load().(bool)
+		if !ok {
+			s.logger.Error("chasing mode setup error")
+			return
+		}
+		if chasingMode {
+			return
+		}
 		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {

@@ -23,6 +23,12 @@ func (r *Repository) getLiquidityPoolByTokenId(id uint64) (*models.LiquidityPool
 	return lp, err
 }
 
+func (r *Repository) getLiquidityPoolById(id uint64) (*models.LiquidityPool, error) {
+	var lp = new(models.LiquidityPool)
+	err := r.db.Model(lp).Where("id = ?", id).Select()
+	return lp, err
+}
+
 func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
 	_, err := r.db.Model(lp).OnConflict("(first_coin_id, second_coin_id) DO UPDATE").Insert()
 	return err

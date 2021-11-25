@@ -31,3 +31,8 @@ func (r *Repository) SaveAggregatedRewards(rewards []*models.AggregatedReward) e
 	_, err := r.db.Model(&rewards).OnConflict("(time_id, address_id, validator_id, role) DO UPDATE").Insert()
 	return err
 }
+
+func (r *Repository) Add(list []models.Event) error {
+	_, err := r.db.Model(&list).Insert()
+	return err
+}

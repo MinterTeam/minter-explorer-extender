@@ -11,11 +11,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 func (s *Service) BalanceManager() {
 	for {
 		data := <-s.updateFromResponsesChannel
+
+		//chasingMode, ok := s.chasingMode.Load().(bool)
+		//if !ok{
+		//	s.logger.Error("chasing mode setup error")
+		//	return
+		//}
+		//if chasingMode {
+		//	return
+		//}
 
 		_, err, addressesMap := s.addressService.ExtractAddressesFromTransactions(data.Block.Transactions)
 		if err != nil {
@@ -32,39 +42,6 @@ func (s *Service) BalanceManager() {
 		for k := range addressesMap {
 			addressesData = append(addressesData, k)
 		}
-
-		//var ids []uint
-		//if len(addressesData) > 0 {
-		//	for _, a := range addressesData {
-		//		addressId, err := s.addressService.Storage.FindId(a)
-		//		if err != nil {
-		//			s.logger.WithFields(logrus.Fields{
-		//				"block":   data.Block.Height,
-		//				"address": a,
-		//			}).Error(err)
-		//		}
-		//		ids = append(ids, addressId)
-		//	}
-		//}
-		//if len(ids) > 0 {
-		//	chunksCount := int(math.Ceil(float64(len(ids)) / float64(s.env.AddrChunkSize)))
-		//	for i := 0; i < chunksCount; i++ {
-		//		start := s.env.AddrChunkSize * i
-		//		end := start + s.env.AddrChunkSize
-		//		if end > len(ids) {
-		//			end = len(ids)
-		//		}
-		//		err = s.repository.DeleteByAddressIds(ids[start:end])
-		//		if err != nil {
-		//			if err != nil {
-		//				s.logger.WithFields(logrus.Fields{
-		//					"block":         data.Block.Height,
-		//					"address_count": len(ids[start:end]),
-		//				}).Error(err)
-		//			}
-		//		}
-		//	}
-		//}
 
 		if len(addressesData) > 0 {
 			chunksCount := int(math.Ceil(float64(len(addressesData)) / float64(s.env.AddrChunkSize)))
@@ -95,11 +72,16 @@ func (s *Service) UpdateChannel() chan models.BalanceUpdateData {
 	return s.updateFromResponsesChannel
 }
 
-func (s *Service) SetChasingMode(chasingMode bool) {
-	s.chasingMode = chasingMode
+func (s *Service) SetChasingMode(val bool) {
+	s.chasingMode.Store(val)
 }
 
 func (s *Service) updateAddresses(list []string) error {
+	//chasingMode, ok := s.chasingMode.Load().(bool)
+	//if !ok {
+	//	chasingMode = false
+	//}
+
 	var balances []*models.Balance
 
 	addresses := make([]string, len(list))
@@ -120,10 +102,12 @@ func (s *Service) updateAddresses(list []string) error {
 		for _, val := range item.Balance {
 			_, err := s.coinRepository.GetById(uint(val.Coin.Id))
 			if err != nil {
-				s.logger.WithFields(logrus.Fields{
-					"coin":    val.Coin.Id,
-					"address": adr,
-				}).Error(err)
+				//if !chasingMode {
+				//	s.logger.WithFields(logrus.Fields{
+				//		"coin":    val.Coin.Id,
+				//		"address": adr,
+				//	}).Error(err)
+				//}
 				continue
 			}
 			balances = append(balances, &models.Balance{
@@ -170,6 +154,10 @@ func (s *Service) updateAddresses(list []string) error {
 func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *grpc_client.Client,
 	addressService *address.Service, coinRepository *coin.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry) *Service {
+
+	chasingMode := atomic.Value{}
+	chasingMode.Store(false)
+
 	return &Service{
 		env:                        env,
 		repository:                 repository,
@@ -179,7 +167,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		broadcastService:           broadcastService,
 		updateFromResponsesChannel: make(chan models.BalanceUpdateData),
 		logger:                     logger,
-		chasingMode:                false,
+		chasingMode:                chasingMode,
 	}
 }
 
@@ -192,6 +180,6 @@ type Service struct {
 	broadcastService           *broadcast.Service
 	wgBalances                 sync.WaitGroup
 	logger                     *logrus.Entry
-	chasingMode                bool
+	chasingMode                atomic.Value
 	updateFromResponsesChannel chan models.BalanceUpdateData
 }

@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
@@ -9,6 +10,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
@@ -32,6 +34,7 @@ type Service struct {
 	balanceRepository   *balance.Repository
 	blockRepository     *block.Repository
 	broadcastService    *broadcast.Service
+	orderRepository     *orderbook.Repository
 	jobSaveRewards      chan []*models.Reward
 	jobSaveSlashes      chan []*models.Slash
 	startBlock          uint64
@@ -40,7 +43,7 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorRepository *validator.Repository,
 	addressRepository *address.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	blockRepository *block.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
+	blockRepository *block.Repository, orderRepository *orderbook.Repository, balanceRepository *balance.Repository, broadcastService *broadcast.Service,
 	logger *logrus.Entry, startBlock uint64) *Service {
 	return &Service{
 		env:                 env,
@@ -51,6 +54,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 		coinService:         coinService,
 		balanceRepository:   balanceRepository,
 		blockRepository:     blockRepository,
+		orderRepository:     orderRepository,
 		broadcastService:    broadcastService,
 		startBlock:          startBlock,
 		jobSaveRewards:      make(chan []*models.Reward, env.WrkSaveRewardsCount),
@@ -62,6 +66,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 // HandleEventResponse Handle response and save block to DB
 func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
 	var (
+		eventList         []models.Event
 		rewards           []*models.Reward
 		slashes           []*models.Slash
 		coinsForUpdateMap = make(map[uint64]struct{})
@@ -71,6 +76,19 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 		eventStruct, err := grpc_client.ConvertStructToEvent(event)
 		if err != nil {
 			return err
+		}
+
+		jsonEvent, err := json.Marshal(eventStruct)
+		if err != nil {
+			return err
+		}
+
+		if fmt.Sprintf("%s", eventStruct.Type()) != "minter/RewardEvent" {
+			eventList = append(eventList, models.Event{
+				BlockId: blockHeight,
+				Type:    fmt.Sprintf("%s", eventStruct.Type()),
+				Data:    jsonEvent,
+			})
 		}
 
 		switch e := eventStruct.(type) {
@@ -97,10 +115,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				continue
 			}
 
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"public_key": e.GetValidatorPublicKey(),
+					"public_key": e.GetPublicKey(),
 				}).Error(err)
 				continue
 			}
@@ -151,7 +169,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 		case *api.UpdateCommissionsEvent:
 			s.broadcastService.CommissionsChannel() <- eventStruct
 		case *api.JailEvent:
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -173,6 +191,24 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			if err != nil {
 				s.logger.Error(err)
 			}
+		case *api.OrderExpiredEvent:
+			orderId, err := strconv.ParseUint(e.ID, 10, 64)
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+
+			err = s.orderRepository.CancelByIdList([]uint64{orderId}, models.OrderTypeExpired)
+			if err != nil {
+				s.logger.Error(err)
+			}
+		}
+	}
+
+	if len(eventList) > 0 {
+		err := s.repository.Add(eventList)
+		if err != nil {
+			s.logger.Error(err)
 		}
 	}
 
@@ -201,6 +237,9 @@ func (s *Service) GetSaveSlashesJobChannel() chan []*models.Slash {
 
 func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 	for rewards := range jobs {
+		//Temporary disabled
+		continue
+
 		b, err := s.blockRepository.GetById(rewards[0].BlockID)
 		if err != nil {
 			s.logger.Fatal(err)
@@ -319,10 +358,10 @@ func (s *Service) handleRewardEvent(blockHeight uint64, e *api.RewardEvent) (*mo
 		return nil, err
 	}
 
-	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPublicKey()))
+	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
-			"public_key": e.GetValidatorPublicKey(),
+			"public_key": e.GetPublicKey(),
 		}).Error(err)
 		return nil, err
 	}

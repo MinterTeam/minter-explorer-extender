@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"math/big"
+	"sync/atomic"
 )
 
 type Service struct {
@@ -28,7 +29,7 @@ type Service struct {
 	coinRepository      *coin.Repository
 	logger              *logrus.Entry
 	stakeChannel        chan *api_pb.TransactionResponse
-	chasingMode         bool
+	chasingMode         atomic.Value
 	blockChannel        chan models.Block
 	transactionsChannel chan []*models.Transaction
 	balanceChannel      chan []*models.Balance
@@ -42,6 +43,9 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		Key:  env.WsKey,
 	})
 
+	chasingMode := atomic.Value{}
+	chasingMode.Store(false)
+
 	return &Service{
 		client:              wsClient,
 		nodeClient:          nodeClient,
@@ -54,7 +58,7 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		transactionsChannel: make(chan []*models.Transaction),
 		blockChannel:        make(chan models.Block),
 		logger:              logger,
-		chasingMode:         false,
+		chasingMode:         chasingMode,
 	}
 }
 
@@ -96,8 +100,8 @@ func (s *Service) BlockChannel() chan models.Block {
 	return s.blockChannel
 }
 
-func (s *Service) SetChasingMode(chasingMode bool) {
-	s.chasingMode = chasingMode
+func (s *Service) SetChasingMode(val bool) {
+	s.chasingMode.Store(val)
 }
 
 func (s *Service) PublishBlock(b models.Block) {
@@ -138,6 +142,14 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		s.logger.Error("chasing mode setup error")
+		return
+	}
+	if chasingMode {
+		return
+	}
 	defer func() {
 		if err := recover(); err != nil {
 			var list []models.Balance
@@ -185,7 +197,12 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 }
 
 func (s *Service) PublishStatus() {
-	if s.chasingMode {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		s.logger.Error("chasing mode setup error")
+		return
+	}
+	if chasingMode {
 		return
 	}
 	status, err := s.nodeClient.Status()
@@ -210,6 +227,15 @@ func (s *Service) PublishCommissions(data api.Event) {
 }
 
 func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		s.logger.Error("chasing mode setup error")
+		return
+	}
+	if chasingMode {
+		return
+	}
+
 	var val *big.Int
 	channel := `stake/%s`
 	addressCache := make(map[string]*big.Int)

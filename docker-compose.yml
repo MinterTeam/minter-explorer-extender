@@ -5,7 +5,7 @@ services:
     image: postgres:alpine
     restart: always
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       POSTGRES_DB: explorer
       POSTGRES_USER: minter
@@ -13,13 +13,23 @@ services:
     volumes:
       - ./tmp/postgresql:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: pg_isready -U minter -d explorer
+      interval: 1s
+      timeout: 10s
+      retries: 3
+      start_period: 0s
   centrifugo:
-    image: centrifugo/centrifugo:v2.2.2
-    env_file:
-      - .env
+    image: centrifugo/centrifugo:v3
+    volumes:
+      - ./tmp/centrifugo:/centrifugo
+    command: centrifugo -c config.toml
     ports:
-      - 8000:8000
-    command: centrifugo --api_insecure --client_insecure
+      - "8000:8000"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
 #  extender:
 #    build: ./
 #    volumes:
