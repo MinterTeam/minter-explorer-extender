@@ -33,7 +33,7 @@ jobs:
           LATEST: "true"
           VERSION: "${{ steps.version.outputs.text }}"
           TAG_NAME: ${{ github.sha }}
-          DOCKER_BUILD_ARGS: --build-arg VERSION=${{ steps.version.outputs.text }}-${{ steps.slug.outputs.sha8 }}-testnet
+          DOCKER_BUILD_ARGS: --build-arg VERSION=${{ steps.version.outputs.text }}_${{ steps.slug.outputs.sha8 }}-testnet
 
       - name: DigitalOcean Kubernetes
         uses: matootie/dokube@master
