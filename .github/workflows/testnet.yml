@@ -21,7 +21,7 @@ jobs:
 
       - name: Get short SHA
         id: slug
-        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-6)"
 
       - name: Build & Push to Docker Hub
         uses: opspresso/action-docker@master
