@@ -880,6 +880,26 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
+	case transaction.TypeAddLimitOrder:
+		txData := new(api_pb.AddLimitOrderData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeRemoveLimitOrder:
+		txData := new(api_pb.RemoveLimitOrderData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
 	}
 
 	return nil, errors.New("unknown tx type")

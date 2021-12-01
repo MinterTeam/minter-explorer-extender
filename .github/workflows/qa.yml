@@ -18,6 +18,7 @@ jobs:
         id: version
         with:
           path: VERSION
+          trim: true
 
       - name: Build & Push to Docker Hub
         uses: opspresso/action-docker@master

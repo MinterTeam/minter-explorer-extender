@@ -1,7 +1,9 @@
 package address
 
 import (
+	"encoding/json"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
+	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
@@ -9,6 +11,7 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
+	"strings"
 	"sync"
 )
 
@@ -44,10 +47,12 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 }
 
 func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.TransactionResponse) ([]string, error, map[string]struct{}) {
-	var mapAddresses = make(map[string]struct{}) //use as unique array
+	var mapAddresses = make(map[string]struct{})
 	for _, tx := range transactions {
+		if tx.Log != "" {
+			continue
+		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
-
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeSend:
 			txData := new(api_pb.SendData)
@@ -99,6 +104,26 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 				return nil, err, nil
 			}
 			mapAddresses[helpers.RemovePrefix(sender)] = struct{}{}
+
+		case transaction.TypeBuySwapPool,
+			transaction.TypeSellSwapPool,
+			transaction.TypeSellAllSwapPool:
+			tags := tx.GetTags()
+			jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+			var tagPools []models.BuySwapPoolTag
+			err := json.Unmarshal([]byte(jsonString), &tagPools)
+			if err != nil {
+				s.logger.Error(err)
+				return nil, err, nil
+			}
+			for _, p := range tagPools {
+				for _, i := range p.Details.Orders {
+					mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+				}
+				for _, i := range p.Sellers {
+					mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+				}
+			}
 		}
 	}
 	addresses := addressesMapToSlice(mapAddresses)
@@ -117,6 +142,27 @@ func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse
 			mapAddresses[helpers.RemovePrefix(stake.GetAddress())] = struct{}{}
 		}
 	}
+
+	for _, event := range response.Events {
+		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		if err != nil {
+			return nil, mapAddresses
+		}
+
+		switch e := eventStruct.(type) {
+		case *api.RewardEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.SlashEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.StakeKickEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.UnbondEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		case *api.OrderExpiredEvent:
+			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		}
+	}
+
 	addresses := addressesMapToSlice(mapAddresses)
 	return addresses, mapAddresses
 }
