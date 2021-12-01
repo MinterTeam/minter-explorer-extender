@@ -17,6 +17,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/liquidity_pool"
 	"github.com/MinterTeam/minter-explorer-extender/v2/metrics"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
+	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/transaction"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
@@ -24,8 +25,8 @@ import (
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
 	"math"
-	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -51,6 +52,7 @@ type Extender struct {
 	coinService          *coin.Service
 	broadcastService     *broadcast.Service
 	liquidityPoolService *liquidity_pool.Service
+	orderBookService     *orderbook.Service
 	chasingMode          bool
 	startBlockHeight     uint64
 	currentNodeHeight    uint64
@@ -58,6 +60,7 @@ type Extender struct {
 	log                  *logrus.Entry
 	lpSnapshotChannel    chan *api_pb.BlockResponse
 	lpWorkerChannel      chan *api_pb.BlockResponse
+	orderBookChannel     chan *api_pb.BlockResponse
 }
 
 type ExtenderElapsedTime struct {
@@ -172,7 +175,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		panic(err)
 	}
 
-	status, err := nodeApi.Status()
+	nosdeStatus, err := nodeApi.Status()
 	if err != nil {
 		panic(err)
 	}
@@ -188,6 +191,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 
 	liquidityPoolRepository := liquidity_pool.NewRepository(db)
 
+	orderbookRepository := orderbook.NewRepository(db)
+
 	coins.GlobalRepository = coins.NewRepository(db) //temporary solution
 
 	// Services
@@ -198,7 +203,8 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
 	swapService := swap.NewService(db)
 	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
-	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, balanceRepository, broadcastService, contextLogger, status.InitialHeight+1)
+	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, nosdeStatus.InitialHeight+1)
+	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
 
 	return &Extender{
 		Metrics:              metrics.New(),
@@ -215,12 +221,14 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		coinService:          coinService,
 		broadcastService:     broadcastService,
 		liquidityPoolService: liquidityPoolService,
-		chasingMode:          true,
+		orderBookService:     orderBookService,
+		chasingMode:          false,
 		currentNodeHeight:    0,
-		startBlockHeight:     status.InitialHeight + 1,
+		startBlockHeight:     nosdeStatus.InitialHeight + 1,
 		log:                  contextLogger,
 		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
 		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
+		orderBookChannel:     make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -271,10 +279,19 @@ func (ext *Extender) Run() {
 
 		//Pulling block data
 		countStart := time.Now()
-		blockResponse, err := ext.nodeApi.BlockExtended(height, true)
+		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
 		if err != nil {
-			time.Sleep(2 * time.Second)
-			continue
+			grpcErr, ok := status.FromError(err)
+			if !ok {
+				ext.log.Error(err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			if grpcErr.Message() == "Block not found" || grpcErr.Message() == "Block results not found" {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			ext.log.Fatal(err)
 		}
 
 		eet.GettingBlock = time.Since(countStart)
@@ -309,8 +326,12 @@ func (ext *Extender) Run() {
 		}
 
 		go ext.handleEventResponse(height, eventsResponse)
-		ext.lpWorkerChannel <- blockResponse
-		//ext.lpSnapshotChannel <- blockResponse
+
+		if len(blockResponse.Transactions) > 0 {
+			ext.lpWorkerChannel <- blockResponse
+			ext.orderBookChannel <- blockResponse
+		}
+
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -372,7 +393,10 @@ func (ext *Extender) runWorkers() {
 	for w := 1; w <= 50; w++ {
 		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
 	}
-	//go ext.LiquidityPoolSnapshotCreator(ext.lpSnapshotChannel)
+
+	//OrderBook
+	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
+	go ext.orderBookService.UpdateOrderBookWorker(ext.orderBookService.UpdateOrderChannel())
 
 	//Broadcast
 	go ext.broadcastService.Manager()
@@ -495,12 +519,14 @@ func (ext *Extender) getNodeLastBlockId() (uint64, error) {
 
 func (ext *Extender) findOutChasingMode(height uint64) {
 	var err error
+
 	if ext.currentNodeHeight == 0 {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
 		if err != nil {
 			ext.log.Fatal(err)
 		}
 	}
+
 	isChasingMode := ext.currentNodeHeight-height > ChasingModDiff
 	if ext.chasingMode && !isChasingMode {
 		ext.currentNodeHeight, err = ext.getNodeLastBlockId()
@@ -529,7 +555,7 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 			"handle block":        eet.HandleBlockResponse,
 			"block":               eet.Height,
 			"time":                fmt.Sprintf("%s", eet.Total),
-		}).Error("Processing time is too height")
+		}).Warning("Processing time is too height")
 	}
 
 	ext.log.WithFields(logrus.Fields{
@@ -539,66 +565,4 @@ func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {
 		"handle coins":        eet.HandleCoinsFromTransactions,
 		"handle block":        eet.HandleBlockResponse,
 	}).Info(fmt.Sprintf("Block: %d Processing time: %s", eet.Height, eet.Total))
-}
-
-func (ext *Extender) LiquidityPoolSnapshotCreator(data <-chan *api_pb.BlockResponse) {
-	var lastSnapshotBlock *api_pb.BlockResponse
-	for b := range data {
-		blockTime, err := time.Parse("2006-01-02T15:04:05Z", b.Time)
-		if err != nil {
-			ext.log.Error(err)
-			continue
-		}
-		if ext.chasingMode {
-			if blockTime.Format("15:04") == "23:01" {
-				err = ext.CreateLpSnapshot(b.Height, blockTime)
-				if err != nil {
-					ext.log.Error(err)
-					continue
-				}
-				lastSnapshotBlock = b
-				continue
-			}
-		} else {
-			if lastSnapshotBlock != nil {
-				lastSnapshotBlockTime, err := time.Parse("2006-01-02T15:04:05Z", lastSnapshotBlock.Time)
-				if err != nil {
-					ext.log.Error(err)
-					continue
-				}
-				min := 15
-				max := 23
-				rand.Seed(time.Now().UnixNano())
-				x := float64((rand.Intn(max-min+1) + min) * 60)
-				since := time.Since(lastSnapshotBlockTime)
-				if since.Minutes() > x {
-					err = ext.CreateLpSnapshot(b.Height, blockTime)
-					if err != nil {
-						ext.log.Error(err)
-						continue
-					}
-					lastSnapshotBlock = b
-					continue
-				}
-			} else {
-				err = ext.CreateLpSnapshot(b.Height, blockTime)
-				if err != nil {
-					ext.log.Error(err)
-					continue
-				}
-				lastSnapshotBlock = b
-			}
-		}
-	}
-}
-
-func (ext Extender) CreateLpSnapshot(height uint64, blockTime time.Time) error {
-	list, err := ext.liquidityPoolService.Storage.GetSnapshotsByDate(blockTime)
-	if err != nil && err != pg.ErrNoRows {
-		return err
-	}
-	if list != nil {
-		return nil
-	}
-	return ext.liquidityPoolService.CreateSnapshot(height, blockTime)
 }

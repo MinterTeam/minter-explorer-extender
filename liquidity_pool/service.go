@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	"sync/atomic"
 )
 
 func (s *Service) AddressLiquidityPoolWorker() {
@@ -52,8 +52,13 @@ func (s *Service) AddressLiquidityPoolWorker() {
 							s.logger.Error(err)
 						}
 
+						chasingMode, ok := s.chasingMode.Load().(bool)
+						if !ok {
+							chasingMode = false
+						}
+
 						var nodeALP *api_pb.SwapPoolResponse
-						if s.chasingMode {
+						if chasingMode {
 							nodeALP, err = s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom), tx.Height)
 						} else {
 							nodeALP, err = s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom))
@@ -397,29 +402,6 @@ func (s *Service) GetLiquidityPoolsIdFromTx(tx *api_pb.TransactionResponse) ([]u
 	return ids, err
 }
 
-func (s *Service) CreateSnapshot(height uint64, date time.Time) error {
-	list, err := s.Storage.GetAll()
-	if err != nil && err != pg.ErrNoRows {
-		return err
-	}
-	if err != nil && err == pg.ErrNoRows {
-		return nil
-	}
-	var snap []models.LiquidityPoolSnapshot
-	for _, p := range list {
-		snap = append(snap, models.LiquidityPoolSnapshot{
-			BlockId:          height,
-			LiquidityPoolId:  p.Id,
-			FirstCoinVolume:  p.FirstCoinVolume,
-			SecondCoinVolume: p.SecondCoinVolume,
-			Liquidity:        p.Liquidity,
-			LiquidityBip:     p.LiquidityBip,
-			CreatedAt:        date,
-		})
-	}
-	return s.Storage.SaveLiquidityPoolSnapshots(snap)
-}
-
 func (s *Service) LiquidityPoolTradesChannel() chan []*models.Transaction {
 	return s.jobLiquidityPoolTrades
 }
@@ -531,7 +513,11 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 	}
 
 	var nodeLp *api_pb.SwapPoolResponse
-	if s.chasingMode {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		chasingMode = false
+	}
+	if chasingMode {
 		nodeLp, err = s.nodeApi.SwapPool(firstCoinId, secondCoinId, height)
 	} else {
 		nodeLp, err = s.nodeApi.SwapPool(firstCoinId, secondCoinId)
@@ -574,7 +560,8 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 	}
 
 	var nodeALP *api_pb.SwapPoolResponse
-	if s.chasingMode {
+
+	if chasingMode {
 		nodeALP, err = s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom), height)
 	} else {
 		nodeALP, err = s.nodeApi.SwapPoolProvider(firstCoinId, secondCoinId, fmt.Sprintf("Mx%s", txFrom))
@@ -644,6 +631,8 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 		return err
 	}
 
+	var mapForUpdate = make(map[uint64][]string)
+
 	switch transaction.Type(tx.Type) {
 	case transaction.TypeSend:
 		txData := new(api_pb.SendData)
@@ -684,6 +673,11 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+
 	case transaction.TypeSellSwapPool:
 		txData := new(api_pb.SellSwapPoolData)
 		if err = tx.Data.UnmarshalTo(txData); err != nil {
@@ -698,6 +692,11 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+
 	case transaction.TypeSellAllSwapPool:
 		txData := new(api_pb.SellAllSwapPoolData)
 		if err = tx.Data.UnmarshalTo(txData); err != nil {
@@ -712,9 +711,77 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 				}
 			}
 		}
+		mapForUpdate, err = s.getAddressesForVolUpdateFromTag(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(mapForUpdate) > 0 {
+		err = s.updateAddressesVolumesFromMap(mapForUpdate, tx.Height)
 	}
 
 	return err
+}
+
+func (s *Service) updateAddressesVolumesFromMap(addresses map[uint64][]string, height uint64) error {
+	wg := sync.WaitGroup{}
+	var alpMap sync.Map
+	for poolId, addressList := range addresses {
+		lp, err := s.Storage.getLiquidityPoolById(poolId)
+		if err != nil {
+			return err
+		}
+
+		wg.Add(len(addressList))
+		go func(addresses []string, poolId, height uint64) {
+			for _, a := range addresses {
+				addressId, err := s.addressRepository.FindIdOrCreate(a)
+				if err != nil {
+					s.logger.Error(err)
+					wg.Done()
+					return
+				}
+
+				chasingMode, ok := s.chasingMode.Load().(bool)
+				if !ok {
+					chasingMode = false
+				}
+
+				var nodeALP *api_pb.SwapPoolResponse
+				if chasingMode {
+					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a), height)
+				} else {
+					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a))
+				}
+				if err != nil {
+					s.logger.Error(err)
+					wg.Done()
+					return
+				}
+				alpMap.Store(fmt.Sprintf("%d-%d", poolId, addressId), &models.AddressLiquidityPool{
+					LiquidityPoolId:  poolId,
+					AddressId:        uint64(addressId),
+					FirstCoinVolume:  nodeALP.Amount0,
+					SecondCoinVolume: nodeALP.Amount1,
+					Liquidity:        nodeALP.Liquidity,
+				})
+				wg.Done()
+			}
+		}(addressList, poolId, height)
+	}
+
+	var forUpdate []*models.AddressLiquidityPool
+	alpMap.Range(func(k, v interface{}) bool {
+		forUpdate = append(forUpdate, v.(*models.AddressLiquidityPool))
+		return true
+	})
+
+	if len(forUpdate) > 0 {
+		return s.Storage.UpdateAllLiquidityPool(forUpdate)
+	}
+
+	return nil
 }
 
 func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from string, height, lpTokenId uint64) error {
@@ -724,8 +791,13 @@ func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from
 		return err
 	}
 
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		chasingMode = false
+	}
+
 	var nodeALP *api_pb.SwapPoolResponse
-	if s.chasingMode {
+	if chasingMode {
 		nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from, height)
 	} else {
 		nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from)
@@ -757,7 +829,11 @@ func (s *Service) updateAddressPoolVolumesBySendData(fromAddressId uint, from st
 	}
 
 	var nodeALPFrom *api_pb.SwapPoolResponse
-	if s.chasingMode {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		chasingMode = false
+	}
+	if chasingMode {
 		nodeALPFrom, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from, height)
 	} else {
 		nodeALPFrom, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from)
@@ -775,7 +851,7 @@ func (s *Service) updateAddressPoolVolumesBySendData(fromAddressId uint, from st
 	}
 
 	var nodeALPTo *api_pb.SwapPoolResponse
-	if s.chasingMode {
+	if chasingMode {
 		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, txData.To, height)
 	} else {
 		nodeALPTo, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, txData.To)
@@ -881,8 +957,38 @@ func (s Service) getPoolTradesFromTagsData(tx *models.Transaction, poolsData []m
 	return trades
 }
 
-func (s *Service) SetChasingMode(chasingMode bool) {
-	s.chasingMode = chasingMode
+func (s *Service) SetChasingMode(val bool) {
+	s.chasingMode.Store(val)
+}
+
+func (s *Service) getAddressesForVolUpdateFromTag(tx *api_pb.TransactionResponse) (map[uint64][]string, error) {
+	tags := tx.GetTags()
+	jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+	var tagPools []models.BuySwapPoolTag
+	err := json.Unmarshal([]byte(jsonString), &tagPools)
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
+	var mapPoolAddresses = make(map[uint64][]string)
+	for _, p := range tagPools {
+		var mapAddresses = make(map[string]struct{})
+		for _, i := range p.Details.Orders {
+			mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+		}
+		for _, i := range p.Sellers {
+			mapAddresses[helpers.RemovePrefix(i.Seller)] = struct{}{}
+		}
+
+		var list []string
+		for a := range mapAddresses {
+			list = append(list, a)
+		}
+		mapPoolAddresses[p.PoolId] = list
+	}
+
+	return mapPoolAddresses, err
 }
 
 func (s *Service) bigFloatToPipString(f *big.Float) string {
@@ -896,7 +1002,12 @@ func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) er
 
 	s.logger.Info(fmt.Sprintf("Updating pool (%d-%d)", lp.FirstCoinId, lp.SecondCoinId))
 
-	if s.chasingMode {
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		chasingMode = false
+	}
+
+	if chasingMode {
 		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId, height)
 	} else {
 		nodeLp, err = s.nodeApi.SwapPool(lp.FirstCoinId, lp.SecondCoinId)
@@ -955,6 +1066,10 @@ func getConfirmedCoins() []uint64 {
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
 	balanceService *balance.Service, swapService *swap.Service, nodeApi *grpc_client.Client,
 	logger *logrus.Entry) *Service {
+
+	chasingMode := atomic.Value{}
+	chasingMode.Store(false)
+
 	return &Service{
 		Storage:                        repository,
 		addressRepository:              addressRepository,
@@ -963,7 +1078,7 @@ func NewService(repository *Repository, addressRepository *address.Repository, c
 		swapService:                    swapService,
 		nodeApi:                        nodeApi,
 		logger:                         logger,
-		chasingMode:                    false,
+		chasingMode:                    chasingMode,
 		jobUpdateLiquidityPool:         make(chan *api_pb.TransactionResponse, 1),
 		updateAddressPoolChannel:       make(chan []*api_pb.TransactionResponse, 1),
 		jobLiquidityPoolTrades:         make(chan []*models.Transaction, 1),
@@ -983,5 +1098,5 @@ type Service struct {
 	updateAddressPoolChannel       chan []*api_pb.TransactionResponse
 	jobLiquidityPoolTrades         chan []*models.Transaction
 	liquidityPoolTradesSaveChannel chan []*models.LiquidityPoolTrade
-	chasingMode                    bool
+	chasingMode                    atomic.Value
 }

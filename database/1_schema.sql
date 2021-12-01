@@ -116,6 +116,8 @@ CREATE TABLE transactions
 CREATE INDEX transactions_block_id_from_address_id_index ON transactions USING btree (block_id DESC, from_address_id);
 CREATE INDEX transactions_from_address_id_index ON transactions USING btree (from_address_id);
 CREATE INDEX transactions_hash_index ON transactions USING hash (hash);
+CREATE INDEX transactions_tag_order_id_gin_index ON transactions USING gin (tags jsonb_path_ops);
+CREATE INDEX transactions_tag_order_id_index ON transactions USING btree (((tags ->> 'tx.order_id')::int));
 
 CREATE TABLE invalid_transactions
 (
@@ -239,24 +241,12 @@ CREATE TABLE liquidity_pools
     second_coin_volume  numeric(100, 0) NOT NULL,
     liquidity           numeric(100, 0) NOT NULL,
     liquidity_bip       numeric(100, 0),
-    updated_at_block_id integer         not null references blocks (id) on delete cascade,
+    created_at_block_id integer references blocks (id) on delete cascade,
+    updated_at_block_id integer         not null,
     unique (first_coin_id, second_coin_id)
 );
 CREATE INDEX liquidity_pools_first_coin_id_index ON liquidity_pools USING btree (first_coin_id);
 CREATE INDEX liquidity_pools_second_coin_id_index ON liquidity_pools USING btree (second_coin_id);
-
-CREATE TABLE liquidity_pool_snapshots
-(
-    block_id           integer         NOT NULL references blocks (id) on delete cascade,
-    liquidity_pool_id  integer         NOT NULL references liquidity_pools (id) on delete cascade,
-    first_coin_volume  numeric(100, 0) NOT NULL,
-    second_coin_volume numeric(100, 0) NOT NULL,
-    liquidity          numeric(100, 0) NOT NULL,
-    liquidity_bip      numeric(100, 0),
-    created_at         timestamp with time zone DEFAULT current_timestamp
-);
-CREATE INDEX liquidity_pool_snapshots_block_id_index on liquidity_pool_snapshots USING btree (block_id);
-CREATE INDEX liquidity_pool_snapshots_liquidity_pool_id_index on liquidity_pool_snapshots USING btree (liquidity_pool_id);
 
 CREATE TABLE address_liquidity_pools
 (
@@ -299,3 +289,30 @@ CREATE TABLE validator_bans
 );
 CREATE INDEX validator_bans_block_id_index ON validator_bans USING btree (block_id);
 CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (validator_id);
+
+CREATE TABLE orders
+(
+    id                bigint primary key,
+    address_id        bigint          not null references addresses (id) on delete cascade,
+    liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
+    price             numeric(100, 18) NOT NULL,
+    coin_sell_id      bigint          NOT NULL,
+    coin_sell_volume  numeric(100, 0) NOT NULL,
+    coin_buy_id       bigint          NOT NULL,
+    coin_buy_volume   numeric(100, 0) NOT NULL,
+    status            int             not null,
+    created_at_block  bigint          not null
+);
+CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
+CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
+CREATE INDEX orders_status_index ON orders USING btree (liquidity_pool_id);
+CREATE INDEX orders_price_index ON orders USING btree (price);
+
+create table events
+(
+    block_id integer not null references blocks (id) on delete cascade,
+    type     varchar not null,
+    data     jsonb   not null
+);
+CREATE INDEX events_block_id_index ON events USING btree (block_id);
+CREATE INDEX events_type_index ON events USING btree (type);

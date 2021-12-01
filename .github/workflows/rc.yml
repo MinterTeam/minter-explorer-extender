@@ -19,7 +19,11 @@ jobs:
         with:
           path: VERSION
 
-      - name: Build & Push to Docker Hub
+      - name: Get short SHA
+        id: slug
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+
+      - name: Build & Pus h to Docker Hub
         uses: opspresso/action-docker@master
         env:
           USERNAME: ${{ secrets.DOCKER_HUB_USER }}
@@ -29,7 +33,7 @@ jobs:
           LATEST: "true"
           VERSION: "${{ steps.version.outputs.text }}"
           TAG_NAME: ${{ github.sha }}
-          DOCKER_BUILD_ARGS: --build-arg VERSION=${{ steps.version.outputs.text }}
+          DOCKER_BUILD_ARGS: --build-arg VERSION=${{ steps.version.outputs.text }}-${{ steps.slug.outputs.sha8 }}-rc
 
       - name: deploy to production cluster
         uses: wahyd4/kubectl-helm-action@v0.1.2

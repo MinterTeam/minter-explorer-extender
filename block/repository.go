@@ -55,6 +55,10 @@ func (r *Repository) DeleteLastBlockData() error {
 	}
 	// Rollback tx on error.
 	defer tx.Rollback()
+	_, err = tx.Query(nil, `delete from orders where created_at_block >= (select id from blocks order by id desc limit 1);`)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Query(nil, `delete from transaction_outputs where transaction_id IN (select distinct id from transactions where block_id = (select id from blocks order by id desc limit 1));`)
 	if err != nil {
 		return err
