@@ -18,6 +18,7 @@ jobs:
         id: version
         with:
           path: VERSION
+          trim: true
 
       - name: Get short SHA
         id: slug
