@@ -49,21 +49,20 @@ func (s *Service) SaveAddressesWorker(jobs <-chan []string) {
 func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.TransactionResponse) ([]string, error, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{})
 	for _, tx := range transactions {
-		if tx.Log != "" {
-			continue
-		}
 		mapAddresses[helpers.RemovePrefix(tx.From)] = struct{}{}
 		switch transaction.Type(tx.Type) {
 		case transaction.TypeSend:
 			txData := new(api_pb.SendData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				return nil, err, nil
+				s.logger.Error(err)
+				continue
 			}
 			mapAddresses[helpers.RemovePrefix(txData.To)] = struct{}{}
 		case transaction.TypeMultisend:
 			txData := new(api_pb.MultiSendData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				return nil, err, nil
+				s.logger.Error(err)
+				continue
 			}
 			for _, receiver := range txData.List {
 				mapAddresses[helpers.RemovePrefix(receiver.To)] = struct{}{}
@@ -71,7 +70,8 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 		case transaction.TypeCreateMultisig:
 			txData := new(api_pb.CreateMultisigData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				return nil, err, nil
+				s.logger.Error(err)
+				continue
 			}
 			for _, adr := range txData.Addresses {
 				mapAddresses[helpers.RemovePrefix(adr)] = struct{}{}
@@ -79,7 +79,8 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 		case transaction.TypeEditMultisig:
 			txData := new(api_pb.EditMultisigData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				return nil, err, nil
+				s.logger.Error(err)
+				continue
 			}
 			for _, adr := range txData.Addresses {
 				mapAddresses[helpers.RemovePrefix(adr)] = struct{}{}
@@ -87,7 +88,8 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 		case transaction.TypeRedeemCheck:
 			txData := new(api_pb.RedeemCheckData)
 			if err := tx.Data.UnmarshalTo(txData); err != nil {
-				return nil, err, nil
+				s.logger.Error(err)
+				continue
 			}
 
 			data, err := transaction.DecodeCheckBase64(txData.RawCheck)
@@ -96,12 +98,12 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 					"RawCheck": txData.RawCheck,
 					"Tx":       tx.Hash,
 				}).Error(err)
-				return nil, err, nil
+				continue
 			}
 			sender, err := data.Sender()
 			if err != nil {
 				s.logger.Error(err)
-				return nil, err, nil
+				continue
 			}
 			mapAddresses[helpers.RemovePrefix(sender)] = struct{}{}
 
@@ -114,7 +116,7 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			err := json.Unmarshal([]byte(jsonString), &tagPools)
 			if err != nil {
 				s.logger.Error(err)
-				return nil, err, nil
+				continue
 			}
 			for _, p := range tagPools {
 				for _, i := range p.Details.Orders {
