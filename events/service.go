@@ -237,9 +237,6 @@ func (s *Service) GetSaveSlashesJobChannel() chan []*models.Slash {
 
 func (s *Service) SaveRewardsWorker(jobs <-chan []*models.Reward) {
 	for rewards := range jobs {
-		//Temporary disabled
-		continue
-
 		b, err := s.blockRepository.GetById(rewards[0].BlockID)
 		if err != nil {
 			s.logger.Fatal(err)
