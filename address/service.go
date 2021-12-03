@@ -116,7 +116,9 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			err := json.Unmarshal([]byte(jsonString), &tagPools)
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"json": jsonString,
+					"json":  jsonString,
+					"tx":    tx.Hash,
+					"block": tx.Height,
 				}).Error(err)
 				continue
 			}
