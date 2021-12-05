@@ -308,7 +308,18 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 			}
 			err = s.repository.SaveAllStakes(stakes[start:end])
 			if err != nil {
-				s.logger.Fatal(err)
+				var coinsList []string
+				coinMap := make(map[uint]struct{})
+				for _, s := range stakes[start:end] {
+					coinMap[s.CoinID] = struct{}{}
+				}
+				for id, _ := range coinMap {
+					coinsList = append(coinsList, fmt.Sprintf("%d", id))
+				}
+				s.logger.WithFields(logrus.Fields{
+					"coins": strings.Join(coinsList, ","),
+					"block": height,
+				}).Fatal(err)
 			}
 		}
 
