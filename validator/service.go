@@ -227,19 +227,18 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-
 	}
 }
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		chasingMode, ok := s.chasingMode.Load().(bool)
-		if !ok {
-			s.logger.Error("chasing mode setup error")
-			return
+		status, err := s.nodeApi.Status()
+		if err != nil {
+			s.logger.Error(err)
+			continue
 		}
-		if chasingMode {
-			return
+		if status.LatestBlockHeight-uint64(height) > 240 {
+			continue
 		}
 		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
