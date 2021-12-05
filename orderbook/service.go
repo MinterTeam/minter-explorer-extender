@@ -271,7 +271,11 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					var tagPools []models.BuySwapPoolTag
 					err := json.Unmarshal([]byte(jsonString), &tagPools)
 					if err != nil {
-						s.logger.Error(err)
+						s.logger.WithFields(logrus.Fields{
+							"json":  jsonString,
+							"tx":    tx.Hash,
+							"block": tx.Height,
+						}).Error(err)
 					} else {
 						for _, p := range tagPools {
 							for _, tagOrderDetail := range p.Details.Orders {
@@ -284,7 +288,11 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						var tag models.TagCommissionDetails
 						err = json.Unmarshal([]byte(jsonString), &tag)
 						if err != nil {
-							s.logger.Error(err)
+							s.logger.WithFields(logrus.Fields{
+								"json":  jsonString,
+								"tx":    tx.Hash,
+								"block": tx.Height,
+							}).Error(err)
 						} else {
 							for _, orderDetail := range tag.Details.Orders {
 								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
@@ -298,7 +306,11 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						var tag models.TagCommissionDetails
 						err := json.Unmarshal([]byte(jsonString), &tag)
 						if err != nil {
-							s.logger.Error(err)
+							s.logger.WithFields(logrus.Fields{
+								"json":  jsonString,
+								"tx":    tx.Hash,
+								"block": tx.Height,
+							}).Error(err)
 						} else {
 							for _, orderDetail := range tag.Details.Orders {
 								updateOrderMap.Store(fmt.Sprintf("%s", uuid.New()), orderDetail)
