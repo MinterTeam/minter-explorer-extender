@@ -286,6 +286,9 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					if tags["tx.commission_conversion"] == "pool" {
 						jsonString = strings.Replace(tags["tx.commission_details"], `\`, "", -1)
 						var tag models.TagCommissionDetails
+						if jsonString == "" {
+							return
+						}
 						err = json.Unmarshal([]byte(jsonString), &tag)
 						if err != nil {
 							s.logger.WithFields(logrus.Fields{
@@ -303,6 +306,9 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					tags := tx.GetTags()
 					if tags["tx.commission_conversion"] == "pool" {
 						jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
+						if jsonString == "" {
+							return
+						}
 						var tag models.TagCommissionDetails
 						err := json.Unmarshal([]byte(jsonString), &tag)
 						if err != nil {
