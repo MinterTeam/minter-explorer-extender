@@ -287,6 +287,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 						jsonString = strings.Replace(tags["tx.commission_details"], `\`, "", -1)
 						var tag models.TagCommissionDetails
 						if jsonString == "" {
+							wg.Done()
 							return
 						}
 						err = json.Unmarshal([]byte(jsonString), &tag)
@@ -307,6 +308,7 @@ func (s *Service) OrderBookWorker(data <-chan *api_pb.BlockResponse) {
 					if tags["tx.commission_conversion"] == "pool" {
 						jsonString := strings.Replace(tags["tx.commission_details"], `\`, "", -1)
 						if jsonString == "" {
+							wg.Done()
 							return
 						}
 						var tag models.TagCommissionDetails
