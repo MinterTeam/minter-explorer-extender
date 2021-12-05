@@ -112,6 +112,9 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 			transaction.TypeSellAllSwapPool:
 			tags := tx.GetTags()
 			jsonString := strings.Replace(tags["tx.pools"], `\`, "", -1)
+			if jsonString == "" {
+				continue
+			}
 			var tagPools []models.BuySwapPoolTag
 			err := json.Unmarshal([]byte(jsonString), &tagPools)
 			if err != nil {
