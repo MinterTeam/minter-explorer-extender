@@ -93,16 +93,11 @@ var transformConfig = map[uint8]TransformTxConfig{
 	uint8(transaction.TypeVoteUpdate):              {Model: new(api_pb.VoteUpdateData), Resource: data_resources.VoteUpdate{}},
 	uint8(transaction.TypeCreateSwapPool):          {Model: new(api_pb.CreateSwapPoolData), Resource: data_resources.CreateSwapPool{}},
 	uint8(transaction.TypeEditCommissionCandidate): {Model: new(api_pb.EditCandidateCommission), Resource: data_resources.EditCandidateCommission{}},
-	//TODO: enable when api will ready
-	//uint8(transaction.TypeAddLimitOrder):           {Model: new(api_pb.AddLimitOrderData), Resource: data_resources.AddLimitOrderData{}},
-	//uint8(transaction.TypeRemoveLimitOrder):           {Model: new(api_pb.RemoveLimitOrderData), Resource: data_resources.RemoveLimitOrderData{}},
+	uint8(transaction.TypeAddLimitOrder):           {Model: new(api_pb.AddLimitOrderData), Resource: data_resources.AddLimitOrder{}},
+	uint8(transaction.TypeRemoveLimitOrder):        {Model: new(api_pb.RemoveLimitOrderData), Resource: data_resources.RemoveLimitOrder{}},
 }
 
 func TransformTxData(tx models.Transaction) resource.Interface {
-	//TODO: remove when api will ready
-	if tx.Type == 35 || tx.Type == 36 {
-		return nil
-	}
 	config := transformConfig[tx.Type]
 
 	val := reflect.New(reflect.TypeOf(config.Model).Elem()).Interface().(proto.Message)
