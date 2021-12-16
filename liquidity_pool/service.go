@@ -715,6 +715,18 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 		if err != nil {
 			return err
 		}
+	case transaction.TypeAddLimitOrder:
+		txData := new(api_pb.AddLimitOrderData)
+		if err = tx.Data.UnmarshalTo(txData); err != nil {
+			return err
+		}
+		var re = regexp.MustCompile(`(?mi)lp-\d+`)
+		if re.MatchString(txData.CoinToSell.Symbol) {
+			err = s.updateAddressPoolVolumesByLPToken(fromAddressId, tx.From, tx.Height, txData.CoinToSell)
+		}
+		if re.MatchString(txData.CoinToBuy.Symbol) {
+			err = s.updateAddressPoolVolumesByLPToken(fromAddressId, tx.From, tx.Height, txData.CoinToSell)
+		}
 	}
 
 	if len(mapForUpdate) > 0 {
@@ -815,6 +827,37 @@ func (s *Service) updateAddressPoolVolumesByBuySellData(fromAddressId uint, from
 	}
 
 	return s.Storage.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alp})
+}
+
+func (s *Service) updateAddressPoolVolumesByLPToken(fromAddressId uint, from string, height uint64, coin *api_pb.Coin) error {
+	lp, err := s.Storage.getLiquidityPoolByTokenId(coin.Id)
+	if err != nil {
+		return err
+	}
+
+	var nodeALPFrom *api_pb.SwapPoolResponse
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		chasingMode = false
+	}
+	if chasingMode {
+		nodeALPFrom, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from, height)
+	} else {
+		nodeALPFrom, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, from)
+	}
+	if err != nil {
+		return err
+	}
+
+	alpFrom := &models.AddressLiquidityPool{
+		LiquidityPoolId:  lp.Id,
+		AddressId:        uint64(fromAddressId),
+		FirstCoinVolume:  nodeALPFrom.Amount0,
+		SecondCoinVolume: nodeALPFrom.Amount1,
+		Liquidity:        nodeALPFrom.Liquidity,
+	}
+
+	return s.Storage.UpdateAllLiquidityPool([]*models.AddressLiquidityPool{alpFrom})
 }
 
 func (s *Service) updateAddressPoolVolumesBySendData(fromAddressId uint, from string, height uint64, txData *api_pb.SendData) error {
