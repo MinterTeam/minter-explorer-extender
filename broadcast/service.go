@@ -10,12 +10,12 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"math/big"
 	"sync/atomic"
@@ -33,7 +33,7 @@ type Service struct {
 	blockChannel        chan models.Block
 	transactionsChannel chan []*models.Transaction
 	balanceChannel      chan []*models.Balance
-	commissionsChannel  chan api.Event
+	commissionsChannel  chan *api_pb.UpdateCommissionsEvent
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
@@ -52,7 +52,7 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 		ctx:                 context.Background(),
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
-		commissionsChannel:  make(chan api.Event),
+		commissionsChannel:  make(chan *api_pb.UpdateCommissionsEvent),
 		stakeChannel:        make(chan *api_pb.TransactionResponse),
 		balanceChannel:      make(chan []*models.Balance),
 		transactionsChannel: make(chan []*models.Transaction),
@@ -80,7 +80,7 @@ func (s *Service) Manager() {
 	}
 }
 
-func (s *Service) CommissionsChannel() chan api.Event {
+func (s *Service) CommissionsChannel() chan *api_pb.UpdateCommissionsEvent {
 	return s.commissionsChannel
 }
 
@@ -217,9 +217,9 @@ func (s *Service) PublishStatus() {
 	}
 	s.publish(channel, msg)
 }
-func (s *Service) PublishCommissions(data api.Event) {
+func (s *Service) PublishCommissions(data *api_pb.UpdateCommissionsEvent) {
 	channel := `commissions`
-	msg, err := json.Marshal(data)
+	msg, err := protojson.Marshal(data)
 	if err != nil {
 		s.logger.Error(err)
 	}

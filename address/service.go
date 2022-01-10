@@ -5,8 +5,6 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-go-sdk/v2/api"
-	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
@@ -139,36 +137,20 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 	return addresses, nil, mapAddresses
 }
 
-func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse) ([]string, map[string]struct{}) {
+func (s *Service) ExtractAddressesEventsResponse(response *api_pb.BlockResponse) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
 	for _, event := range response.Events {
-		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		eventStruct, err := event.UnmarshalNew()
 		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"any":   event.String(),
+				"block": response.Height,
+			}).Error(err)
 			return nil, mapAddresses
 		}
 
-		if stake, ok := eventStruct.(api.StakeEvent); ok {
-			mapAddresses[helpers.RemovePrefix(stake.GetAddress())] = struct{}{}
-		}
-	}
-
-	for _, event := range response.Events {
-		eventStruct, err := grpc_client.ConvertStructToEvent(event)
-		if err != nil {
-			return nil, mapAddresses
-		}
-
-		switch e := eventStruct.(type) {
-		case *api.RewardEvent:
-			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
-		case *api.SlashEvent:
-			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
-		case *api.StakeKickEvent:
-			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
-		case *api.UnbondEvent:
-			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
-		case *api.OrderExpiredEvent:
-			mapAddresses[helpers.RemovePrefix(e.Address)] = struct{}{}
+		if e, ok := eventStruct.(interface{ GetAddress() string }); ok {
+			mapAddresses[helpers.RemovePrefix(e.GetAddress())] = struct{}{}
 		}
 	}
 
@@ -177,7 +159,7 @@ func (s *Service) ExtractAddressesEventsResponse(response *api_pb.EventsResponse
 }
 
 // SaveAddressesFromResponses Find all addresses in block response and save it
-func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) error {
+func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse) error {
 	var (
 		err                error
 		blockAddressesMap  = make(map[string]struct{})
@@ -190,8 +172,8 @@ func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse
 			return err
 		}
 	}
-	if eventsResponse != nil && len(eventsResponse.Events) > 0 {
-		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(eventsResponse)
+	if len(blockResponse.Events) > 0 {
+		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(blockResponse)
 	}
 	// Merge maps
 	for k, v := range eventsAddressesMap {
