@@ -117,7 +117,7 @@ CREATE INDEX transactions_block_id_from_address_id_index ON transactions USING b
 CREATE INDEX transactions_from_address_id_index ON transactions USING btree (from_address_id);
 CREATE INDEX transactions_hash_index ON transactions USING hash (hash);
 CREATE INDEX transactions_tag_order_id_gin_index ON transactions USING gin (tags jsonb_path_ops);
-CREATE INDEX transactions_tag_order_id_index ON transactions USING btree (((tags ->> 'tx.order_id')::int));
+CREATE INDEX transactions_tag_order_id_index ON transactions USING btree (((tags ->> 'tx.order_id'):: int));
 
 CREATE TABLE invalid_transactions
 (
@@ -293,15 +293,15 @@ CREATE INDEX validator_bans_validator_id_index ON validator_bans USING btree (va
 CREATE TABLE orders
 (
     id                bigint primary key,
-    address_id        bigint          not null references addresses (id) on delete cascade,
-    liquidity_pool_id bigint          not null references liquidity_pools (id) on delete cascade,
+    address_id        bigint           not null references addresses (id) on delete cascade,
+    liquidity_pool_id bigint           not null references liquidity_pools (id) on delete cascade,
     price             numeric(100, 18) NOT NULL,
-    coin_sell_id      bigint          NOT NULL,
-    coin_sell_volume  numeric(100, 0) NOT NULL,
-    coin_buy_id       bigint          NOT NULL,
-    coin_buy_volume   numeric(100, 0) NOT NULL,
-    status            int             not null,
-    created_at_block  bigint          not null
+    coin_sell_id      bigint           NOT NULL,
+    coin_sell_volume  numeric(100, 0)  NOT NULL,
+    coin_buy_id       bigint           NOT NULL,
+    coin_buy_volume   numeric(100, 0)  NOT NULL,
+    status            int              not null,
+    created_at_block  bigint           not null
 );
 CREATE INDEX orders_address_id_index ON orders USING btree (address_id);
 CREATE INDEX orders_liquidity_pool_id_index ON orders USING btree (liquidity_pool_id);
@@ -316,3 +316,12 @@ create table events
 );
 CREATE INDEX events_block_id_index ON events USING btree (block_id);
 CREATE INDEX events_type_index ON events USING btree (type);
+
+create table token_contracts
+(
+    coin_id integer unique not null references coins (id) on delete cascade,
+    eth     varchar,
+    bsc     varchar
+);
+create index token_contracts_coin_id_index on token_contracts using btree (coin_id);
+create index token_contracts_btc_index on token_contracts using btree (bsc);
