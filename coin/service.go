@@ -11,8 +11,8 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
+	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/anypb"
 	"math/big"
 	"strconv"
 	"strings"
@@ -21,6 +21,7 @@ import (
 
 type Service struct {
 	env                   *env.ExtenderEnvironment
+	httpClient            *resty.Client
 	nodeApi               *grpc_client.Client
 	Storage               *Repository
 	addressRepository     *address.Repository
@@ -33,6 +34,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 	addressRepository *address.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		env:                   env,
+		httpClient:            resty.New(),
 		nodeApi:               nodeApi,
 		Storage:               repository,
 		addressRepository:     addressRepository,
@@ -218,86 +220,6 @@ func (s *Service) ExtractFromTx(tx *api_pb.TransactionResponse, blockId uint64) 
 func (s *Service) CreateNewCoins(coins []*models.Coin) error {
 	err := s.Storage.SaveAllNewIfNotExist(coins)
 	return err
-}
-
-func (s *Service) UpdateCoinsInfoFromTxsWorker(jobs <-chan []*models.Transaction) {
-	for transactions := range jobs {
-		coinsMap := make(map[uint64]struct{})
-		// Find coins in transaction for update
-		for _, tx := range transactions {
-
-			coinsMap[tx.GasCoinID] = struct{}{}
-
-			switch transaction.Type(tx.Type) {
-			case transaction.TypeSellCoin:
-				txData := new(api_pb.SellCoinData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[txData.CoinToBuy.Id] = struct{}{}
-				coinsMap[txData.CoinToSell.Id] = struct{}{}
-			case transaction.TypeBuyCoin:
-				txData := new(api_pb.BuyCoinData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[txData.CoinToBuy.Id] = struct{}{}
-				coinsMap[txData.CoinToSell.Id] = struct{}{}
-			case transaction.TypeSellAllCoin:
-				txData := new(api_pb.SellAllCoinData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[txData.CoinToBuy.Id] = struct{}{}
-				coinsMap[txData.CoinToSell.Id] = struct{}{}
-			case transaction.TypeBuySwapPool:
-				txData := new(api_pb.BuySwapPoolData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				for _, c := range txData.Coins {
-					coinsMap[c.Id] = struct{}{}
-				}
-			case transaction.TypeSellSwapPool:
-				txData := new(api_pb.SellSwapPoolData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				for _, c := range txData.Coins {
-					coinsMap[c.Id] = struct{}{}
-				}
-			case transaction.TypeSellAllSwapPool:
-				txData := new(api_pb.SellAllSwapPoolData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				for _, c := range txData.Coins {
-					coinsMap[c.Id] = struct{}{}
-				}
-			case transaction.TypeMintToken:
-				txData := new(api_pb.MintTokenData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[txData.Coin.Id] = struct{}{}
-			case transaction.TypeBurnToken:
-				txData := new(api_pb.BurnTokenData)
-				if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
-					s.logger.Error(err)
-					continue
-				}
-				coinsMap[txData.Coin.Id] = struct{}{}
-			}
-		}
-		s.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsMap
-	}
 }
 
 func (s Service) UpdateCoinsInfoFromCoinsMap(job <-chan map[uint64]struct{}) {

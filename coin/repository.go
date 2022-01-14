@@ -172,7 +172,6 @@ func (r *Repository) GetLastCoinId() (uint, error) {
 }
 
 func (r *Repository) UpdateAll(coins []*models.Coin) error {
-
 	for _, c := range coins {
 		_, err := r.DB.Model(c).WherePK().Update()
 		if err != nil {
@@ -180,4 +179,9 @@ func (r *Repository) UpdateAll(coins []*models.Coin) error {
 		}
 	}
 	return nil
+}
+
+func (r *Repository) SaveTokenContracts(contracts []models.TokenContract) error {
+	_, err := r.DB.Model(&contracts).OnConflict("(coin_id) DO UPDATE").Insert()
+	return err
 }
