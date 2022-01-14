@@ -142,14 +142,14 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-	chasingMode, ok := s.chasingMode.Load().(bool)
-	if !ok {
-		s.logger.Error("chasing mode setup error")
-		return
-	}
-	if chasingMode {
-		return
-	}
+	//chasingMode, ok := s.chasingMode.Load().(bool)
+	//if !ok {
+	//	s.logger.Error("chasing mode setup error")
+	//	return
+	//}
+	//if chasingMode {
+	//	return
+	//}
 	defer func() {
 		if err := recover(); err != nil {
 			var list []models.Balance
