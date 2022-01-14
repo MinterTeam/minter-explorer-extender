@@ -12,6 +12,7 @@ require (
 	github.com/centrifugal/gocent v2.1.0+incompatible
 	//github.com/centrifugal/gocent/v3 v3.0.0
 	github.com/go-pg/pg/v10 v10.9.3
+	github.com/go-resty/resty/v2 v2.3.0
 	github.com/golang/protobuf v1.5.2
 	github.com/joho/godotenv v1.3.0
 	github.com/pborman/uuid v1.2.0
