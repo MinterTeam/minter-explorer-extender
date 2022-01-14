@@ -150,15 +150,15 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 	//if chasingMode {
 	//	return
 	//}
-	defer func() {
-		if err := recover(); err != nil {
-			var list []models.Balance
-			for _, b := range balances {
-				list = append(list, *b)
-			}
-			s.logger.WithField("balances", list).Error(err)
-		}
-	}()
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		var list []models.Balance
+	//		for _, b := range balances {
+	//			list = append(list, *b)
+	//		}
+	//		s.logger.WithField("balances", list).Error(err)
+	//	}
+	//}()
 
 	var mapBalances = make(map[uint][]interface{})
 
