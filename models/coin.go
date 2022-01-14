@@ -32,7 +32,7 @@ type Coin struct {
 	UpdatedAt        *time.Time     `json:"updated_at"`
 	DeletedAt        *time.Time     `pg:",soft_delete"`
 	OwnerAddress     Address        `pg:"rel:has-one"`
-	Contracts        *TokenContract `pg:"rel:has-one"`
+	Contracts        *TokenContract `pg:"fk:coin_id"`
 }
 
 // Return coin with version
