@@ -16,7 +16,7 @@ type TokenInfo struct {
 }
 
 type TokenContract struct {
-	CoinId uint64 `json:"coin_id" pg:",pk"`
+	CoinId uint64 `json:"coin_id" pg:",pk,use_zero"`
 	Eth    string `json:"eth"`
 	Bsc    string `json:"bsc"`
 }
