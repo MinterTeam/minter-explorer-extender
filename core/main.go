@@ -375,6 +375,7 @@ func (ext *Extender) runWorkers() {
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
 	go ext.coinService.UpdateCoinsInfoFromCoinsMap(ext.coinService.GetUpdateCoinsFromCoinsMapJobChannel())
+	go ext.coinService.UpdateHubInfoWorker()
 
 	//Wait List
 	go ext.validatorService.UpdateWaitListWorker(ext.validatorService.GetUpdateWaitListJobChannel())
