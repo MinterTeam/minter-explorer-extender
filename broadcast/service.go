@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/MinterTeam/minter-explorer-api/v2/balance"
 	"github.com/MinterTeam/minter-explorer-api/v2/blocks"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -177,7 +176,7 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 		mBalance := *item
 		mBalance.Address = &models.Address{Address: adr}
 		mBalance.Coin = c
-		res := new(balance.Resource).Transform(mBalance)
+		res := new(BalanceResource).Transform(mBalance)
 		mapBalances[item.AddressID] = append(mapBalances[item.AddressID], res)
 	}
 

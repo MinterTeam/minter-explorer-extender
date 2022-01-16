@@ -12,6 +12,11 @@ import (
 
 func (s *Service) UpdateHubInfoWorker() {
 	for {
+		//Check if testnet
+		if s.env.BaseCoin == "MNT" {
+			continue
+		}
+
 		hubResponse := new(models.HubCoinsInfoResponse)
 		resp, err := s.httpClient.R().
 			SetResult(&hubResponse).
