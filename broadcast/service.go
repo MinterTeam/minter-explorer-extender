@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/MinterTeam/minter-explorer-api/v2/balance"
 	"github.com/MinterTeam/minter-explorer-api/v2/blocks"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -142,23 +141,23 @@ func (s *Service) PublishTransactions(transactions []*models.Transaction) {
 }
 
 func (s *Service) PublishBalances(balances []*models.Balance) {
-	//chasingMode, ok := s.chasingMode.Load().(bool)
-	//if !ok {
-	//	s.logger.Error("chasing mode setup error")
-	//	return
-	//}
-	//if chasingMode {
-	//	return
-	//}
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		var list []models.Balance
-	//		for _, b := range balances {
-	//			list = append(list, *b)
-	//		}
-	//		s.logger.WithField("balances", list).Error(err)
-	//	}
-	//}()
+	chasingMode, ok := s.chasingMode.Load().(bool)
+	if !ok {
+		s.logger.Error("chasing mode setup error")
+		return
+	}
+	if chasingMode {
+		return
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			var list []models.Balance
+			for _, b := range balances {
+				list = append(list, *b)
+			}
+			s.logger.WithField("balances", list).Error(err)
+		}
+	}()
 
 	var mapBalances = make(map[uint][]interface{})
 
@@ -177,7 +176,7 @@ func (s *Service) PublishBalances(balances []*models.Balance) {
 		mBalance := *item
 		mBalance.Address = &models.Address{Address: adr}
 		mBalance.Coin = c
-		res := new(balance.Resource).Transform(mBalance)
+		res := new(BalanceResource).Transform(mBalance)
 		mapBalances[item.AddressID] = append(mapBalances[item.AddressID], res)
 	}
 
