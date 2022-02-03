@@ -279,7 +279,7 @@ func (ext *Extender) Run() {
 
 		//Pulling block data
 		countStart := time.Now()
-		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
+		blockResponse, err := ext.nodeApi.BlockExtended(height, true, true)
 		if err != nil {
 			grpcErr, ok := status.FromError(err)
 			if !ok {
@@ -298,18 +298,13 @@ func (ext *Extender) Run() {
 
 		//Pulling events
 		countStart = time.Now()
-		eventsResponse, err := ext.nodeApi.Events(height)
-		if err != nil {
-			ext.log.Panic(err)
-		}
-		eet.GettingEvents = time.Since(countStart)
 
 		countStart = time.Now()
 		ext.handleCoinsFromTransactions(blockResponse)
 		eet.HandleCoinsFromTransactions = time.Since(countStart)
 
 		countStart = time.Now()
-		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
+		ext.handleAddressesFromResponses(blockResponse)
 		eet.HandleAddressesFromResponses = time.Since(countStart)
 
 		countStart = time.Now()
@@ -318,10 +313,9 @@ func (ext *Extender) Run() {
 
 		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
 			Block: blockResponse,
-			Event: eventsResponse,
 		}
 
-		go ext.handleEventResponse(height, eventsResponse)
+		go ext.handleEventResponse(height, blockResponse)
 
 		if len(blockResponse.Transactions) > 0 {
 			ext.lpWorkerChannel <- blockResponse
@@ -399,8 +393,8 @@ func (ext *Extender) runWorkers() {
 	go ext.broadcastService.Manager()
 }
 
-func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
-	err := ext.addressService.SaveAddressesFromResponses(blockResponse, eventsResponse)
+func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse) {
+	err := ext.addressService.SaveAddressesFromResponses(blockResponse)
 	if err != nil {
 		ext.log.Panic(err)
 	}
@@ -463,7 +457,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 	}
 }
 
-func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.EventsResponse) {
+func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.BlockResponse) {
 	if len(response.Events) > 0 {
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response)
