@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
+	genesisEnv "github.com/MinterTeam/explorer-genesis-uploader/env"
 	"github.com/MinterTeam/explorer-sdk/swap"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
@@ -163,7 +164,22 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	db := pg.Connect(pgOptions)
 	//db.AddQueryHook(hookImpl)
 
-	uploader := genesisUploader.New()
+	uploader := genesisUploader.New(genesisEnv.Config{
+		Debug:              false,
+		PostgresHost:       env.DbHost,
+		PostgresPort:       env.DbPort,
+		PostgresDB:         env.DbName,
+		PostgresUser:       env.DbUser,
+		PostgresPassword:   env.DbPassword,
+		PostgresSSLEnabled: os.Getenv("POSTGRES_SSL_ENABLED") == "true",
+		MinterBaseCoin:     env.BaseCoin,
+		NodeGrpc:           env.NodeApi,
+		AddressChunkSize:   uint64(env.AddrChunkSize),
+		CoinsChunkSize:     1000,
+		BalanceChunkSize:   10000,
+		StakeChunkSize:     uint64(env.StakeChunkSize),
+		ValidatorChunkSize: uint64(env.StakeChunkSize),
+	})
 	err := uploader.Do()
 	if err != nil {
 		logger.Warn(err)
@@ -311,9 +327,7 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
-			Block: blockResponse,
-		}
+		ext.balanceService.UpdateChannel() <- blockResponse
 
 		go ext.handleEventResponse(height, blockResponse)
 

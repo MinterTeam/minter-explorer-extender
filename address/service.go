@@ -8,6 +8,7 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"strings"
 	"sync"
@@ -137,14 +138,14 @@ func (s *Service) ExtractAddressesFromTransactions(transactions []*api_pb.Transa
 	return addresses, nil, mapAddresses
 }
 
-func (s *Service) ExtractAddressesEventsResponse(response *api_pb.BlockResponse) ([]string, map[string]struct{}) {
+func (s *Service) ExtractAddressesEventsResponse(height uint64, response []*anypb.Any) ([]string, map[string]struct{}) {
 	var mapAddresses = make(map[string]struct{}) //use as unique array
-	for _, event := range response.Events {
+	for _, event := range response {
 		eventStruct, err := event.UnmarshalNew()
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
 				"any":   event.String(),
-				"block": response.Height,
+				"block": height,
 			}).Error(err)
 			return nil, mapAddresses
 		}
@@ -173,7 +174,7 @@ func (s *Service) SaveAddressesFromResponses(blockResponse *api_pb.BlockResponse
 		}
 	}
 	if len(blockResponse.Events) > 0 {
-		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(blockResponse)
+		_, eventsAddressesMap = s.ExtractAddressesEventsResponse(blockResponse.Height, blockResponse.Events)
 	}
 	// Merge maps
 	for k, v := range eventsAddressesMap {
