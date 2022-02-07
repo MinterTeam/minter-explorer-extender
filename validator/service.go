@@ -325,6 +325,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = uint64(stake.ID)
+			err = s.UpdateWaitListByStake(stake)
 		}
 		err = s.repository.DeleteStakesNotInListIds(stakesId)
 		if err != nil {
@@ -515,4 +516,43 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	return s.repository.DeleteFromWaitList(addressId, vId, existCoins)
+}
+
+func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
+	var data *api_pb.WaitListResponse
+
+	adr, err := s.addressRepository.FindById(stake.OwnerAddressID)
+	if err != nil {
+		return err
+	}
+
+	pk, err := s.repository.GetById(stake.ValidatorID)
+	if err != nil {
+		return err
+	}
+
+	data, err = s.nodeApi.WaitList(pk.GetPublicKey(), fmt.Sprintf("Mx%s", adr))
+	if err != nil {
+		return err
+	}
+
+	var existCoins []uint64
+	var stakes []*models.Stake
+
+	for _, item := range data.List {
+		existCoins = append(existCoins, item.Coin.Id)
+		stakes = append(stakes, &models.Stake{
+			OwnerAddressID: stake.OwnerAddressID,
+			CoinID:         uint(item.Coin.Id),
+			ValidatorID:    stake.ValidatorID,
+			Value:          item.Value,
+			IsKicked:       true,
+			BipValue:       "0",
+		})
+	}
+	err = s.repository.UpdateStakes(stakes)
+	if err != nil {
+		s.logger.Error(err)
+	}
+	return s.repository.DeleteFromWaitList(stake.OwnerAddressID, stake.ValidatorID, existCoins)
 }
