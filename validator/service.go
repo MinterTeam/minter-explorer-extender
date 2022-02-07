@@ -315,7 +315,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 				for _, s := range stakes[start:end] {
 					coinMap[s.CoinID] = struct{}{}
 				}
-				for id, _ := range coinMap {
+				for id := range coinMap {
 					coinsList = append(coinsList, fmt.Sprintf("%d", id))
 				}
 				s.logger.WithFields(logrus.Fields{
@@ -553,9 +553,13 @@ func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
 			BipValue:       "0",
 		})
 	}
-	err = s.repository.UpdateStakes(stakes)
-	if err != nil {
-		s.logger.Error(err)
+
+	if len(stakes) > 0 {
+		err = s.repository.UpdateStakes(stakes)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		return s.repository.DeleteFromWaitList(stake.OwnerAddressID, stake.ValidatorID, existCoins)
 	}
-	return s.repository.DeleteFromWaitList(stake.OwnerAddressID, stake.ValidatorID, existCoins)
+	return nil
 }
