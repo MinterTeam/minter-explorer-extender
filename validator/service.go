@@ -232,15 +232,13 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 	for height := range jobs {
-		if s.env.BaseCoin != "MNT" {
-			status, err := s.nodeApi.Status()
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			if status.LatestBlockHeight-uint64(height) > 240 {
-				continue
-			}
+		status, err := s.nodeApi.Status()
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		if status.LatestBlockHeight-uint64(height) > 240 {
+			continue
 		}
 
 		start := time.Now()
