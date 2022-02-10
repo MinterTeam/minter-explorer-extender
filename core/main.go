@@ -291,7 +291,7 @@ func (ext *Extender) Run() {
 		}
 
 		start := time.Now()
-		ext.findOutChasingMode(height)
+		//ext.findOutChasingMode(height)
 
 		//Pulling block data
 		countStart := time.Now()
