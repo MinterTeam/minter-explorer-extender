@@ -33,12 +33,7 @@ type Service struct {
 	jobUpdateStakes     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
-	chasingMode         atomic.Value
 	logger              *logrus.Entry
-}
-
-func (s *Service) SetChasingMode(val bool) {
-	s.chasingMode.Store(val)
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
@@ -52,7 +47,6 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		logger:              logger,
-		chasingMode:         chasingMode,
 		jobUpdateValidators: make(chan uint64, 1),
 		jobUpdateStakes:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
@@ -241,7 +235,6 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		s.logger.Warning("UPDATING STAKES")
 		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
@@ -251,6 +244,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		if status.LatestBlockHeight-height > updateTimoutInBlocks {
 			continue
 		}
+		s.logger.Warning("UPDATING STAKES")
 
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
@@ -347,7 +341,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		}
 
 		elapsed := time.Since(start)
-		s.logger.Info(fmt.Sprintf("Block: %d Stake has been updated. Processing time: %s", height, elapsed))
+		s.logger.Warning(fmt.Sprintf("Stake has been updated. Block: %d Processing time: %s", height, elapsed))
 	}
 }
 
