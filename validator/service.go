@@ -241,6 +241,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
+		s.logger.Warning("UPDATING STAKES")
 		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
