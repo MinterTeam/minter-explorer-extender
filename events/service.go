@@ -159,7 +159,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 
 			err = s.validatorRepository.UpdateStake(stk)
 			if err != nil {
-				s.logger.Error(err)
+				s.logger.WithField("stake", stk).Error(err)
 			}
 		case *api_pb.UnbondEvent:
 			continue
