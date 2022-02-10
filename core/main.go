@@ -336,8 +336,8 @@ func (ext *Extender) Run() {
 			ext.orderBookChannel <- blockResponse
 		}
 
-		ext.validatorService.GetUpdateStakesJobChannel() <- height
-		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+		//ext.validatorService.GetUpdateStakesJobChannel() <- height
+		//ext.validatorService.GetUpdateValidatorsJobChannel() <- height
 
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
