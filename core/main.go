@@ -336,6 +336,9 @@ func (ext *Extender) Run() {
 			ext.orderBookChannel <- blockResponse
 		}
 
+		ext.validatorService.GetUpdateStakesJobChannel() <- height
+		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(height)
+
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
 
@@ -434,12 +437,6 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 		ext.handleTransactions(response)
 	}
 
-	// No need to update candidate and stakes at the same time
-	// Candidate will be updated in the next iteration
-	if response.Height%120 == 0 {
-		ext.validatorService.GetUpdateStakesJobChannel() <- int(response.Height)
-		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(response.Height)
-	}
 }
 
 func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {

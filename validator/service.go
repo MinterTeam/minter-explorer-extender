@@ -27,7 +27,7 @@ type Service struct {
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
 	jobUpdateValidators chan int
-	jobUpdateStakes     chan int
+	jobUpdateStakes     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
 	chasingMode         atomic.Value
@@ -51,7 +51,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		logger:              logger,
 		chasingMode:         chasingMode,
 		jobUpdateValidators: make(chan int, 1),
-		jobUpdateStakes:     make(chan int, 1),
+		jobUpdateStakes:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 		jobUnbondSaver:      make(chan *models.Transaction, 1),
 	}
@@ -61,7 +61,7 @@ func (s *Service) GetUpdateValidatorsJobChannel() chan int {
 	return s.jobUpdateValidators
 }
 
-func (s *Service) GetUpdateStakesJobChannel() chan int {
+func (s *Service) GetUpdateStakesJobChannel() chan uint64 {
 	return s.jobUpdateStakes
 }
 func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
@@ -230,16 +230,17 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	}
 }
 
-func (s *Service) UpdateStakesWorker(jobs <-chan int) {
+func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		status, err := s.nodeApi.Status()
-		if err != nil {
-			s.logger.Error(err)
-			continue
-		}
-		if status.LatestBlockHeight-uint64(height) > 240 {
-			continue
-		}
+		//TODO: enable in prod
+		//status, err := s.nodeApi.Status()
+		//if err != nil {
+		//	s.logger.Error(err)
+		//	continue
+		//}
+		//if status.LatestBlockHeight-height > 240 {
+		//	continue
+		//}
 
 		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
