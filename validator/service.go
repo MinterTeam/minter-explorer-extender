@@ -238,7 +238,6 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
 		if s.isStakesUpdating {
-			s.logger.Warning("Stakes already updating")
 			continue
 		}
 		start := time.Now()
