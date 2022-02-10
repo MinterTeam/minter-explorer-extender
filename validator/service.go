@@ -18,7 +18,10 @@ import (
 	"time"
 )
 
-const UnbondBlockCount = 518400
+const (
+	UnbondBlockCount     = 518400
+	updateTimoutInBlocks = 240
+)
 
 type Service struct {
 	env                 *env.ExtenderEnvironment
@@ -26,7 +29,7 @@ type Service struct {
 	repository          *Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
-	jobUpdateValidators chan int
+	jobUpdateValidators chan uint64
 	jobUpdateStakes     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
@@ -50,14 +53,14 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		coinRepository:      coinRepository,
 		logger:              logger,
 		chasingMode:         chasingMode,
-		jobUpdateValidators: make(chan int, 1),
+		jobUpdateValidators: make(chan uint64, 1),
 		jobUpdateStakes:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 		jobUnbondSaver:      make(chan *models.Transaction, 1),
 	}
 }
 
-func (s *Service) GetUpdateValidatorsJobChannel() chan int {
+func (s *Service) GetUpdateValidatorsJobChannel() chan uint64 {
 	return s.jobUpdateValidators
 }
 
@@ -142,11 +145,17 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 	}
 }
 
-func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
+func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		//if s.chasingMode {
-		//	continue
-		//}
+		status, err := s.nodeApi.Status()
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		if status.LatestBlockHeight-height > updateTimoutInBlocks {
+			continue
+		}
+
 		start := time.Now()
 		resp, err := s.nodeApi.Candidates(false)
 		if err != nil {
@@ -237,7 +246,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-height > 240 {
+		if status.LatestBlockHeight-height > updateTimoutInBlocks {
 			continue
 		}
 
