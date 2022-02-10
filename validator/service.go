@@ -247,7 +247,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-height > updateTimoutInBlocks {
+		if status.LatestBlockHeight-height < updateTimoutInBlocks {
 			continue
 		}
 
