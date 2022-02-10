@@ -313,16 +313,18 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			}
 		}
 
-		wg := new(sync.WaitGroup)
-
 		chunksCount := int(math.Ceil(float64(len(stakes)) / float64(s.env.StakeChunkSize)))
+
+		wg := new(sync.WaitGroup)
+		wg.Add(chunksCount)
+
 		for i := 0; i < chunksCount; i++ {
 			start := s.env.StakeChunkSize * i
 			end := start + s.env.StakeChunkSize
 			if end > len(stakes) {
 				end = len(stakes)
 			}
-			wg.Add(1)
+
 			go func(stakes []*models.Stake) {
 				err = s.repository.SaveAllStakes(stakes)
 				if err != nil {
@@ -344,7 +346,6 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		}
 
 		wg.Wait()
-
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = uint64(stake.ID)
