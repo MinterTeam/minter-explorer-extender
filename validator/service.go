@@ -232,15 +232,14 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		//TODO: enable in prod
-		//status, err := s.nodeApi.Status()
-		//if err != nil {
-		//	s.logger.Error(err)
-		//	continue
-		//}
-		//if status.LatestBlockHeight-height > 240 {
-		//	continue
-		//}
+		status, err := s.nodeApi.Status()
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		if status.LatestBlockHeight-height > 240 {
+			continue
+		}
 
 		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
