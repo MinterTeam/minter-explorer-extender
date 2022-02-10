@@ -152,7 +152,6 @@ func (r *Repository) DeleteStakesNotInListIds(idList []uint64) error {
 	if len(idList) > 0 {
 		_, err := r.db.Query(nil, `delete from stakes where id not in (?) and is_kicked != true;`, pg.In(idList))
 		return err
-
 	}
 	return nil
 }

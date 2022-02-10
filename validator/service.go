@@ -254,6 +254,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
+			continue
 		}
 
 		var (
@@ -276,11 +277,13 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		err = s.repository.SaveAllIfNotExist(validatorsPkMap)
 		if err != nil {
 			s.logger.Error(err)
+			continue
 		}
 
 		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
 		if err != nil {
 			s.logger.Error(err)
+			continue
 		}
 
 		for i, vlr := range resp.Candidates {
@@ -327,6 +330,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 					"coins": strings.Join(coinsList, ","),
 					"block": height,
 				}).Fatal(err)
+				continue
 			}
 		}
 
@@ -335,6 +339,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			stakesId[i] = uint64(stake.ID)
 			err = s.UpdateWaitListByStake(stake)
 		}
+
 		err = s.repository.DeleteStakesNotInListIds(stakesId)
 		if err != nil {
 			s.logger.Error(err)
