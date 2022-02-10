@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -312,6 +313,8 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			}
 		}
 
+		wg := new(sync.WaitGroup)
+
 		chunksCount := int(math.Ceil(float64(len(stakes)) / float64(s.env.StakeChunkSize)))
 		for i := 0; i < chunksCount; i++ {
 			start := s.env.StakeChunkSize * i
@@ -319,28 +322,33 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			if end > len(stakes) {
 				end = len(stakes)
 			}
-			err = s.repository.SaveAllStakes(stakes[start:end])
-			if err != nil {
-				var coinsList []string
-				coinMap := make(map[uint]struct{})
-				for _, s := range stakes[start:end] {
-					coinMap[s.CoinID] = struct{}{}
+			wg.Add(1)
+			go func(stakes []*models.Stake) {
+				err = s.repository.SaveAllStakes(stakes)
+				if err != nil {
+					var coinsList []string
+					coinMap := make(map[uint]struct{})
+					for _, s := range stakes[start:end] {
+						coinMap[s.CoinID] = struct{}{}
+					}
+					for id := range coinMap {
+						coinsList = append(coinsList, fmt.Sprintf("%d", id))
+					}
+					s.logger.WithFields(logrus.Fields{
+						"coins": strings.Join(coinsList, ","),
+						"block": height,
+					}).Fatal(err)
 				}
-				for id := range coinMap {
-					coinsList = append(coinsList, fmt.Sprintf("%d", id))
-				}
-				s.logger.WithFields(logrus.Fields{
-					"coins": strings.Join(coinsList, ","),
-					"block": height,
-				}).Fatal(err)
-				continue
-			}
+				wg.Done()
+			}(stakes[start:end])
 		}
+
+		wg.Wait()
 
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = uint64(stake.ID)
-			err = s.UpdateWaitListByStake(stake)
+			//err = s.UpdateWaitListByStake(stake)
 		}
 
 		err = s.repository.DeleteStakesNotInListIds(stakesId)
