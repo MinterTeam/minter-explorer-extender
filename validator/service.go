@@ -349,6 +349,7 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 
+		s.isStakesUpdating = false
 		elapsed := time.Since(start)
 		s.logger.Warning(fmt.Sprintf("Stake has been updated. Block: %d Processing time: %s", height, elapsed))
 	}
