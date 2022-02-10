@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -141,16 +140,11 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				s.logger.Error(err)
 				continue
 			}
-			cid, err := strconv.ParseUint(e.Amount, 10, 64)
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
 
-			coinsForUpdateMap[cid] = struct{}{}
+			coinsForUpdateMap[e.Coin] = struct{}{}
 			stk := &models.Stake{
 				OwnerAddressID: addressId,
-				CoinID:         uint(cid),
+				CoinID:         uint(e.Coin),
 				ValidatorID:    vId,
 				Value:          e.Amount,
 				IsKicked:       true,

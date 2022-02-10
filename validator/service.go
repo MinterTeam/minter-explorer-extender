@@ -241,6 +241,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
+		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
 			s.logger.Error(err)
@@ -250,13 +251,10 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			continue
 		}
 
-		start := time.Now()
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
 		}
-		elapsed := time.Since(start)
-		s.logger.Info(fmt.Sprintf("Block: %d Candidate's (stakes) data getting time: %s", height, elapsed))
 
 		var (
 			stakes       []*models.Stake
@@ -341,6 +339,9 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		if err != nil {
 			s.logger.Error(err)
 		}
+
+		elapsed := time.Since(start)
+		s.logger.Info(fmt.Sprintf("Block: %d Stake has been updated. Processing time: %s", height, elapsed))
 	}
 }
 
