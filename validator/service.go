@@ -21,7 +21,8 @@ import (
 
 const (
 	UnbondBlockCount     = 518400
-	updateTimoutInBlocks = 240
+	UpdateTimoutInBlocks = 240
+	ChasingModDiff       = 121
 )
 
 type Service struct {
@@ -147,7 +148,11 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-height > updateTimoutInBlocks {
+		if status.LatestBlockHeight-height > UpdateTimoutInBlocks {
+			continue
+		}
+
+		if height%UpdateTimoutInBlocks != 0 {
 			continue
 		}
 
@@ -242,7 +247,12 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-height < updateTimoutInBlocks {
+
+		if status.LatestBlockHeight-height > ChasingModDiff {
+			continue
+		}
+
+		if height%UpdateTimoutInBlocks != 0 {
 			continue
 		}
 
