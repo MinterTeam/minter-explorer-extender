@@ -35,7 +35,6 @@ type Service struct {
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
 	logger              *logrus.Entry
-	isStakesUpdating    bool
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
@@ -49,7 +48,6 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		logger:              logger,
-		isStakesUpdating:    false,
 		jobUpdateValidators: make(chan uint64, 1),
 		jobUpdateStakes:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
@@ -238,9 +236,6 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 
 func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		if s.isStakesUpdating {
-			continue
-		}
 		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
@@ -250,8 +245,6 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 		if status.LatestBlockHeight-height < updateTimoutInBlocks {
 			continue
 		}
-
-		s.isStakesUpdating = true
 
 		s.logger.Warning("UPDATING STAKES")
 
@@ -357,7 +350,6 @@ func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 		}
 
-		s.isStakesUpdating = false
 		elapsed := time.Since(start)
 		s.logger.Warning(fmt.Sprintf("Stake has been updated. Block: %d Processing time: %s", height, elapsed))
 	}
