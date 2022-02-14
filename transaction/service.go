@@ -437,6 +437,14 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, block
 		return nil, err
 	}
 
+	txTags := tx.GetTags()
+
+	rawTxData := make([]byte, hex.DecodedLen(len(tx.RawTx)))
+	rawTx, err := hex.Decode(rawTxData, []byte(tx.RawTx))
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.InvalidTransaction{
 		FromAddressID: uint64(fromId),
 		BlockID:       blockHeight,
@@ -445,6 +453,15 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, block
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(txDataJson),
 		Log:           tx.Log,
+		Nonce:         tx.Nonce,
+		GasPrice:      tx.GasPrice,
+		Gas:           tx.Gas,
+		Commission:    txTags["tx.commission_in_base_coin"],
+		GasCoinID:     tx.GasCoin.Id,
+		ServiceData:   string(tx.ServiceData),
+		Tags:          txTags,
+		Payload:       tx.Payload,
+		RawTx:         rawTxData[:rawTx],
 	}, nil
 }
 
