@@ -185,3 +185,18 @@ func (r *Repository) SaveTokenContracts(contracts []models.TokenContract) error 
 	_, err := r.DB.Model(&contracts).OnConflict("(coin_id) DO UPDATE").Insert()
 	return err
 }
+
+func (r *Repository) GetConfirmedCoinsId() ([]uint64, error) {
+	var coins []models.TokenContract
+	err := r.DB.Model(&coins).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []uint64
+	for _, c := range coins {
+		result = append(result, c.CoinId)
+	}
+
+	return result, err
+}

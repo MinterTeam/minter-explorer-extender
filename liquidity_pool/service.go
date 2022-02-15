@@ -541,8 +541,14 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 		return nil, err
 	}
 
+	confirmedCoinsId, err := s.coinService.Storage.GetConfirmedCoinsId()
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
 	if len(lpList) > 0 {
-		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp, getConfirmedCoins())
+		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp, confirmedCoinsId)
 		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
 		lp.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 	} else {
@@ -1088,11 +1094,18 @@ func (s *Service) updateLiquidityPool(height uint64, lp models.LiquidityPool) er
 func (s *Service) updatePoolsBipLiquidity(lps []models.LiquidityPool) {
 	pools, err := s.Storage.GetAll()
 	if err != nil {
-		s.logger.Error()
+		s.logger.Error(err)
 		return
 	}
+
+	confirmedCoinsId, err := s.coinService.Storage.GetConfirmedCoinsId()
+	if err != nil {
+		s.logger.Error(err)
+		return
+	}
+
 	for _, p := range lps {
-		liquidityBip := s.swapService.GetPoolLiquidity(pools, p, getConfirmedCoins())
+		liquidityBip := s.swapService.GetPoolLiquidity(pools, p, confirmedCoinsId)
 		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", p.Id, liquidityBip.Text('f', 18)))
 		p.LiquidityBip = s.bigFloatToPipString(liquidityBip)
 		err = s.Storage.UpdateLiquidityPool(&p)
@@ -1100,10 +1113,6 @@ func (s *Service) updatePoolsBipLiquidity(lps []models.LiquidityPool) {
 			s.logger.Error(err)
 		}
 	}
-}
-
-func getConfirmedCoins() []uint64 {
-	return []uint64{0, 1902, 1942, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2024, 2064, 2065, 2598}
 }
 
 func NewService(repository *Repository, addressRepository *address.Repository, coinService *coin.Service,
