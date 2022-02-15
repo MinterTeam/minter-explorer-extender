@@ -547,11 +547,6 @@ func (s *Service) addToPool(height, firstCoinId, secondCoinId uint64, txFrom str
 		return nil, err
 	}
 
-	if len(confirmedCoinsId) == 0 {
-		s.logger.Error("no confirmed coins")
-		return nil, err
-	}
-
 	if len(lpList) > 0 {
 		liquidityBip := s.swapService.GetPoolLiquidity(lpList, *lp, confirmedCoinsId)
 		s.logger.Info(fmt.Sprintf("Pool %d Liquidity Bip: %s", lp.Id, liquidityBip.Text('f', 18)))
@@ -1106,11 +1101,6 @@ func (s *Service) updatePoolsBipLiquidity(lps []models.LiquidityPool) {
 	confirmedCoinsId, err := s.coinService.Storage.GetConfirmedCoinsId()
 	if err != nil {
 		s.logger.Error(err)
-		return
-	}
-
-	if len(confirmedCoinsId) == 0 {
-		s.logger.Error("no confirmed coins")
 		return
 	}
 
