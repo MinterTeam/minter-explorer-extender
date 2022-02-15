@@ -198,9 +198,14 @@ func (r *Repository) UpdateStakes(list []*models.Stake) error {
 	return err
 }
 
+func (r *Repository) UpdateWLStakes(list []*models.WLStake) error {
+	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	return err
+}
+
 func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uint64) error {
 	_, err := r.db.Model().Exec(`
-		UPDATE stakes SET is_kicked = false
+		DELETE FROM wait_list
 		WHERE owner_address_id = ? AND validator_id = ? AND coin_id NOT IN (?);
 	`, addressId, validatorId, pg.In(coins))
 	return err
@@ -208,7 +213,7 @@ func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uin
 
 func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	_, err := r.db.Model().Exec(`
-		UPDATE stakes SET is_kicked = false
+		DELETE FROM wait_list
 		WHERE owner_address_id = ? AND validator_id = ?;
 	`, addressId, validatorId)
 	return err

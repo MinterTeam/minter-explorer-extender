@@ -239,8 +239,8 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 	}
 }
 
-func (s *Service) UpdateStakesWorker(jobs <-chan uint64) {
-	for height := range jobs {
+func (s *Service) UpdateStakesWorker(blockHeight <-chan uint64) {
+	for height := range blockHeight {
 		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
@@ -531,21 +531,20 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	var existCoins []uint64
-	var stakes []*models.Stake
+	var stakes []*models.WLStake
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
-		stakes = append(stakes, &models.Stake{
+		stakes = append(stakes, &models.WLStake{
 			OwnerAddressID: addressId,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    vId,
 			Value:          item.Value,
-			IsKicked:       true,
 			BipValue:       "0",
 		})
 	}
 
-	err = s.repository.UpdateStakes(stakes)
+	err = s.repository.UpdateWLStakes(stakes)
 	if err != nil {
 		s.logger.Error(err)
 	}
@@ -572,22 +571,21 @@ func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
 	}
 
 	var existCoins []uint64
-	var stakes []*models.Stake
+	var stakes []*models.WLStake
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
-		stakes = append(stakes, &models.Stake{
+		stakes = append(stakes, &models.WLStake{
 			OwnerAddressID: stake.OwnerAddressID,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    stake.ValidatorID,
 			Value:          item.Value,
-			IsKicked:       true,
 			BipValue:       "0",
 		})
 	}
 
 	if len(stakes) > 0 {
-		err = s.repository.UpdateStakes(stakes)
+		err = s.repository.UpdateWLStakes(stakes)
 		if err != nil {
 			s.logger.Error(err)
 		}
