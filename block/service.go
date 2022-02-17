@@ -49,12 +49,17 @@ func (s *Service) HandleBlockResponse(response *api_pb.BlockResponse) error {
 		return err
 	}
 
+	blockReward := "0"
+	if response.BlockReward != nil {
+		blockReward = response.BlockReward.Value
+	}
+
 	block := &models.Block{
 		ID:                  response.Height,
 		Size:                response.Size,
 		BlockTime:           s.getBlockTime(blockTime),
 		CreatedAt:           blockTime,
-		BlockReward:         response.BlockReward,
+		BlockReward:         blockReward,
 		ProposerValidatorID: uint64(proposerId),
 		NumTxs:              uint32(response.TransactionCount),
 		Hash:                response.Hash,
