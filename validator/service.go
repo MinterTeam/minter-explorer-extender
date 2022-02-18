@@ -352,10 +352,10 @@ func (s *Service) UpdateStakesWorker(blockHeight <-chan uint64) {
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = uint64(stake.ID)
-			err = s.UpdateWaitListByStake(stake)
-			if err != nil {
-				s.logger.Error(err)
-			}
+			//err = s.UpdateWaitListByStake(stake)
+			//if err != nil {
+			//	s.logger.Error(err)
+			//}
 		}
 
 		err = s.repository.DeleteStakesNotInListIds(stakesId)
