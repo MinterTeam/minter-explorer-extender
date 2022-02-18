@@ -200,22 +200,10 @@ CREATE TABLE stakes
     value            numeric(70, 0) NOT NULL,
     bip_value        numeric(70, 0) NOT NULL,
     is_kicked        bool default false,
-    UNIQUE (owner_address_id, validator_id, coin_id)
+    UNIQUE (owner_address_id, validator_id, coin_id, is_kicked)
 );
 CREATE INDEX stakes_coin_id_index ON stakes USING btree (coin_id);
 CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
-
-CREATE TABLE wait_list
-(
-    owner_address_id bigint         NOT NULL references addresses (id) on delete cascade,
-    validator_id     integer        NOT NULL references validators (id) on delete cascade,
-    coin_id          integer        NOT NULL references coins (id) on delete cascade,
-    value            numeric(70, 0) NOT NULL,
-    bip_value        numeric(70, 0) NOT NULL,
-    is_kicked        bool default false,
-    UNIQUE (owner_address_id, validator_id, coin_id)
-);
-CREATE INDEX wait_list_uniq_index ON wait_list USING btree (owner_address_id, validator_id, coin_id);
 
 CREATE TABLE unbonds
 (

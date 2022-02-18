@@ -531,20 +531,21 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	var existCoins []uint64
-	var stakes []*models.WLStake
+	var stakes []*models.Stake
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
-		stakes = append(stakes, &models.WLStake{
+		stakes = append(stakes, &models.Stake{
 			OwnerAddressID: addressId,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    vId,
 			Value:          item.Value,
 			BipValue:       "0",
+			IsKicked:       true,
 		})
 	}
 
-	err = s.repository.UpdateWLStakes(stakes)
+	err = s.repository.UpdateStakes(stakes)
 	if err != nil {
 		s.logger.Error(err)
 	}
@@ -571,21 +572,22 @@ func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
 	}
 
 	var existCoins []uint64
-	var stakes []*models.WLStake
+	var stakes []*models.Stake
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
-		stakes = append(stakes, &models.WLStake{
+		stakes = append(stakes, &models.Stake{
 			OwnerAddressID: stake.OwnerAddressID,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    stake.ValidatorID,
 			Value:          item.Value,
 			BipValue:       "0",
+			IsKicked:       true,
 		})
 	}
 
 	if len(stakes) > 0 {
-		err = s.repository.UpdateWLStakes(stakes)
+		err = s.repository.UpdateStakes(stakes)
 		if err != nil {
 			s.logger.Error(err)
 		}

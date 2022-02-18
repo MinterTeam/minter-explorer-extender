@@ -158,7 +158,7 @@ func (r *Repository) DeleteStakesNotInListIds(idList []uint64) error {
 
 func (r *Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 	if len(idList) > 0 {
-		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
+		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?) and is_kicked != true;`, pg.In(idList))
 		return err
 	}
 	return nil
@@ -198,23 +198,18 @@ func (r *Repository) UpdateStakes(list []*models.Stake) error {
 	return err
 }
 
-func (r *Repository) UpdateWLStakes(list []*models.WLStake) error {
-	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
-	return err
-}
-
 func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uint64) error {
 	_, err := r.db.Model().Exec(`
-		DELETE FROM wait_list
-		WHERE owner_address_id = ? AND validator_id = ? AND coin_id NOT IN (?);
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND is_kicked = true AND coin_id NOT IN (?);
 	`, addressId, validatorId, pg.In(coins))
 	return err
 }
 
 func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	_, err := r.db.Model().Exec(`
-		DELETE FROM wait_list
-		WHERE owner_address_id = ? AND validator_id = ?;
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND is_kicked = true ;
 	`, addressId, validatorId)
 	return err
 }
