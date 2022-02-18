@@ -165,7 +165,7 @@ func (r *Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 }
 
 func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
-	_, err := r.db.Model(&stakes).OnConflict("(owner_address_id, validator_id, coin_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&stakes).OnConflict("(owner_address_id, validator_id, coin_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 
@@ -190,11 +190,11 @@ func (r *Repository) FindPkId(pk string) (uint, error) {
 }
 
 func (r *Repository) UpdateStake(s *models.Stake) error {
-	_, err := r.db.Model(s).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	_, err := r.db.Model(s).OnConflict("(owner_address_id, coin_id, validator_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 func (r *Repository) UpdateStakes(list []*models.Stake) error {
-	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 
