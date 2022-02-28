@@ -21,7 +21,7 @@ import (
 
 const (
 	UnbondBlockCount     = 518400
-	UpdateTimoutInBlocks = 240
+	UpdateTimoutInBlocks = 120
 	ChasingModDiff       = 121
 )
 
