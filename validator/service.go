@@ -333,7 +333,7 @@ func (s *Service) UpdateStakesWorker(blockHeight <-chan uint64) {
 				if err != nil {
 					var coinsList []string
 					coinMap := make(map[uint]struct{})
-					for _, s := range stakes[start:end] {
+					for _, s := range stakes {
 						coinMap[s.CoinID] = struct{}{}
 					}
 					for id := range coinMap {
