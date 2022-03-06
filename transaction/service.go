@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -922,5 +923,5 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 		return txDataJson, nil
 	}
 
-	return nil, errors.New("unknown tx type")
+	return nil, errors.New(fmt.Sprintf("unknown tx type: %d", txType))
 }

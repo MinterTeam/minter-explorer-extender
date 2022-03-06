@@ -95,6 +95,8 @@ var transformConfig = map[uint8]TransformTxConfig{
 	uint8(transaction.TypeEditCommissionCandidate): {Model: new(api_pb.EditCandidateCommission), Resource: data_resources.EditCandidateCommission{}},
 	uint8(transaction.TypeAddLimitOrder):           {Model: new(api_pb.AddLimitOrderData), Resource: data_resources.AddLimitOrder{}},
 	uint8(transaction.TypeRemoveLimitOrder):        {Model: new(api_pb.RemoveLimitOrderData), Resource: data_resources.RemoveLimitOrder{}},
+	uint8(transaction.TypeLock):                    {Model: new(api_pb.LockData), Resource: data_resources.LockData{}},
+	uint8(transaction.TypeLockStake):               {Model: new(api_pb.LockStakeData), Resource: data_resources.LockStakeData{}},
 }
 
 func TransformTxData(tx models.Transaction) resource.Interface {
