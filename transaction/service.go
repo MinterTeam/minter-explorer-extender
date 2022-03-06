@@ -921,6 +921,16 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
+	case transaction.TypeMoveStake:
+		txData := new(api_pb.MoveStakeData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
 	}
 
 	return nil, errors.New(fmt.Sprintf("unknown tx type: %d", txType))
