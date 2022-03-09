@@ -148,7 +148,7 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-height > UpdateTimoutInBlocks {
+		if status.LatestBlockHeight-height > ChasingModDiff {
 			continue
 		}
 
