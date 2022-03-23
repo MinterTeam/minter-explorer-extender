@@ -230,7 +230,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		eventService:         eventService,
 		blockRepository:      blockRepository,
 		validatorService:     validatorService,
-		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
+		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService, validatorService.GetMoveStakeJobChannel()),
 		addressService:       addressService,
 		validatorRepository:  validatorRepository,
 		balanceService:       balanceService,
@@ -338,6 +338,7 @@ func (ext *Extender) Run() {
 
 		ext.validatorService.GetUpdateStakesJobChannel() <- height
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+		ext.validatorService.GetClearJobChannel() <- height
 
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
@@ -393,6 +394,10 @@ func (ext *Extender) runWorkers() {
 
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
+	//Move Stake
+	go ext.validatorService.MoveStakeWorker(ext.validatorService.GetMoveStakeJobChannel())
+
+	go ext.validatorService.ClearMoveStakeAndUnbondWorker(ext.validatorService.GetClearJobChannel())
 
 	//LiquidityPool
 	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)

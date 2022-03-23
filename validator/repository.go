@@ -218,3 +218,36 @@ func (r *Repository) SaveBan(ban *models.ValidatorBan) error {
 	_, err := r.db.Model(ban).Insert()
 	return err
 }
+
+func (r *Repository) GetStakeStake(addressId, validatorId, coinId uint64) (*models.Stake, error) {
+	stk := new(models.Stake)
+
+	err := r.db.Model(stk).
+		Where("owner_address_id = ?", addressId).
+		Where("validator_id = ?", validatorId).
+		Where("coin_id = ?", coinId).
+		Select()
+
+	return stk, err
+}
+
+func (r *Repository) MoveStake(ms *models.MovedStake) error {
+	_, err := r.db.Model(ms).Insert()
+	return err
+}
+
+func (r *Repository) DeleteOldUnbonds(height uint64) interface{} {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM unbonds
+		WHERE block_id < ?;
+	`, height)
+	return err
+}
+
+func (r *Repository) DeleteOldMovedStakes(height uint64) interface{} {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM moved_stakes
+		WHERE block_id < ?;
+	`, height)
+	return err
+}

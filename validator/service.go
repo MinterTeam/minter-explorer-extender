@@ -21,6 +21,7 @@ import (
 
 const (
 	UnbondBlockCount     = 518400
+	MoveStakeBlockCount  = 177 //TODO: prod 134400
 	UpdateTimoutInBlocks = 120
 	ChasingModDiff       = 121
 )
@@ -33,8 +34,10 @@ type Service struct {
 	coinRepository      *coin.Repository
 	jobUpdateValidators chan uint64
 	jobUpdateStakes     chan uint64
+	jobClearChannel     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
+	jobMoveStake        chan *models.Transaction
 	logger              *logrus.Entry
 }
 
@@ -51,9 +54,15 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		logger:              logger,
 		jobUpdateValidators: make(chan uint64, 1),
 		jobUpdateStakes:     make(chan uint64, 1),
+		jobClearChannel:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 		jobUnbondSaver:      make(chan *models.Transaction, 1),
+		jobMoveStake:        make(chan *models.Transaction, 1),
 	}
+}
+
+func (s *Service) GetClearJobChannel() chan uint64 {
+	return s.jobClearChannel
 }
 
 func (s *Service) GetUpdateValidatorsJobChannel() chan uint64 {
@@ -68,6 +77,60 @@ func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
 }
 func (s *Service) GetUnbondSaverJobChannel() chan *models.Transaction {
 	return s.jobUnbondSaver
+}
+func (s *Service) GetMoveStakeJobChannel() chan *models.Transaction {
+	return s.jobMoveStake
+}
+
+func (s *Service) ClearMoveStakeAndUnbondWorker(height <-chan uint64) {
+	for h := range height {
+
+		err := s.repository.DeleteOldUnbonds(h)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		err = s.repository.DeleteOldMovedStakes(h)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+	}
+}
+
+func (s *Service) MoveStakeWorker(data <-chan *models.Transaction) {
+	for tx := range data {
+		txData := new(api_pb.MoveStakeData)
+		if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		fromId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.FromPubKey))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		toId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.ToPubKey))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		ms := &models.MovedStake{
+			BlockId:         tx.BlockID + MoveStakeBlockCount,
+			AddressId:       tx.FromAddressID,
+			CoinId:          txData.Coin.Id,
+			FromValidatorId: uint64(fromId),
+			ToValidatorId:   uint64(toId),
+			Value:           txData.Value,
+		}
+
+		err = s.repository.MoveStake(ms)
+		if err != nil {
+			s.logger.Error(err)
+		}
+	}
 }
 
 func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
