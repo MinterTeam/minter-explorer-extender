@@ -128,7 +128,16 @@ CREATE TABLE invalid_transactions
     type            smallint                 NOT NULL,
     hash            character varying(64)    NOT NULL,
     log             character varying,
-    tx_data         jsonb                    NOT NULL
+    tx_data         jsonb                    NOT NULL,
+    nonce           bigint                   NOT NULL,
+    gas_price       bigint                   NOT NULL,
+    gas             bigint                   NOT NULL,
+    commission      numeric(70, 0),
+    gas_coin_id     integer                  NOT NULL references coins (id) on delete cascade,
+    service_data    text,
+    tags            jsonb                    NOT NULL,
+    payload         bytea,
+    raw_tx          bytea                    NOT NULL
 );
 CREATE INDEX invalid_transactions_block_id_from_address_id_index ON invalid_transactions USING btree (block_id DESC, from_address_id);
 CREATE INDEX invalid_transactions_from_address_id_index ON invalid_transactions USING btree (from_address_id);
