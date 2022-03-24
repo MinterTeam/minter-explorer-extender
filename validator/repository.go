@@ -251,3 +251,11 @@ func (r *Repository) DeleteOldMovedStakes(height uint64) interface{} {
 	`, height)
 	return err
 }
+
+func (r *Repository) DeleteStake(addressId, validatorId, coinId uint64) error {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND coin_id = ? ;
+	`, addressId, validatorId, coinId)
+	return err
+}
