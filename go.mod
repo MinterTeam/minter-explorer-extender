@@ -3,7 +3,7 @@ module github.com/MinterTeam/minter-explorer-extender/v2
 go 1.16
 
 require (
-	github.com/MinterTeam/explorer-genesis-uploader v1.4.0
+	github.com/MinterTeam/explorer-genesis-uploader v1.4.1-0.20220324103406-0a41ca42ca98
 	github.com/MinterTeam/explorer-sdk v0.1.1-0.20211108095047-4421b691e285
 	github.com/MinterTeam/minter-explorer-api/v2 v2.0.3-0.20220318070821-39dc4dc12744
 	github.com/MinterTeam/minter-explorer-tools/v4 v4.2.3
