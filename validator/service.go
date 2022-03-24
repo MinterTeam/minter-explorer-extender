@@ -37,7 +37,7 @@ type Service struct {
 	jobClearChannel     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
-	jobMoveStake        chan *models.Transaction
+	jobMoveStake        chan *api_pb.TransactionResponse
 	logger              *logrus.Entry
 }
 
@@ -57,7 +57,7 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		jobClearChannel:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 		jobUnbondSaver:      make(chan *models.Transaction, 1),
-		jobMoveStake:        make(chan *models.Transaction, 1),
+		jobMoveStake:        make(chan *api_pb.TransactionResponse, 1),
 	}
 }
 
@@ -78,7 +78,7 @@ func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
 func (s *Service) GetUnbondSaverJobChannel() chan *models.Transaction {
 	return s.jobUnbondSaver
 }
-func (s *Service) GetMoveStakeJobChannel() chan *models.Transaction {
+func (s *Service) GetMoveStakeJobChannel() chan *api_pb.TransactionResponse {
 	return s.jobMoveStake
 }
 
@@ -98,10 +98,10 @@ func (s *Service) ClearMoveStakeAndUnbondWorker(height <-chan uint64) {
 	}
 }
 
-func (s *Service) MoveStakeWorker(data <-chan *models.Transaction) {
+func (s *Service) MoveStakeWorker(data <-chan *api_pb.TransactionResponse) {
 	for tx := range data {
 		txData := new(api_pb.MoveStakeData)
-		if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+		if err := tx.GetData().UnmarshalTo(txData); err != nil {
 			s.logger.Error(err)
 			continue
 		}
@@ -117,9 +117,15 @@ func (s *Service) MoveStakeWorker(data <-chan *models.Transaction) {
 			continue
 		}
 
+		aId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
 		ms := &models.MovedStake{
-			BlockId:         tx.BlockID + MoveStakeBlockCount,
-			AddressId:       tx.FromAddressID,
+			BlockId:         tx.Height + MoveStakeBlockCount,
+			AddressId:       uint64(aId),
 			CoinId:          txData.Coin.Id,
 			FromValidatorId: uint64(fromId),
 			ToValidatorId:   uint64(toId),

@@ -39,7 +39,7 @@ type Service struct {
 	jobSaveInvalidTxs    chan []*models.InvalidTransaction
 	jobUpdateWaitList    chan *models.Transaction
 	jobUnbondSaver       chan *models.Transaction
-	jobMoveStake         chan *models.Transaction
+	jobMoveStake         chan *api_pb.TransactionResponse
 	logger               *logrus.Entry
 }
 
@@ -47,7 +47,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRep
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
 	jobUnbondSaver chan *models.Transaction, liquidityPoolService *liquidity_pool.Service,
-	jobMoveStake chan *models.Transaction) *Service {
+	jobMoveStake chan *api_pb.TransactionResponse) *Service {
 	return &Service{
 		env:                  env,
 		txRepository:         repository,
@@ -105,6 +105,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
+			case transaction.TypeMoveStake:
+				s.jobMoveStake <- tx
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
@@ -366,9 +368,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 		}
 		if transaction.Type(tx.Type) == transaction.TypeDelegate {
 			s.jobUpdateWaitList <- tx
-		}
-		if transaction.Type(tx.Type) == transaction.TypeMoveStake {
-			s.jobMoveStake <- tx
 		}
 	}
 
