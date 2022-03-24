@@ -173,6 +173,16 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
+
+		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
+		if err != nil {
+			s.logger.Error(err)
+		} else {
+			if err = s.UpdateWaitList(adr, txData.PubKey); err != nil {
+				s.logger.Error(err)
+			}
+		}
+
 	}
 }
 
