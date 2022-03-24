@@ -522,6 +522,19 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 				return nil, err
 			}
 			validatorPk = txData.PubKey
+		case transaction.TypeMoveStake:
+			txData := new(api_pb.MoveStakeData)
+			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				return nil, err
+			}
+			validatorPk = txData.FromPubKey
+			validatorId, err := s.validatorRepository.FindIdByPkOrCreate(helpers.RemovePrefix(txData.ToPubKey))
+			if err == nil {
+				links = append(links, &models.TransactionValidator{
+					TransactionID: tx.ID,
+					ValidatorID:   uint64(validatorId),
+				})
+			}
 		}
 
 		if validatorPk != "" {
