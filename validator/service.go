@@ -136,12 +136,14 @@ func (s *Service) MoveStakeWorker(data <-chan *api_pb.TransactionResponse) {
 		if err != nil {
 			s.logger.Error(err)
 		} else {
-			err = s.repository.DeleteStake(uint64(aId), uint64(fromId), txData.Coin.Id)
-			if err != nil {
+			if err = s.repository.DeleteStake(uint64(aId), uint64(fromId), txData.Coin.Id); err != nil {
 				s.logger.Error(err)
 			}
 		}
 
+		if err = s.UpdateWaitList(tx.From, txData.FromPubKey); err != nil {
+			s.logger.Error(err)
+		}
 	}
 }
 
