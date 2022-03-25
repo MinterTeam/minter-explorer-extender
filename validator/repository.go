@@ -219,7 +219,7 @@ func (r *Repository) SaveBan(ban *models.ValidatorBan) error {
 	return err
 }
 
-func (r *Repository) GetStakeStake(addressId, validatorId, coinId uint64) (*models.Stake, error) {
+func (r *Repository) GetStake(addressId, validatorId, coinId uint64) (*models.Stake, error) {
 	stk := new(models.Stake)
 
 	err := r.db.Model(stk).

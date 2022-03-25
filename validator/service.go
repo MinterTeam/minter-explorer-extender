@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
+	"math/big"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -132,18 +133,41 @@ func (s *Service) MoveStakeWorker(data <-chan *api_pb.TransactionResponse) {
 			Value:           txData.Value,
 		}
 
+		if err = s.UpdateWaitList(tx.From, txData.FromPubKey); err != nil {
+			s.logger.Error(err)
+		}
+
 		err = s.repository.MoveStake(ms)
 		if err != nil {
 			s.logger.Error(err)
-		} else {
+		}
+
+		stk, err := s.repository.GetStake(uint64(aId), uint64(fromId), txData.Coin.Id)
+
+		currentVal, ok := big.NewInt(0).SetString(stk.Value, 10)
+		if !ok {
+			s.logger.Error("can't convert to big.Int")
+			continue
+		}
+		moveVal, ok := big.NewInt(0).SetString(stk.Value, 10)
+		if !ok {
+			s.logger.Error("can't convert to big.Int")
+			continue
+		}
+
+		newVal := currentVal.Sub(currentVal, moveVal)
+
+		if newVal.Cmp(big.NewInt(0)) <= 0 {
 			if err = s.repository.DeleteStake(uint64(aId), uint64(fromId), txData.Coin.Id); err != nil {
+				s.logger.Error(err)
+			}
+		} else {
+			stk.Value = newVal.String()
+			if err = s.repository.UpdateStake(stk); err != nil {
 				s.logger.Error(err)
 			}
 		}
 
-		if err = s.UpdateWaitList(tx.From, txData.FromPubKey); err != nil {
-			s.logger.Error(err)
-		}
 	}
 }
 
