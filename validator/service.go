@@ -21,10 +21,12 @@ import (
 )
 
 const (
-	UnbondBlockCount     = 518400
-	MoveStakeBlockCount  = 177 //TODO: prod 134400
-	UpdateTimoutInBlocks = 120
-	ChasingModDiff       = 121
+	UnbondBlockCount           = 518400
+	UnbondBlockCountTestnet    = 532
+	MoveStakeBlockCount        = 134400
+	MoveStakeBlockCountTestnet = 177
+	UpdateTimoutInBlocks       = 120
+	ChasingModDiff             = 121
 )
 
 type Service struct {
@@ -125,7 +127,7 @@ func (s *Service) MoveStakeWorker(data <-chan *api_pb.TransactionResponse) {
 		}
 
 		ms := &models.MovedStake{
-			BlockId:         tx.Height + MoveStakeBlockCount,
+			BlockId:         tx.Height + s.GetMoveStakeBlockCount(),
 			AddressId:       uint64(aId),
 			CoinId:          txData.Coin.Id,
 			FromValidatorId: uint64(fromId),
@@ -186,7 +188,7 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		}
 
 		unbond := &models.Unbond{
-			BlockId:     uint(tx.BlockID + UnbondBlockCount),
+			BlockId:     uint(tx.BlockID + s.GetUnbondBlockCount()),
 			AddressId:   uint(tx.FromAddressID),
 			CoinId:      uint(txData.Coin.Id),
 			ValidatorId: vId,
@@ -717,4 +719,18 @@ func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
 		return s.repository.DeleteFromWaitList(stake.OwnerAddressID, stake.ValidatorID, existCoins)
 	}
 	return nil
+}
+
+func (s *Service) GetUnbondBlockCount() uint64 {
+	if s.env.BaseCoin == "MNT" {
+		return UnbondBlockCountTestnet
+	}
+	return UnbondBlockCount
+}
+
+func (s *Service) GetMoveStakeBlockCount() uint64 {
+	if s.env.BaseCoin == "MNT" {
+		return MoveStakeBlockCountTestnet
+	}
+	return MoveStakeBlockCount
 }
