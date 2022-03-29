@@ -224,8 +224,6 @@ github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA
 github.com/centrifugal/centrifuge-go v0.3.0/go.mod h1:6knsfV5bUB8D4Txl8+NM4BtViuOjBoArcF8n3xn2tzY=
 github.com/centrifugal/gocent v2.0.2+incompatible/go.mod h1:gtbj3+fMApCIcaGmGvk2BinwEauUtGeu8YZPLcedOvQ=
 github.com/centrifugal/gocent v2.1.0+incompatible/go.mod h1:gtbj3+fMApCIcaGmGvk2BinwEauUtGeu8YZPLcedOvQ=
-github.com/centrifugal/gocent v2.2.0+incompatible h1:49oQLm1CDojd8vgz2w5RrECgW3Ew+Z5muIQGIggI2Vk=
-github.com/centrifugal/gocent v2.2.0+incompatible/go.mod h1:gtbj3+fMApCIcaGmGvk2BinwEauUtGeu8YZPLcedOvQ=
 github.com/centrifugal/gocent/v3 v3.2.0 h1:s+gxnvGWKIOZYGW8SAfGUUShY0r0DuRpnKqhh3h1Ps0=
 github.com/centrifugal/gocent/v3 v3.2.0/go.mod h1:8YWDQG3sX0X1g+BaotihbhawPs6zyYGUxUEk8Ng5a2g=
 github.com/centrifugal/protocol v0.1.0/go.mod h1:2YbBCaDwQHl37ErRdMrKSj18X2yVvpkQYtSX6aVbe5A=
