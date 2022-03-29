@@ -41,6 +41,7 @@ func (s *Service) BalanceManager() {
 
 		//TODO: move to env
 		addressesMap["ffffffffffffffffffffffffffffffffffffffff"] = struct{}{}
+		addressesMap["0000000000000000000000000000000000000000"] = struct{}{}
 
 		var addressesData []string
 		for k := range addressesMap {
