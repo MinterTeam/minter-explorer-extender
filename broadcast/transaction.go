@@ -3,6 +3,7 @@ package broadcast
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-api/v2/helpers"
 	"github.com/MinterTeam/minter-explorer-api/v2/resource"
 	"github.com/MinterTeam/minter-explorer-api/v2/transaction/data_resources"
@@ -126,39 +127,66 @@ type CheckData struct {
 }
 
 type RedeemCheck struct {
-	RawCheck string    `json:"raw_check"`
-	Proof    string    `json:"proof"`
-	Check    CheckData `json:"check"`
+	TxHash      string      `json:"tx_hash"`
+	BlockID     uint64      `json:"block_id"`
+	Timestamp   string      `json:"timestamp"`
+	FromAddress string      `json:"address_from"`
+	ToAddress   string      `json:"address_to"`
+	Coin        models.Coin `json:"coin"`
+	GasCoin     models.Coin `json:"gas_coin"`
+	Nonce       string      `json:"nonce"`
+	Value       string      `json:"value"`
+	DueBlock    uint64      `json:"due_block"`
+	RawCheck    string      `json:"raw_check"`
 }
 
 func (RedeemCheck) Transform(txData resource.ItemInterface, params ...resource.ParamInterface) resource.Interface {
 	tx := params[0].(models.Transaction)
 	dataTx := new(api_pb.RedeemCheckData)
 	if err := tx.IData.(*any.Any).UnmarshalTo(dataTx); err != nil {
-		panic(err)
+		fmt.Println(err)
+		return nil
 	}
 
 	data, err := transaction.DecodeCheckBase64(dataTx.RawCheck)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return nil
 	}
 
 	sender, err := data.Sender()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return nil
+	}
+
+	signedTx, err := transaction.Decode(string(tx.RawTx[:]))
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	from, err := signedTx.SenderAddress()
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
 
 	return RedeemCheck{
-		RawCheck: dataTx.RawCheck,
-		Proof:    dataTx.Proof,
-		Check: CheckData{
-			Nonce:    data.Nonce,
-			Value:    data.Value,
-			Sender:   sender,
-			DueBlock: data.DueBlock,
-			Coin: models.Coin{
-				ID: uint(data.Coin),
-			},
+		TxHash:      tx.Hash,
+		BlockID:     tx.BlockID,
+		Timestamp:   tx.CreatedAt.Format(time.RFC3339),
+		FromAddress: sender,
+		ToAddress:   from,
+		Coin: models.Coin{
+			ID: uint(data.Coin),
 		},
+		GasCoin: models.Coin{
+			ID: uint(data.GasCoin),
+		},
+		Nonce:    base64.StdEncoding.EncodeToString(data.Nonce),
+		Value:    helpers.PipStr2Bip(data.Value.String()),
+		DueBlock: data.DueBlock,
+		RawCheck: dataTx.RawCheck,
 	}
 }
