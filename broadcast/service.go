@@ -12,7 +12,7 @@ import (
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
-	"github.com/centrifugal/gocent"
+	"github.com/centrifugal/gocent/v3"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
@@ -281,7 +281,7 @@ func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
 	}
 }
 func (s *Service) publish(ch string, msg []byte) {
-	err := s.client.Publish(s.ctx, ch, msg)
+	_, err := s.client.Publish(s.ctx, ch, msg)
 	if err != nil {
 		s.logger.Warn(err)
 	}
