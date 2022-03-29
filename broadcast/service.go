@@ -18,8 +18,23 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"math/big"
+	"os"
 	"sync/atomic"
 )
+
+type keyAuth struct {
+	key string
+}
+
+func (t keyAuth) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "apikey " + t.key,
+	}, nil
+}
+
+func (t keyAuth) RequireTransportSecurity() bool {
+	return false
+}
 
 type Service struct {
 	client              centrifugopb.CentrifugoApiClient
@@ -46,7 +61,8 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	chasingMode := atomic.Value{}
 	chasingMode.Store(false)
 
-	conn, err := grpc.Dial("centrifugo:10000", grpc.WithInsecure())
+	conn, err := grpc.Dial("centrifugo:10000", grpc.WithInsecure(), grpc.WithPerRPCCredentials(keyAuth{os.Getenv("CENTRIFUGO_SECRET")}))
+
 	if err != nil {
 		log.Fatalln(err)
 	}
