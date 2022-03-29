@@ -817,5 +817,5 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api.proto",
+	Metadata: "centrifugo.proto",
 }
