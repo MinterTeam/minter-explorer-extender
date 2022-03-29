@@ -23,7 +23,6 @@ import (
 type Service struct {
 	client              *gocent.Client
 	nodeClient          *grpc_client.Client
-	ctx                 context.Context
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
 	logger              *logrus.Entry
@@ -37,6 +36,7 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
 	nodeClient *grpc_client.Client, logger *logrus.Entry) *Service {
+
 	wsClient := gocent.New(gocent.Config{
 		Addr: env.WsLink,
 		Key:  env.WsKey,
@@ -48,7 +48,6 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	return &Service{
 		client:              wsClient,
 		nodeClient:          nodeClient,
-		ctx:                 context.Background(),
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		commissionsChannel:  make(chan *api_pb.UpdateCommissionsEvent),
@@ -281,7 +280,7 @@ func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
 	}
 }
 func (s *Service) publish(ch string, msg []byte) {
-	_, err := s.client.Publish(s.ctx, ch, msg)
+	_, err := s.client.Publish(context.Background(), ch, msg)
 	if err != nil {
 		s.logger.Warn(err)
 	}
