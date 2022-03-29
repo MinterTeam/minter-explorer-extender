@@ -50,7 +50,6 @@ func NewService(env *env.ExtenderEnvironment, addressRepository *address.Reposit
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer conn.Close()
 	wsClient := centrifugopb.NewCentrifugoApiClient(conn)
 
 	return &Service{
@@ -293,11 +292,11 @@ func (s *Service) publish(ch string, msg []byte) {
 		Data:    msg,
 	})
 	if err != nil {
-		s.logger.Warnf("Transport level error: %v", err)
+		s.logger.Errorf("Transport level error: %v", err)
 	} else {
 		if resp.GetError() != nil {
 			respError := resp.GetError()
-			s.logger.Warnf("Error %d (%s)", respError.Code, respError.Message)
+			s.logger.Errorf("Error %d (%s)", respError.Code, respError.Message)
 		}
 	}
 
