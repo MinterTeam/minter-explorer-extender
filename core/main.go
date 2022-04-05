@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
+	genesisEnv "github.com/MinterTeam/explorer-genesis-uploader/env"
 	"github.com/MinterTeam/explorer-sdk/swap"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
@@ -163,7 +164,22 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	db := pg.Connect(pgOptions)
 	//db.AddQueryHook(hookImpl)
 
-	uploader := genesisUploader.New()
+	uploader := genesisUploader.New(genesisEnv.Config{
+		Debug:              false,
+		PostgresHost:       env.DbHost,
+		PostgresPort:       env.DbPort,
+		PostgresDB:         env.DbName,
+		PostgresUser:       env.DbUser,
+		PostgresPassword:   env.DbPassword,
+		PostgresSSLEnabled: os.Getenv("POSTGRES_SSL_ENABLED") == "true",
+		MinterBaseCoin:     env.BaseCoin,
+		NodeGrpc:           env.NodeApi,
+		AddressChunkSize:   uint64(env.AddrChunkSize),
+		CoinsChunkSize:     1000,
+		BalanceChunkSize:   10000,
+		StakeChunkSize:     uint64(env.StakeChunkSize),
+		ValidatorChunkSize: uint64(env.StakeChunkSize),
+	})
 	err := uploader.Do()
 	if err != nil {
 		logger.Warn(err)
@@ -214,7 +230,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		eventService:         eventService,
 		blockRepository:      blockRepository,
 		validatorService:     validatorService,
-		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService),
+		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService, validatorService.GetMoveStakeJobChannel()),
 		addressService:       addressService,
 		validatorRepository:  validatorRepository,
 		balanceService:       balanceService,
@@ -275,11 +291,11 @@ func (ext *Extender) Run() {
 		}
 
 		start := time.Now()
-		ext.findOutChasingMode(height)
+		//ext.findOutChasingMode(height)
 
 		//Pulling block data
 		countStart := time.Now()
-		blockResponse, err := ext.nodeApi.BlockExtended(height, true, false)
+		blockResponse, err := ext.nodeApi.BlockExtended(height, true, true)
 		if err != nil {
 			grpcErr, ok := status.FromError(err)
 			if !ok {
@@ -298,35 +314,31 @@ func (ext *Extender) Run() {
 
 		//Pulling events
 		countStart = time.Now()
-		eventsResponse, err := ext.nodeApi.Events(height)
-		if err != nil {
-			ext.log.Panic(err)
-		}
-		eet.GettingEvents = time.Since(countStart)
 
 		countStart = time.Now()
 		ext.handleCoinsFromTransactions(blockResponse)
 		eet.HandleCoinsFromTransactions = time.Since(countStart)
 
 		countStart = time.Now()
-		ext.handleAddressesFromResponses(blockResponse, eventsResponse)
+		ext.handleAddressesFromResponses(blockResponse)
 		eet.HandleAddressesFromResponses = time.Since(countStart)
 
 		countStart = time.Now()
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.UpdateChannel() <- models.BalanceUpdateData{
-			Block: blockResponse,
-			Event: eventsResponse,
-		}
+		ext.balanceService.UpdateChannel() <- blockResponse
 
-		go ext.handleEventResponse(height, eventsResponse)
+		go ext.handleEventResponse(height, blockResponse)
 
 		if len(blockResponse.Transactions) > 0 {
 			ext.lpWorkerChannel <- blockResponse
 			ext.orderBookChannel <- blockResponse
 		}
+
+		ext.validatorService.GetUpdateStakesJobChannel() <- height
+		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
+		ext.validatorService.GetClearJobChannel() <- height
 
 		eet.Total = time.Since(start)
 		ext.printSpentTimeLog(eet)
@@ -382,6 +394,10 @@ func (ext *Extender) runWorkers() {
 
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
+	//Move Stake
+	go ext.validatorService.MoveStakeWorker(ext.validatorService.GetMoveStakeJobChannel())
+
+	go ext.validatorService.ClearMoveStakeAndUnbondWorker(ext.validatorService.GetClearJobChannel())
 
 	//LiquidityPool
 	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
@@ -399,8 +415,8 @@ func (ext *Extender) runWorkers() {
 	go ext.broadcastService.Manager()
 }
 
-func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse, eventsResponse *api_pb.EventsResponse) {
-	err := ext.addressService.SaveAddressesFromResponses(blockResponse, eventsResponse)
+func (ext *Extender) handleAddressesFromResponses(blockResponse *api_pb.BlockResponse) {
+	err := ext.addressService.SaveAddressesFromResponses(blockResponse)
 	if err != nil {
 		ext.log.Panic(err)
 	}
@@ -426,12 +442,6 @@ func (ext *Extender) handleBlockResponse(response *api_pb.BlockResponse) {
 		ext.handleTransactions(response)
 	}
 
-	// No need to update candidate and stakes at the same time
-	// Candidate will be updated in the next iteration
-	if response.Height%120 == 0 {
-		ext.validatorService.GetUpdateStakesJobChannel() <- int(response.Height)
-		ext.validatorService.GetUpdateValidatorsJobChannel() <- int(response.Height)
-	}
 }
 
 func (ext *Extender) handleCoinsFromTransactions(block *api_pb.BlockResponse) {
@@ -463,7 +473,7 @@ func (ext *Extender) handleTransactions(response *api_pb.BlockResponse) {
 	}
 }
 
-func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.EventsResponse) {
+func (ext *Extender) handleEventResponse(blockHeight uint64, response *api_pb.BlockResponse) {
 	if len(response.Events) > 0 {
 		//Save events
 		err := ext.eventService.HandleEventResponse(blockHeight, response)
@@ -533,7 +543,6 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 		ext.chasingMode = ext.currentNodeHeight-height > ChasingModDiff
 	}
 
-	ext.validatorService.SetChasingMode(ext.chasingMode)
 	ext.broadcastService.SetChasingMode(ext.chasingMode)
 	ext.balanceService.SetChasingMode(ext.chasingMode)
 	ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
