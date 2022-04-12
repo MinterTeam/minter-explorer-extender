@@ -25,7 +25,6 @@ config.json
 *.tmp.yaml
 
 helm/values-prod.yaml
-/go.sum
 values.*.yaml
 *.log
 *.tmp.*

@@ -13,12 +13,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math"
+	"math/big"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
-const UnbondBlockCount = 518400
+const (
+	UnbondBlockCount           = 518400
+	UnbondBlockCountTestnet    = 532
+	MoveStakeBlockCount        = 134400
+	MoveStakeBlockCountTestnet = 177
+	UpdateTimoutInBlocks       = 120
+	ChasingModDiff             = 121
+)
 
 type Service struct {
 	env                 *env.ExtenderEnvironment
@@ -26,16 +35,13 @@ type Service struct {
 	repository          *Repository
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
-	jobUpdateValidators chan int
-	jobUpdateStakes     chan int
+	jobUpdateValidators chan uint64
+	jobUpdateStakes     chan uint64
+	jobClearChannel     chan uint64
 	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
-	chasingMode         atomic.Value
+	jobMoveStake        chan *api_pb.TransactionResponse
 	logger              *logrus.Entry
-}
-
-func (s *Service) SetChasingMode(val bool) {
-	s.chasingMode.Store(val)
 }
 
 func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repository *Repository, addressRepository *address.Repository, coinRepository *coin.Repository, logger *logrus.Entry) *Service {
@@ -49,19 +55,24 @@ func NewService(env *env.ExtenderEnvironment, nodeApi *grpc_client.Client, repos
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
 		logger:              logger,
-		chasingMode:         chasingMode,
-		jobUpdateValidators: make(chan int, 1),
-		jobUpdateStakes:     make(chan int, 1),
+		jobUpdateValidators: make(chan uint64, 1),
+		jobUpdateStakes:     make(chan uint64, 1),
+		jobClearChannel:     make(chan uint64, 1),
 		jobUpdateWaitList:   make(chan *models.Transaction, 1),
 		jobUnbondSaver:      make(chan *models.Transaction, 1),
+		jobMoveStake:        make(chan *api_pb.TransactionResponse, 1),
 	}
 }
 
-func (s *Service) GetUpdateValidatorsJobChannel() chan int {
+func (s *Service) GetClearJobChannel() chan uint64 {
+	return s.jobClearChannel
+}
+
+func (s *Service) GetUpdateValidatorsJobChannel() chan uint64 {
 	return s.jobUpdateValidators
 }
 
-func (s *Service) GetUpdateStakesJobChannel() chan int {
+func (s *Service) GetUpdateStakesJobChannel() chan uint64 {
 	return s.jobUpdateStakes
 }
 func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
@@ -69,6 +80,97 @@ func (s *Service) GetUpdateWaitListJobChannel() chan *models.Transaction {
 }
 func (s *Service) GetUnbondSaverJobChannel() chan *models.Transaction {
 	return s.jobUnbondSaver
+}
+func (s *Service) GetMoveStakeJobChannel() chan *api_pb.TransactionResponse {
+	return s.jobMoveStake
+}
+
+func (s *Service) ClearMoveStakeAndUnbondWorker(height <-chan uint64) {
+	for h := range height {
+
+		err := s.repository.DeleteOldUnbonds(h)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		err = s.repository.DeleteOldMovedStakes(h)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+	}
+}
+
+func (s *Service) MoveStakeWorker(data <-chan *api_pb.TransactionResponse) {
+	for tx := range data {
+		txData := new(api_pb.MoveStakeData)
+		if err := tx.GetData().UnmarshalTo(txData); err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		fromId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.FromPubKey))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		toId, err := s.repository.FindIdByPk(helpers.RemovePrefix(txData.ToPubKey))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		aId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(tx.From))
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+
+		ms := &models.MovedStake{
+			BlockId:         tx.Height + s.GetMoveStakeBlockCount(),
+			AddressId:       uint64(aId),
+			CoinId:          txData.Coin.Id,
+			FromValidatorId: uint64(fromId),
+			ToValidatorId:   uint64(toId),
+			Value:           txData.Value,
+		}
+
+		if err = s.UpdateWaitList(tx.From, txData.FromPubKey); err != nil {
+			s.logger.Error(err)
+		}
+
+		err = s.repository.MoveStake(ms)
+		if err != nil {
+			s.logger.Error(err)
+		}
+
+		stk, err := s.repository.GetStake(uint64(aId), uint64(fromId), txData.Coin.Id)
+
+		currentVal, ok := big.NewInt(0).SetString(stk.Value, 10)
+		if !ok {
+			s.logger.Error("can't convert to big.Int")
+			continue
+		}
+		moveVal, ok := big.NewInt(0).SetString(stk.Value, 10)
+		if !ok {
+			s.logger.Error("can't convert to big.Int")
+			continue
+		}
+
+		newVal := currentVal.Sub(currentVal, moveVal)
+
+		if newVal.Cmp(big.NewInt(0)) <= 0 {
+			if err = s.repository.DeleteStake(uint64(aId), uint64(fromId), txData.Coin.Id); err != nil {
+				s.logger.Error(err)
+			}
+		} else {
+			stk.Value = newVal.String()
+			if err = s.repository.UpdateStake(stk); err != nil {
+				s.logger.Error(err)
+			}
+		}
+
+	}
 }
 
 func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
@@ -86,7 +188,7 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		}
 
 		unbond := &models.Unbond{
-			BlockId:     uint(tx.BlockID + UnbondBlockCount),
+			BlockId:     uint(tx.BlockID + s.GetUnbondBlockCount()),
 			AddressId:   uint(tx.FromAddressID),
 			CoinId:      uint(txData.Coin.Id),
 			ValidatorId: vId,
@@ -97,6 +199,16 @@ func (s *Service) UnbondSaverWorker(data <-chan *models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
+
+		adr, err := s.addressRepository.FindById(uint(tx.FromAddressID))
+		if err != nil {
+			s.logger.Error(err)
+		} else {
+			if err = s.UpdateWaitList(adr, txData.PubKey); err != nil {
+				s.logger.Error(err)
+			}
+		}
+
 	}
 }
 
@@ -142,11 +254,21 @@ func (s *Service) UpdateWaitListWorker(data <-chan *models.Transaction) {
 	}
 }
 
-func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
+func (s *Service) UpdateValidatorsWorker(jobs <-chan uint64) {
 	for height := range jobs {
-		//if s.chasingMode {
-		//	continue
-		//}
+		status, err := s.nodeApi.Status()
+		if err != nil {
+			s.logger.Error(err)
+			continue
+		}
+		if status.LatestBlockHeight-height > ChasingModDiff {
+			continue
+		}
+
+		if height%UpdateTimoutInBlocks != 0 {
+			continue
+		}
+
 		start := time.Now()
 		resp, err := s.nodeApi.Candidates(false)
 		if err != nil {
@@ -230,23 +352,30 @@ func (s *Service) UpdateValidatorsWorker(jobs <-chan int) {
 	}
 }
 
-func (s *Service) UpdateStakesWorker(jobs <-chan int) {
-	for height := range jobs {
+func (s *Service) UpdateStakesWorker(blockHeight <-chan uint64) {
+	for height := range blockHeight {
+		start := time.Now()
 		status, err := s.nodeApi.Status()
 		if err != nil {
 			s.logger.Error(err)
 			continue
 		}
-		if status.LatestBlockHeight-uint64(height) > 240 {
+
+		if status.LatestBlockHeight-height > ChasingModDiff {
 			continue
 		}
-		start := time.Now()
+
+		if height%UpdateTimoutInBlocks != 0 {
+			continue
+		}
+
+		s.logger.Warning("UPDATING STAKES")
+
 		resp, err := s.nodeApi.CandidatesExtended(true, false, "")
 		if err != nil {
 			s.logger.WithField("Block", height).Error(err)
+			continue
 		}
-		elapsed := time.Since(start)
-		s.logger.Info(fmt.Sprintf("Block: %d Candidate's (stakes) data getting time: %s", height, elapsed))
 
 		var (
 			stakes       []*models.Stake
@@ -268,11 +397,13 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		err = s.repository.SaveAllIfNotExist(validatorsPkMap)
 		if err != nil {
 			s.logger.Error(err)
+			continue
 		}
 
 		err = s.addressRepository.SaveFromMapIfNotExists(addressesMap)
 		if err != nil {
 			s.logger.Error(err)
+			continue
 		}
 
 		for i, vlr := range resp.Candidates {
@@ -299,37 +430,54 @@ func (s *Service) UpdateStakesWorker(jobs <-chan int) {
 		}
 
 		chunksCount := int(math.Ceil(float64(len(stakes)) / float64(s.env.StakeChunkSize)))
+
+		wg := new(sync.WaitGroup)
+		wg.Add(chunksCount)
+
 		for i := 0; i < chunksCount; i++ {
 			start := s.env.StakeChunkSize * i
 			end := start + s.env.StakeChunkSize
 			if end > len(stakes) {
 				end = len(stakes)
 			}
-			err = s.repository.SaveAllStakes(stakes[start:end])
-			if err != nil {
-				var coinsList []string
-				coinMap := make(map[uint]struct{})
-				for _, s := range stakes[start:end] {
-					coinMap[s.CoinID] = struct{}{}
+
+			go func(stakes []*models.Stake) {
+				err = s.repository.SaveAllStakes(stakes)
+				if err != nil {
+					var coinsList []string
+					coinMap := make(map[uint]struct{})
+					for _, s := range stakes {
+						coinMap[s.CoinID] = struct{}{}
+					}
+					for id := range coinMap {
+						coinsList = append(coinsList, fmt.Sprintf("%d", id))
+					}
+					s.logger.WithFields(logrus.Fields{
+						"coins": strings.Join(coinsList, ","),
+						"block": height,
+					}).Fatal(err)
 				}
-				for id, _ := range coinMap {
-					coinsList = append(coinsList, fmt.Sprintf("%d", id))
-				}
-				s.logger.WithFields(logrus.Fields{
-					"coins": strings.Join(coinsList, ","),
-					"block": height,
-				}).Fatal(err)
-			}
+				wg.Done()
+			}(stakes[start:end])
 		}
 
+		wg.Wait()
 		stakesId := make([]uint64, len(stakes))
 		for i, stake := range stakes {
 			stakesId[i] = uint64(stake.ID)
+			//err = s.UpdateWaitListByStake(stake)
+			//if err != nil {
+			//	s.logger.Error(err)
+			//}
 		}
+
 		err = s.repository.DeleteStakesNotInListIds(stakesId)
 		if err != nil {
 			s.logger.Error(err)
 		}
+
+		elapsed := time.Since(start)
+		s.logger.Warning(fmt.Sprintf("Stake has been updated. Block: %d Processing time: %s", height, elapsed))
 	}
 }
 
@@ -499,14 +647,21 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 
 	for _, item := range data.List {
 		existCoins = append(existCoins, item.Coin.Id)
+
+		bipValue := "0"
+		if item.Coin.Id == 0 {
+			bipValue = item.Value
+		}
+
 		stakes = append(stakes, &models.Stake{
 			OwnerAddressID: addressId,
 			CoinID:         uint(item.Coin.Id),
 			ValidatorID:    vId,
 			Value:          item.Value,
+			BipValue:       bipValue,
 			IsKicked:       true,
-			BipValue:       "0",
 		})
+
 	}
 
 	err = s.repository.UpdateStakes(stakes)
@@ -515,4 +670,67 @@ func (s *Service) UpdateWaitList(adr, pk string) error {
 	}
 
 	return s.repository.DeleteFromWaitList(addressId, vId, existCoins)
+}
+
+func (s *Service) UpdateWaitListByStake(stake *models.Stake) error {
+	var data *api_pb.WaitListResponse
+
+	adr, err := s.addressRepository.FindById(stake.OwnerAddressID)
+	if err != nil {
+		return err
+	}
+
+	pk, err := s.repository.GetById(stake.ValidatorID)
+	if err != nil {
+		return err
+	}
+
+	data, err = s.nodeApi.WaitList(pk.GetPublicKey(), fmt.Sprintf("Mx%s", adr))
+	if err != nil {
+		return err
+	}
+
+	var existCoins []uint64
+	var stakes []*models.Stake
+
+	for _, item := range data.List {
+		existCoins = append(existCoins, item.Coin.Id)
+
+		bipValue := "0"
+		if item.Coin.Id == 0 {
+			bipValue = item.Value
+		}
+
+		stakes = append(stakes, &models.Stake{
+			OwnerAddressID: stake.OwnerAddressID,
+			CoinID:         uint(item.Coin.Id),
+			ValidatorID:    stake.ValidatorID,
+			Value:          item.Value,
+			BipValue:       bipValue,
+			IsKicked:       true,
+		})
+	}
+
+	if len(stakes) > 0 {
+		err = s.repository.UpdateStakes(stakes)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		return s.repository.DeleteFromWaitList(stake.OwnerAddressID, stake.ValidatorID, existCoins)
+	}
+	return nil
+}
+
+func (s *Service) GetUnbondBlockCount() uint64 {
+	if s.env.BaseCoin == "MNT" {
+		return UnbondBlockCountTestnet
+	}
+	return UnbondBlockCount
+}
+
+func (s *Service) GetMoveStakeBlockCount() uint64 {
+	if s.env.BaseCoin == "MNT" {
+		return MoveStakeBlockCountTestnet
+	}
+	return MoveStakeBlockCount
 }

@@ -152,21 +152,20 @@ func (r *Repository) DeleteStakesNotInListIds(idList []uint64) error {
 	if len(idList) > 0 {
 		_, err := r.db.Query(nil, `delete from stakes where id not in (?) and is_kicked != true;`, pg.In(idList))
 		return err
-
 	}
 	return nil
 }
 
 func (r *Repository) DeleteStakesByValidatorIds(idList []uint64) error {
 	if len(idList) > 0 {
-		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?);`, pg.In(idList))
+		_, err := r.db.Query(nil, `delete from stakes where validator_id in (?) and is_kicked != true;`, pg.In(idList))
 		return err
 	}
 	return nil
 }
 
 func (r *Repository) SaveAllStakes(stakes []*models.Stake) error {
-	_, err := r.db.Model(&stakes).OnConflict("(owner_address_id, validator_id, coin_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&stakes).OnConflict("(owner_address_id, validator_id, coin_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 
@@ -191,31 +190,72 @@ func (r *Repository) FindPkId(pk string) (uint, error) {
 }
 
 func (r *Repository) UpdateStake(s *models.Stake) error {
-	_, err := r.db.Model(s).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	_, err := r.db.Model(s).OnConflict("(owner_address_id, coin_id, validator_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 func (r *Repository) UpdateStakes(list []*models.Stake) error {
-	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id) DO UPDATE").Insert()
+	_, err := r.db.Model(&list).OnConflict("(owner_address_id, coin_id, validator_id, is_kicked) DO UPDATE").Insert()
 	return err
 }
 
 func (r *Repository) DeleteFromWaitList(addressId, validatorId uint, coins []uint64) error {
 	_, err := r.db.Model().Exec(`
-		UPDATE stakes SET is_kicked = false
-		WHERE owner_address_id = ? AND validator_id = ? AND coin_id NOT IN (?);
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND is_kicked = true AND coin_id NOT IN (?);
 	`, addressId, validatorId, pg.In(coins))
 	return err
 }
 
 func (r *Repository) RemoveFromWaitList(addressId, validatorId uint) error {
 	_, err := r.db.Model().Exec(`
-		UPDATE stakes SET is_kicked = false
-		WHERE owner_address_id = ? AND validator_id = ?;
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND is_kicked = true ;
 	`, addressId, validatorId)
 	return err
 }
 
 func (r *Repository) SaveBan(ban *models.ValidatorBan) error {
 	_, err := r.db.Model(ban).Insert()
+	return err
+}
+
+func (r *Repository) GetStake(addressId, validatorId, coinId uint64) (*models.Stake, error) {
+	stk := new(models.Stake)
+
+	err := r.db.Model(stk).
+		Where("owner_address_id = ?", addressId).
+		Where("validator_id = ?", validatorId).
+		Where("coin_id = ?", coinId).
+		Select()
+
+	return stk, err
+}
+
+func (r *Repository) MoveStake(ms *models.MovedStake) error {
+	_, err := r.db.Model(ms).Insert()
+	return err
+}
+
+func (r *Repository) DeleteOldUnbonds(height uint64) interface{} {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM unbonds
+		WHERE block_id < ?;
+	`, height)
+	return err
+}
+
+func (r *Repository) DeleteOldMovedStakes(height uint64) interface{} {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM moved_stakes
+		WHERE block_id < ?;
+	`, height)
+	return err
+}
+
+func (r *Repository) DeleteStake(addressId, validatorId, coinId uint64) error {
+	_, err := r.db.Model().Exec(`
+		DELETE FROM stakes
+		WHERE owner_address_id = ? AND validator_id = ? AND coin_id = ? ;
+	`, addressId, validatorId, coinId)
 	return err
 }

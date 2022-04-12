@@ -13,14 +13,12 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/orderbook"
 	"github.com/MinterTeam/minter-explorer-extender/v2/validator"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
-	"github.com/MinterTeam/minter-go-sdk/v2/api"
-	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/go-pg/pg/v10"
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -64,7 +62,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, validatorR
 }
 
 // HandleEventResponse Handle response and save block to DB
-func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.EventsResponse) error {
+func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb.BlockResponse) error {
 	var (
 		eventList         []models.Event
 		rewards           []*models.Reward
@@ -73,7 +71,7 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 	)
 
 	for _, event := range responseEvents.Events {
-		eventStruct, err := grpc_client.ConvertStructToEvent(event)
+		eventStruct, err := event.UnmarshalNew()
 		if err != nil {
 			return err
 		}
@@ -83,24 +81,24 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			return err
 		}
 
-		if fmt.Sprintf("%s", eventStruct.Type()) != "minter/RewardEvent" {
+		if !event.MessageIs(&api_pb.RewardEvent{}) && !event.MessageIs(&api_pb.StakeKickEvent{}) {
 			eventList = append(eventList, models.Event{
 				BlockId: blockHeight,
-				Type:    fmt.Sprintf("%s", eventStruct.Type()),
+				Type:    fmt.Sprintf("minter/%s", strings.TrimLeft(event.TypeUrl, "type.googleapis.com/api_pb.")),
 				Data:    jsonEvent,
 			})
 		}
 
 		switch e := eventStruct.(type) {
-		case *api.RewardEvent:
+		case *api_pb.RewardEvent:
 			reward, err := s.handleRewardEvent(blockHeight, e)
 			if err != nil {
 				return err
 			}
 			rewards = append(rewards, reward)
 
-		case *api.SlashEvent:
-			coinId, err := strconv.ParseUint(e.Coin, 10, 64)
+		case *api_pb.SlashEvent:
+			coinId := e.Coin
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
 					"coin": e.Coin,
@@ -115,10 +113,10 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				continue
 			}
 
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.ValidatorPubKey))
 			if err != nil {
 				s.logger.WithFields(logrus.Fields{
-					"public_key": e.GetPublicKey(),
+					"public_key": e.ValidatorPubKey,
 				}).Error(err)
 				continue
 			}
@@ -130,52 +128,45 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 				AddressID:   addressId,
 				ValidatorID: uint64(validatorId),
 			})
-		case *api.StakeKickEvent:
-			mapValues := event.AsMap()["value"].(map[string]interface{})
-
-			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(mapValues["address"].(string)))
+		case *api_pb.StakeKickEvent:
+			addressId, err := s.addressRepository.FindIdOrCreate(helpers.RemovePrefix(e.Address))
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
 
-			vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(mapValues["validator_pub_key"].(string)))
-			if err != nil {
-				s.logger.Error(err)
-				continue
-			}
-			cid, err := strconv.ParseUint(mapValues["coin"].(string), 10, 64)
+			vId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.ValidatorPubKey))
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
 
-			coinsForUpdateMap[cid] = struct{}{}
+			coinsForUpdateMap[e.Coin] = struct{}{}
 			stk := &models.Stake{
 				OwnerAddressID: addressId,
-				CoinID:         uint(cid),
+				CoinID:         uint(e.Coin),
 				ValidatorID:    vId,
-				Value:          mapValues["amount"].(string),
+				Value:          e.Amount,
 				IsKicked:       true,
 				BipValue:       "0",
 			}
 
 			err = s.validatorRepository.UpdateStake(stk)
 			if err != nil {
-				s.logger.Error(err)
+				s.logger.WithField("stake", stk).Error(err)
 			}
-		case *api.UnbondEvent:
+		case *api_pb.UnbondEvent:
 			continue
-		case *api.UpdateCommissionsEvent:
-			s.broadcastService.CommissionsChannel() <- eventStruct
-		case *api.JailEvent:
-			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
+		case *api_pb.UpdateCommissionsEvent:
+			s.broadcastService.CommissionsChannel() <- e
+		case *api_pb.JailEvent:
+			validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetValidatorPubKey()))
 			if err != nil {
 				s.logger.Error(err)
 				continue
 			}
 
-			blockId, err := strconv.ParseUint(e.JailedUntil, 10, 64)
+			blockId := e.JailedUntil
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -191,8 +182,8 @@ func (s *Service) HandleEventResponse(blockHeight uint64, responseEvents *api_pb
 			if err != nil {
 				s.logger.Error(err)
 			}
-		case *api.OrderExpiredEvent:
-			orderId, err := strconv.ParseUint(e.ID, 10, 64)
+		case *api_pb.OrderExpiredEvent:
+			orderId := e.Id
 			if err != nil {
 				s.logger.Error(err)
 				continue
@@ -346,7 +337,7 @@ func (s *Service) saveSlashes(slashes []*models.Slash) {
 	}
 }
 
-func (s *Service) handleRewardEvent(blockHeight uint64, e *api.RewardEvent) (*models.Reward, error) {
+func (s *Service) handleRewardEvent(blockHeight uint64, e *api_pb.RewardEvent) (*models.Reward, error) {
 	addressId, err := s.addressRepository.FindId(helpers.RemovePrefix(e.Address))
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
@@ -355,17 +346,17 @@ func (s *Service) handleRewardEvent(blockHeight uint64, e *api.RewardEvent) (*mo
 		return nil, err
 	}
 
-	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.GetPublicKey()))
+	validatorId, err := s.validatorRepository.FindIdByPk(helpers.RemovePrefix(e.ValidatorPubKey))
 	if err != nil {
 		s.logger.WithFields(logrus.Fields{
-			"public_key": e.GetPublicKey(),
+			"public_key": e.ValidatorPubKey,
 		}).Error(err)
 		return nil, err
 	}
 
 	return &models.Reward{
 		BlockID:     blockHeight,
-		Role:        e.Role,
+		Role:        e.Role.String(),
 		Amount:      e.Amount,
 		AddressID:   addressId,
 		ValidatorID: uint64(validatorId),

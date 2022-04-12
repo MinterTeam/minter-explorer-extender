@@ -128,7 +128,16 @@ CREATE TABLE invalid_transactions
     type            smallint                 NOT NULL,
     hash            character varying(64)    NOT NULL,
     log             character varying,
-    tx_data         jsonb                    NOT NULL
+    tx_data         jsonb                    NOT NULL,
+    nonce           bigint                   NOT NULL,
+    gas_price       bigint                   NOT NULL,
+    gas             bigint                   NOT NULL,
+    commission      numeric(70, 0),
+    gas_coin_id     integer                  NOT NULL references coins (id) on delete cascade,
+    service_data    text,
+    tags            jsonb                    NOT NULL,
+    payload         bytea,
+    raw_tx          bytea                    NOT NULL
 );
 CREATE INDEX invalid_transactions_block_id_from_address_id_index ON invalid_transactions USING btree (block_id DESC, from_address_id);
 CREATE INDEX invalid_transactions_from_address_id_index ON invalid_transactions USING btree (from_address_id);
@@ -200,7 +209,7 @@ CREATE TABLE stakes
     value            numeric(70, 0) NOT NULL,
     bip_value        numeric(70, 0) NOT NULL,
     is_kicked        bool default false,
-    UNIQUE (owner_address_id, validator_id, coin_id)
+    UNIQUE (owner_address_id, validator_id, coin_id, is_kicked)
 );
 CREATE INDEX stakes_coin_id_index ON stakes USING btree (coin_id);
 CREATE INDEX stakes_validator_id_index ON stakes USING btree (validator_id);
@@ -325,3 +334,20 @@ create table token_contracts
 );
 create index token_contracts_coin_id_index on token_contracts using btree (coin_id);
 create index token_contracts_btc_index on token_contracts using btree (bsc);
+
+
+CREATE TABLE moved_stakes
+(
+    block_id          bigint         NOT NULL,
+    address_id        bigint         NOT NULL references addresses (id) on delete cascade,
+    coin_id           integer        NOT NULL references coins (id) on delete cascade,
+    from_validator_id integer        NOT NULL references validators (id) on delete cascade,
+    to_validator_id   integer        NOT NULL references validators (id) on delete cascade,
+    value             numeric(70, 0) NOT NULL,
+    created_at        timestamp with time zone DEFAULT current_timestamp
+);
+
+CREATE INDEX moved_stakes_address_id_index ON moved_stakes USING btree (address_id);
+CREATE INDEX moved_stakes_coin_id_index ON moved_stakes USING btree (coin_id);
+CREATE INDEX moved_stakes_from_validator_id_index ON moved_stakes USING btree (from_validator_id);
+CREATE INDEX moved_stakes_to_validator_id_index ON moved_stakes USING btree (to_validator_id);

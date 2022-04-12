@@ -6,24 +6,39 @@ import (
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-api/v2/blocks"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
+	"github.com/MinterTeam/minter-explorer-extender/v2/centrifugopb"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
 	"github.com/MinterTeam/minter-explorer-extender/v2/env"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
-	"github.com/MinterTeam/minter-go-sdk/v2/api"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
 	"github.com/MinterTeam/minter-go-sdk/v2/transaction"
 	"github.com/MinterTeam/node-grpc-gateway/api_pb"
-	"github.com/centrifugal/gocent"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"math/big"
+	"os"
 	"sync/atomic"
 )
 
+type keyAuth struct {
+	key string
+}
+
+func (t keyAuth) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "apikey " + t.key,
+	}, nil
+}
+
+func (t keyAuth) RequireTransportSecurity() bool {
+	return false
+}
+
 type Service struct {
-	client              *gocent.Client
+	client              centrifugopb.CentrifugoApiClient
 	nodeClient          *grpc_client.Client
-	ctx                 context.Context
 	addressRepository   *address.Repository
 	coinRepository      *coin.Repository
 	logger              *logrus.Entry
@@ -32,26 +47,33 @@ type Service struct {
 	blockChannel        chan models.Block
 	transactionsChannel chan []*models.Transaction
 	balanceChannel      chan []*models.Balance
-	commissionsChannel  chan api.Event
+	commissionsChannel  chan *api_pb.UpdateCommissionsEvent
 }
 
 func NewService(env *env.ExtenderEnvironment, addressRepository *address.Repository, coinRepository *coin.Repository,
 	nodeClient *grpc_client.Client, logger *logrus.Entry) *Service {
-	wsClient := gocent.New(gocent.Config{
-		Addr: env.WsLink,
-		Key:  env.WsKey,
-	})
+
+	//wsClient := gocent.New(gocent.Config{
+	//	Addr: env.WsLink,
+	//	Key:  env.WsKey,
+	//})
 
 	chasingMode := atomic.Value{}
 	chasingMode.Store(false)
 
+	conn, err := grpc.Dial("centrifugo:10000", grpc.WithInsecure(), grpc.WithPerRPCCredentials(keyAuth{os.Getenv("CENTRIFUGO_SECRET")}))
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	wsClient := centrifugopb.NewCentrifugoApiClient(conn)
+
 	return &Service{
 		client:              wsClient,
 		nodeClient:          nodeClient,
-		ctx:                 context.Background(),
 		addressRepository:   addressRepository,
 		coinRepository:      coinRepository,
-		commissionsChannel:  make(chan api.Event),
+		commissionsChannel:  make(chan *api_pb.UpdateCommissionsEvent),
 		stakeChannel:        make(chan *api_pb.TransactionResponse),
 		balanceChannel:      make(chan []*models.Balance),
 		transactionsChannel: make(chan []*models.Transaction),
@@ -79,7 +101,7 @@ func (s *Service) Manager() {
 	}
 }
 
-func (s *Service) CommissionsChannel() chan api.Event {
+func (s *Service) CommissionsChannel() chan *api_pb.UpdateCommissionsEvent {
 	return s.commissionsChannel
 }
 
@@ -216,9 +238,9 @@ func (s *Service) PublishStatus() {
 	}
 	s.publish(channel, msg)
 }
-func (s *Service) PublishCommissions(data api.Event) {
+func (s *Service) PublishCommissions(data *api_pb.UpdateCommissionsEvent) {
 	channel := `commissions`
-	msg, err := json.Marshal(data)
+	msg, err := protojson.Marshal(data)
 	if err != nil {
 		s.logger.Error(err)
 	}
@@ -281,8 +303,21 @@ func (s *Service) PublishStake(tx *api_pb.TransactionResponse) {
 	}
 }
 func (s *Service) publish(ch string, msg []byte) {
-	err := s.client.Publish(s.ctx, ch, msg)
+	resp, err := s.client.Publish(context.Background(), &centrifugopb.PublishRequest{
+		Channel: ch,
+		Data:    msg,
+	})
 	if err != nil {
-		s.logger.Warn(err)
+		s.logger.Errorf("Transport level error: %v", err)
+	} else {
+		if resp.GetError() != nil {
+			respError := resp.GetError()
+			s.logger.Errorf("Error %d (%s)", respError.Code, respError.Message)
+		}
 	}
+
+	//_, err := s.client.Publish(context.Background(), ch, msg)
+	//if err != nil {
+	//	s.logger.Warn(err)
+	//}
 }

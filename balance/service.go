@@ -8,6 +8,7 @@ import (
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/MinterTeam/minter-explorer-tools/v4/helpers"
 	"github.com/MinterTeam/minter-go-sdk/v2/api/grpc_client"
+	"github.com/MinterTeam/node-grpc-gateway/api_pb"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sync"
@@ -16,7 +17,7 @@ import (
 
 func (s *Service) BalanceManager() {
 	for {
-		data := <-s.updateFromResponsesChannel
+		block := <-s.updateFromResponsesChannel
 
 		//chasingMode, ok := s.chasingMode.Load().(bool)
 		//if !ok{
@@ -27,16 +28,21 @@ func (s *Service) BalanceManager() {
 		//	return
 		//}
 
-		_, err, addressesMap := s.addressService.ExtractAddressesFromTransactions(data.Block.Transactions)
+		_, err, addressesMap := s.addressService.ExtractAddressesFromTransactions(block.Transactions)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"block": data.Block.Height,
+				"block": block.Height,
 			}).Error(err)
 		}
-		listEvent, _ := s.addressService.ExtractAddressesEventsResponse(data.Event)
+		listEvent, _ := s.addressService.ExtractAddressesEventsResponse(block.Height, block.Events)
 		for _, i := range listEvent {
 			addressesMap[i] = struct{}{}
 		}
+
+		//TODO: move to env
+		addressesMap["ffffffffffffffffffffffffffffffffffffffff"] = struct{}{}
+		addressesMap["0000000000000000000000000000000000000000"] = struct{}{}
+		addressesMap["00cedde786b34d733d1dc96559253081572df2c6"] = struct{}{}
 
 		var addressesData []string
 		for k := range addressesMap {
@@ -68,7 +74,7 @@ func (s *Service) BalanceManager() {
 	}
 }
 
-func (s *Service) UpdateChannel() chan models.BalanceUpdateData {
+func (s *Service) UpdateChannel() chan *api_pb.BlockResponse {
 	return s.updateFromResponsesChannel
 }
 
@@ -165,7 +171,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, nodeApi *g
 		addressService:             addressService,
 		coinRepository:             coinRepository,
 		broadcastService:           broadcastService,
-		updateFromResponsesChannel: make(chan models.BalanceUpdateData),
+		updateFromResponsesChannel: make(chan *api_pb.BlockResponse),
 		logger:                     logger,
 		chasingMode:                chasingMode,
 	}
@@ -181,5 +187,5 @@ type Service struct {
 	wgBalances                 sync.WaitGroup
 	logger                     *logrus.Entry
 	chasingMode                atomic.Value
-	updateFromResponsesChannel chan models.BalanceUpdateData
+	updateFromResponsesChannel chan *api_pb.BlockResponse
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/broadcast"
 	"github.com/MinterTeam/minter-explorer-extender/v2/coin"
@@ -38,13 +39,15 @@ type Service struct {
 	jobSaveInvalidTxs    chan []*models.InvalidTransaction
 	jobUpdateWaitList    chan *models.Transaction
 	jobUnbondSaver       chan *models.Transaction
+	jobMoveStake         chan *api_pb.TransactionResponse
 	logger               *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
-	jobUnbondSaver chan *models.Transaction, liquidityPoolService *liquidity_pool.Service) *Service {
+	jobUnbondSaver chan *models.Transaction, liquidityPoolService *liquidity_pool.Service,
+	jobMoveStake chan *api_pb.TransactionResponse) *Service {
 	return &Service{
 		env:                  env,
 		txRepository:         repository,
@@ -60,6 +63,7 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRep
 		jobSaveInvalidTxs:    make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
 		jobUpdateWaitList:    jobUpdateWaitList,
 		jobUnbondSaver:       jobUnbondSaver,
+		jobMoveStake:         jobMoveStake,
 		logger:               logger,
 	}
 }
@@ -101,6 +105,8 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
+			case transaction.TypeMoveStake:
+				s.jobMoveStake <- tx
 			}
 		} else {
 			txn, err := s.handleInvalidTransaction(tx, blockHeight, blockCreatedAt)
@@ -437,6 +443,14 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, block
 		return nil, err
 	}
 
+	txTags := tx.GetTags()
+
+	rawTxData := make([]byte, hex.DecodedLen(len(tx.RawTx)))
+	rawTx, err := hex.Decode(rawTxData, []byte(tx.RawTx))
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.InvalidTransaction{
 		FromAddressID: uint64(fromId),
 		BlockID:       blockHeight,
@@ -445,6 +459,15 @@ func (s *Service) handleInvalidTransaction(tx *api_pb.TransactionResponse, block
 		Hash:          helpers.RemovePrefix(tx.Hash),
 		TxData:        string(txDataJson),
 		Log:           tx.Log,
+		Nonce:         tx.Nonce,
+		GasPrice:      tx.GasPrice,
+		Gas:           tx.Gas,
+		Commission:    txTags["tx.commission_in_base_coin"],
+		GasCoinID:     tx.GasCoin.Id,
+		ServiceData:   string(tx.ServiceData),
+		Tags:          txTags,
+		Payload:       tx.Payload,
+		RawTx:         rawTxData[:rawTx],
 	}, nil
 }
 
@@ -499,6 +522,19 @@ func (s *Service) getLinksTxValidator(transactions []*models.Transaction) ([]*mo
 				return nil, err
 			}
 			validatorPk = txData.PubKey
+		case transaction.TypeMoveStake:
+			txData := new(api_pb.MoveStakeData)
+			if err := tx.IData.(*anypb.Any).UnmarshalTo(txData); err != nil {
+				return nil, err
+			}
+			validatorPk = txData.FromPubKey
+			validatorId, err := s.validatorRepository.FindIdByPkOrCreate(helpers.RemovePrefix(txData.ToPubKey))
+			if err == nil {
+				links = append(links, &models.TransactionValidator{
+					TransactionID: tx.ID,
+					ValidatorID:   uint64(validatorId),
+				})
+			}
 		}
 
 		if validatorPk != "" {
@@ -900,7 +936,37 @@ func txDataJson(txType uint64, data *any.Any) ([]byte, error) {
 			return nil, err
 		}
 		return txDataJson, nil
+	case transaction.TypeLockStake:
+		txData := new(api_pb.LockStakeData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeLock:
+		txData := new(api_pb.LockData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
+	case transaction.TypeMoveStake:
+		txData := new(api_pb.MoveStakeData)
+		if err := data.UnmarshalTo(txData); err != nil {
+			return nil, err
+		}
+		txDataJson, err := mo.Marshal(txData)
+		if err != nil {
+			return nil, err
+		}
+		return txDataJson, nil
 	}
 
-	return nil, errors.New("unknown tx type")
+	return nil, errors.New(fmt.Sprintf("unknown tx type: %d", txType))
 }
