@@ -24,11 +24,13 @@ func (s *Service) UpdateHubInfoWorker() {
 
 		if err != nil {
 			s.logger.Error(err)
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 
 		if resp.IsError() {
 			s.logger.Error("bad response")
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 
