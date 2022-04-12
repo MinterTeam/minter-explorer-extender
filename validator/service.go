@@ -25,7 +25,7 @@ const (
 	UnbondBlockCountTestnet    = 532
 	MoveStakeBlockCount        = 134400
 	MoveStakeBlockCountTestnet = 177
-	UpdateTimoutInBlocks       = 120
+	UpdateTimoutInBlocks       = 720
 	ChasingModDiff             = 121
 )
 
