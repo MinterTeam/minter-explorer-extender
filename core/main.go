@@ -312,9 +312,6 @@ func (ext *Extender) Run() {
 
 		eet.GettingBlock = time.Since(countStart)
 
-		//Pulling events
-		countStart = time.Now()
-
 		countStart = time.Now()
 		ext.handleCoinsFromTransactions(blockResponse)
 		eet.HandleCoinsFromTransactions = time.Since(countStart)
@@ -336,7 +333,7 @@ func (ext *Extender) Run() {
 			ext.orderBookChannel <- blockResponse
 		}
 
-		ext.validatorService.GetUpdateStakesJobChannel() <- height
+		//ext.validatorService.GetUpdateStakesJobChannel() <- height
 		ext.validatorService.GetUpdateValidatorsJobChannel() <- height
 		ext.validatorService.GetClearJobChannel() <- height
 
@@ -371,7 +368,8 @@ func (ext *Extender) runWorkers() {
 		go ext.transactionService.SaveTxValidatorWorker(ext.transactionService.GetSaveTxValidatorJobChannel())
 	}
 	go ext.validatorService.UpdateValidatorsWorker(ext.validatorService.GetUpdateValidatorsJobChannel())
-	go ext.validatorService.UpdateStakesWorker(ext.validatorService.GetUpdateStakesJobChannel())
+
+	//go ext.validatorService.UpdateStakesWorker(ext.validatorService.GetUpdateStakesJobChannel())
 
 	// Events
 	for w := 1; w <= ext.env.WrkSaveRewardsCount; w++ {
@@ -390,7 +388,9 @@ func (ext *Extender) runWorkers() {
 	go ext.coinService.UpdateHubInfoWorker()
 
 	//Wait List
-	go ext.validatorService.UpdateWaitListWorker(ext.validatorService.GetUpdateWaitListJobChannel())
+	//Moved to independent service.
+	//Will be removed
+	//go ext.validatorService.UpdateWaitListWorker(ext.validatorService.GetUpdateWaitListJobChannel())
 
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
