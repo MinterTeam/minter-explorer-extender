@@ -324,7 +324,7 @@ func (ext *Extender) Run() {
 		ext.handleBlockResponse(blockResponse)
 		eet.HandleBlockResponse = time.Since(countStart)
 
-		ext.balanceService.UpdateChannel() <- blockResponse
+		//ext.balanceService.UpdateChannel() <- blockResponse
 
 		go ext.handleEventResponse(height, blockResponse)
 
@@ -385,7 +385,7 @@ func (ext *Extender) runWorkers() {
 	//Coins
 	go ext.coinService.UpdateCoinsInfoFromTxsWorker(ext.coinService.GetUpdateCoinsFromTxsJobChannel())
 	go ext.coinService.UpdateCoinsInfoFromCoinsMap(ext.coinService.GetUpdateCoinsFromCoinsMapJobChannel())
-	go ext.coinService.UpdateHubInfoWorker()
+	//go ext.coinService.UpdateHubInfoWorker()
 
 	//Wait List
 	//Moved to independent service.

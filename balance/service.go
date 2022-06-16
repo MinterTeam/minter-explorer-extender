@@ -17,6 +17,9 @@ import (
 
 func (s *Service) BalanceManager() {
 	for {
+
+		return
+
 		block := <-s.updateFromResponsesChannel
 
 		//chasingMode, ok := s.chasingMode.Load().(bool)
