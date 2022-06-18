@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 func (s *Service) AddressLiquidityPoolWorker() {
@@ -119,6 +120,8 @@ func (s *Service) AddressLiquidityPoolWorker() {
 
 func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 	for b := range data {
+		start := time.Now()
+		s.logger.Info("Updating Liquidity Pools")
 		var lpList []uint64
 		for _, tx := range b.Transactions {
 			if tx.Log == "" {
@@ -229,16 +232,24 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		}
 		s.coinService.GetUpdateCoinsFromCoinsMapJobChannel() <- coinsForUpdate
 
-		wg := sync.WaitGroup{}
+		if len(lps) == 0 {
+			s.logger.Warning("empty lp list")
+			continue
+		}
+
+		wg := new(sync.WaitGroup)
 		wg.Add(len(lps))
 		for _, lp := range lps {
-			go func(lp models.LiquidityPool) {
+			go func(lp models.LiquidityPool, wg *sync.WaitGroup) {
+				start := time.Now()
+				s.logger.Info(fmt.Sprintf("Updating LP-%d...", lp.Id))
 				err := s.updateLiquidityPool(b.Height, lp)
 				if err != nil {
 					s.logger.Error(err)
 				}
 				wg.Done()
-			}(lp)
+				s.logger.Info(fmt.Sprintf("Updating LP-%d complete. Processing time: %s", lp.Id, time.Since(start)))
+			}(lp, wg)
 		}
 		wg.Wait()
 
@@ -249,6 +260,8 @@ func (s *Service) LiquidityPoolWorker(data <-chan *api_pb.BlockResponse) {
 		}
 		s.updatePoolsBipLiquidity(lps)
 		s.updateAddressPoolChannel <- b.Transactions
+
+		s.logger.Info(fmt.Sprintf("Updating liquidity pools complete. Processing time: %s", time.Since(start)))
 	}
 }
 
