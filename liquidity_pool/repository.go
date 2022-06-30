@@ -36,9 +36,10 @@ func (r *Repository) UpdateLiquidityPool(lp *models.LiquidityPool) error {
 
 func (r *Repository) UpdateLiquidityPoolById(lp *models.LiquidityPool) error {
 	_, err := r.db.Model(lp).
+		Column("liquidity").
 		Column("first_coin_volume").
 		Column("second_coin_volume").
-		Column("liquidity").
+		Column("updated_at_block_id").
 		WherePK().
 		Update()
 	return err

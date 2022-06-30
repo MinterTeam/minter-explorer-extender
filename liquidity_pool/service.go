@@ -756,7 +756,6 @@ func (s *Service) updateAddressPoolVolumes(tx *api_pb.TransactionResponse) error
 }
 
 func (s *Service) updateAddressesVolumesFromMap(addresses map[uint64][]string, height uint64) error {
-	wg := sync.WaitGroup{}
 	var alpMap sync.Map
 	for poolId, addressList := range addresses {
 		lp, err := s.Storage.getLiquidityPoolById(poolId)
@@ -764,42 +763,37 @@ func (s *Service) updateAddressesVolumesFromMap(addresses map[uint64][]string, h
 			return err
 		}
 
-		wg.Add(len(addressList))
-		go func(addresses []string, poolId, height uint64) {
-			for _, a := range addresses {
-				addressId, err := s.addressRepository.FindIdOrCreate(a)
-				if err != nil {
-					s.logger.Error(err)
-					wg.Done()
-					return
-				}
-
-				chasingMode, ok := s.chasingMode.Load().(bool)
-				if !ok {
-					chasingMode = false
-				}
-
-				var nodeALP *api_pb.SwapPoolResponse
-				if chasingMode {
-					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a), height)
-				} else {
-					nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a))
-				}
-				if err != nil {
-					s.logger.Error(err)
-					wg.Done()
-					return
-				}
-				alpMap.Store(fmt.Sprintf("%d-%d", poolId, addressId), &models.AddressLiquidityPool{
-					LiquidityPoolId:  poolId,
-					AddressId:        uint64(addressId),
-					FirstCoinVolume:  nodeALP.Amount0,
-					SecondCoinVolume: nodeALP.Amount1,
-					Liquidity:        nodeALP.Liquidity,
-				})
-				wg.Done()
+		for _, a := range addressList {
+			addressId, err := s.addressRepository.FindIdOrCreate(a)
+			if err != nil {
+				s.logger.Error(err)
+				continue
 			}
-		}(addressList, poolId, height)
+
+			chasingMode, ok := s.chasingMode.Load().(bool)
+			if !ok {
+				chasingMode = false
+			}
+
+			var nodeALP *api_pb.SwapPoolResponse
+			if chasingMode {
+				nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a), height)
+			} else {
+				nodeALP, err = s.nodeApi.SwapPoolProvider(lp.FirstCoinId, lp.SecondCoinId, fmt.Sprintf("Mx%s", a))
+			}
+			if err != nil {
+				s.logger.Error(err)
+				continue
+			}
+			alpMap.Store(fmt.Sprintf("%d-%d", poolId, addressId), &models.AddressLiquidityPool{
+				LiquidityPoolId:  poolId,
+				AddressId:        uint64(addressId),
+				FirstCoinVolume:  nodeALP.Amount0,
+				SecondCoinVolume: nodeALP.Amount1,
+				Liquidity:        nodeALP.Liquidity,
+			})
+		}
+
 	}
 
 	var forUpdate []*models.AddressLiquidityPool
