@@ -216,8 +216,6 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressService, coinRepository, broadcastService, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
-	//swapService := swap.NewService(db)
-	//liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
 	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, nodeStatus.InitialHeight+1)
 	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolRepository, contextLogger)
 
@@ -235,15 +233,14 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		balanceService:      balanceService,
 		coinService:         coinService,
 		broadcastService:    broadcastService,
-		//liquidityPoolService: liquidityPoolService,
-		orderBookService:  orderBookService,
-		chasingMode:       false,
-		currentNodeHeight: 0,
-		startBlockHeight:  nodeStatus.InitialHeight + 1,
-		log:               contextLogger,
-		lpSnapshotChannel: make(chan *api_pb.BlockResponse),
-		lpWorkerChannel:   make(chan *api_pb.BlockResponse),
-		orderBookChannel:  make(chan *api_pb.BlockResponse),
+		orderBookService:    orderBookService,
+		chasingMode:         false,
+		currentNodeHeight:   0,
+		startBlockHeight:    nodeStatus.InitialHeight + 1,
+		log:                 contextLogger,
+		lpSnapshotChannel:   make(chan *api_pb.BlockResponse),
+		lpWorkerChannel:     make(chan *api_pb.BlockResponse),
+		orderBookChannel:    make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -386,25 +383,12 @@ func (ext *Extender) runWorkers() {
 	go ext.coinService.UpdateCoinsInfoFromCoinsMap(ext.coinService.GetUpdateCoinsFromCoinsMapJobChannel())
 	go ext.coinService.UpdateHubInfoWorker()
 
-	//Wait List
-	//Moved to independent service.
-	//Will be removed
-	//go ext.validatorService.UpdateWaitListWorker(ext.validatorService.GetUpdateWaitListJobChannel())
-
 	//Unbonds
 	go ext.validatorService.UnbondSaverWorker(ext.validatorService.GetUnbondSaverJobChannel())
 	//Move Stake
 	go ext.validatorService.MoveStakeWorker(ext.validatorService.GetMoveStakeJobChannel())
 
 	go ext.validatorService.ClearMoveStakeAndUnbondWorker(ext.validatorService.GetClearJobChannel())
-
-	//LiquidityPool
-	//go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
-	//go ext.liquidityPoolService.AddressLiquidityPoolWorker()
-	//go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
-	//for w := 1; w <= 50; w++ {
-	//	go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
-	//}
 
 	//OrderBook
 	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
