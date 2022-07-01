@@ -1,14 +1,46 @@
 package liquidity_pool
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MinterTeam/minter-explorer-extender/v2/models"
 	"github.com/go-pg/pg/v10"
+	"strconv"
+	"strings"
 	"time"
 )
 
 type Repository struct {
 	db *pg.DB
+}
+
+func (r *Repository) GetPoolsByTxTags(tags map[string]string) ([]models.LiquidityPool, error) {
+	pools, err := r.getPoolChainFromTags(tags)
+	if err != nil {
+		return nil, err
+	}
+	var idList []uint64
+	for id := range pools {
+		idList = append(idList, id)
+	}
+	return r.GetAllByIds(idList)
+}
+
+func (r *Repository) GetPoolByPairString(pair string) (*models.LiquidityPool, error) {
+	ids := strings.Split(pair, "-")
+	firstCoinId, err := strconv.ParseUint(ids[0], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	secondCoinId, err := strconv.ParseUint(ids[1], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	if firstCoinId < secondCoinId {
+		return r.getLiquidityPoolByCoinIds(firstCoinId, secondCoinId)
+	} else {
+		return r.getLiquidityPoolByCoinIds(secondCoinId, firstCoinId)
+	}
 }
 
 func (r *Repository) getLiquidityPoolByCoinIds(firstCoinId, secondCoinId uint64) (*models.LiquidityPool, error) {
@@ -122,6 +154,28 @@ func (r *Repository) SaveLiquidityPoolSnapshots(snap []models.LiquidityPoolSnaps
 func (r *Repository) RemoveEmptyAddresses() error {
 	_, err := r.db.Model().Exec(`DELETE FROM address_liquidity_pools WHERE liquidity <= 0;`)
 	return err
+}
+
+func (r *Repository) getPoolChainFromTags(tags map[string]string) (map[uint64][]map[string]string, error) {
+	var poolsData []models.TagLiquidityPool
+	err := json.Unmarshal([]byte(tags["tx.pools"]), &poolsData)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[uint64][]map[string]string)
+	for _, p := range poolsData {
+		firstCoinData := make(map[string]string)
+		firstCoinData["coinId"] = fmt.Sprintf("%d", p.CoinIn)
+		firstCoinData["volume"] = p.ValueIn
+
+		secondCoinData := make(map[string]string)
+		secondCoinData["coinId"] = fmt.Sprintf("%d", p.CoinOut)
+		secondCoinData["volume"] = p.ValueIn
+
+		data[p.PoolID] = []map[string]string{firstCoinData, secondCoinData}
+	}
+	return data, nil
 }
 
 func NewRepository(db *pg.DB) *Repository {
