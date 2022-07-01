@@ -6,7 +6,6 @@ import (
 	"fmt"
 	genesisUploader "github.com/MinterTeam/explorer-genesis-uploader/core"
 	genesisEnv "github.com/MinterTeam/explorer-genesis-uploader/env"
-	"github.com/MinterTeam/explorer-sdk/swap"
 	"github.com/MinterTeam/minter-explorer-api/v2/coins"
 	"github.com/MinterTeam/minter-explorer-extender/v2/address"
 	"github.com/MinterTeam/minter-explorer-extender/v2/balance"
@@ -39,20 +38,20 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
-	Metrics              *metrics.Metrics
-	env                  *env.ExtenderEnvironment
-	nodeApi              *grpc_client.Client
-	blockService         *block.Service
-	addressService       *address.Service
-	blockRepository      *block.Repository
-	validatorService     *validator.Service
-	validatorRepository  *validator.Repository
-	transactionService   *transaction.Service
-	eventService         *events.Service
-	balanceService       *balance.Service
-	coinService          *coin.Service
-	broadcastService     *broadcast.Service
-	liquidityPoolService *liquidity_pool.Service
+	Metrics             *metrics.Metrics
+	env                 *env.ExtenderEnvironment
+	nodeApi             *grpc_client.Client
+	blockService        *block.Service
+	addressService      *address.Service
+	blockRepository     *block.Repository
+	validatorService    *validator.Service
+	validatorRepository *validator.Repository
+	transactionService  *transaction.Service
+	eventService        *events.Service
+	balanceService      *balance.Service
+	coinService         *coin.Service
+	broadcastService    *broadcast.Service
+	//liquidityPoolService *liquidity_pool.Service
 	orderBookService     *orderbook.Service
 	chasingMode          bool
 	startBlockHeight     uint64
@@ -217,34 +216,34 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 	balanceService := balance.NewService(env, balanceRepository, nodeApi, addressService, coinRepository, broadcastService, contextLogger)
 	coinService := coin.NewService(env, nodeApi, coinRepository, addressRepository, contextLogger)
 	validatorService := validator.NewService(env, nodeApi, validatorRepository, addressRepository, coinRepository, contextLogger)
-	swapService := swap.NewService(db)
-	liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
+	//swapService := swap.NewService(db)
+	//liquidityPoolService := liquidity_pool.NewService(liquidityPoolRepository, addressRepository, coinService, balanceService, swapService, nodeApi, contextLogger)
 	eventService := events.NewService(env, eventsRepository, validatorRepository, addressRepository, coinRepository, coinService, blockRepository, orderbookRepository, balanceRepository, broadcastService, contextLogger, nodeStatus.InitialHeight+1)
-	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolService, contextLogger)
+	orderBookService := orderbook.NewService(db, addressRepository, liquidityPoolRepository, contextLogger)
 
 	return &Extender{
-		Metrics:              metrics.New(),
-		env:                  env,
-		nodeApi:              nodeApi,
-		blockService:         block.NewBlockService(blockRepository, validatorRepository, broadcastService),
-		eventService:         eventService,
-		blockRepository:      blockRepository,
-		validatorService:     validatorService,
-		transactionService:   transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolService, validatorService.GetMoveStakeJobChannel()),
-		addressService:       addressService,
-		validatorRepository:  validatorRepository,
-		balanceService:       balanceService,
-		coinService:          coinService,
-		broadcastService:     broadcastService,
-		liquidityPoolService: liquidityPoolService,
-		orderBookService:     orderBookService,
-		chasingMode:          false,
-		currentNodeHeight:    0,
-		startBlockHeight:     nodeStatus.InitialHeight + 1,
-		log:                  contextLogger,
-		lpSnapshotChannel:    make(chan *api_pb.BlockResponse),
-		lpWorkerChannel:      make(chan *api_pb.BlockResponse),
-		orderBookChannel:     make(chan *api_pb.BlockResponse),
+		Metrics:             metrics.New(),
+		env:                 env,
+		nodeApi:             nodeApi,
+		blockService:        block.NewBlockService(blockRepository, validatorRepository, broadcastService),
+		eventService:        eventService,
+		blockRepository:     blockRepository,
+		validatorService:    validatorService,
+		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolRepository, validatorService.GetMoveStakeJobChannel()),
+		addressService:      addressService,
+		validatorRepository: validatorRepository,
+		balanceService:      balanceService,
+		coinService:         coinService,
+		broadcastService:    broadcastService,
+		//liquidityPoolService: liquidityPoolService,
+		orderBookService:  orderBookService,
+		chasingMode:       false,
+		currentNodeHeight: 0,
+		startBlockHeight:  nodeStatus.InitialHeight + 1,
+		log:               contextLogger,
+		lpSnapshotChannel: make(chan *api_pb.BlockResponse),
+		lpWorkerChannel:   make(chan *api_pb.BlockResponse),
+		orderBookChannel:  make(chan *api_pb.BlockResponse),
 	}
 }
 
@@ -400,12 +399,12 @@ func (ext *Extender) runWorkers() {
 	go ext.validatorService.ClearMoveStakeAndUnbondWorker(ext.validatorService.GetClearJobChannel())
 
 	//LiquidityPool
-	go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
-	go ext.liquidityPoolService.AddressLiquidityPoolWorker()
-	go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
-	for w := 1; w <= 50; w++ {
-		go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
-	}
+	//go ext.liquidityPoolService.LiquidityPoolWorker(ext.lpWorkerChannel)
+	//go ext.liquidityPoolService.AddressLiquidityPoolWorker()
+	//go ext.liquidityPoolService.LiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesChannel())
+	//for w := 1; w <= 50; w++ {
+	//	go ext.liquidityPoolService.SaveLiquidityPoolTradesWorker(ext.liquidityPoolService.LiquidityPoolTradesSaveChannel())
+	//}
 
 	//OrderBook
 	go ext.orderBookService.OrderBookWorker(ext.orderBookChannel)
@@ -545,7 +544,7 @@ func (ext *Extender) findOutChasingMode(height uint64) {
 
 	ext.broadcastService.SetChasingMode(ext.chasingMode)
 	ext.balanceService.SetChasingMode(ext.chasingMode)
-	ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
+	//ext.liquidityPoolService.SetChasingMode(ext.chasingMode)
 }
 
 func (ext *Extender) printSpentTimeLog(eet ExtenderElapsedTime) {

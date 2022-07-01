@@ -391,7 +391,7 @@ type Service struct {
 	Storage            *Repository
 	logger             *logrus.Entry
 	addressRepository  *address.Repository
-	liquidityPool      *liquidity_pool.Service
+	liquidityPool      *liquidity_pool.Repository
 	updateOrderChannel chan []models.TxTagDetailsOrder
 }
 
@@ -399,13 +399,12 @@ func (s *Service) UpdateOrderChannel() chan []models.TxTagDetailsOrder {
 	return s.updateOrderChannel
 }
 
-func NewService(db *pg.DB, addressRepository *address.Repository, lpService *liquidity_pool.Service,
-	logger *logrus.Entry) *Service {
+func NewService(db *pg.DB, addressRepository *address.Repository, liquidityPool *liquidity_pool.Repository, logger *logrus.Entry) *Service {
 	return &Service{
 		updateOrderChannel: make(chan []models.TxTagDetailsOrder),
 		Storage:            NewRepository(db),
 		addressRepository:  addressRepository,
-		liquidityPool:      lpService,
+		liquidityPool:      liquidityPool,
 		logger:             logger,
 	}
 }

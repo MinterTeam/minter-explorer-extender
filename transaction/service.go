@@ -25,46 +25,47 @@ import (
 )
 
 type Service struct {
-	env                  *env.ExtenderEnvironment
-	txRepository         *Repository
-	addressRepository    *address.Repository
-	validatorRepository  *validator.Repository
-	coinRepository       *coin.Repository
-	coinService          *coin.Service
-	liquidityPoolService *liquidity_pool.Service
-	broadcastService     *broadcast.Service
-	jobSaveTxs           chan []*models.Transaction
-	jobSaveTxsOutput     chan []*models.Transaction
-	jobSaveValidatorTxs  chan []*models.TransactionValidator
-	jobSaveInvalidTxs    chan []*models.InvalidTransaction
-	jobUpdateWaitList    chan *models.Transaction
-	jobUnbondSaver       chan *models.Transaction
-	jobMoveStake         chan *api_pb.TransactionResponse
-	logger               *logrus.Entry
+	env                 *env.ExtenderEnvironment
+	txRepository        *Repository
+	addressRepository   *address.Repository
+	validatorRepository *validator.Repository
+	coinRepository      *coin.Repository
+	coinService         *coin.Service
+	lpRepository        *liquidity_pool.Repository
+	broadcastService    *broadcast.Service
+	jobSaveTxs          chan []*models.Transaction
+	jobSaveTxsOutput    chan []*models.Transaction
+	jobSaveValidatorTxs chan []*models.TransactionValidator
+	jobSaveInvalidTxs   chan []*models.InvalidTransaction
+	jobUpdateWaitList   chan *models.Transaction
+	jobUnbondSaver      chan *models.Transaction
+	jobMoveStake        chan *api_pb.TransactionResponse
+	logger              *logrus.Entry
 }
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
 	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
-	jobUnbondSaver chan *models.Transaction, liquidityPoolService *liquidity_pool.Service,
+	jobUnbondSaver chan *models.Transaction, liquidityPoolRepository *liquidity_pool.Repository,
 	jobMoveStake chan *api_pb.TransactionResponse) *Service {
+
 	return &Service{
-		env:                  env,
-		txRepository:         repository,
-		coinRepository:       coinRepository,
-		addressRepository:    addressRepository,
-		coinService:          coinService,
-		validatorRepository:  validatorRepository,
-		liquidityPoolService: liquidityPoolService,
-		broadcastService:     broadcastService,
-		jobSaveTxs:           make(chan []*models.Transaction, env.WrkSaveTxsCount),
-		jobSaveTxsOutput:     make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
-		jobSaveValidatorTxs:  make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
-		jobSaveInvalidTxs:    make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
-		jobUpdateWaitList:    jobUpdateWaitList,
-		jobUnbondSaver:       jobUnbondSaver,
-		jobMoveStake:         jobMoveStake,
-		logger:               logger,
+		env:                 env,
+		txRepository:        repository,
+		coinRepository:      coinRepository,
+		addressRepository:   addressRepository,
+		coinService:         coinService,
+		validatorRepository: validatorRepository,
+		lpRepository:        liquidityPoolRepository,
+		broadcastService:    broadcastService,
+		jobSaveTxs:          make(chan []*models.Transaction, env.WrkSaveTxsCount),
+		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
+		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
+		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
+		jobUpdateWaitList:   jobUpdateWaitList,
+		jobUnbondSaver:      jobUnbondSaver,
+		jobMoveStake:        jobMoveStake,
+		logger:              logger,
 	}
 }
 
@@ -97,11 +98,11 @@ func (s *Service) HandleTransactionsFromBlockResponse(blockHeight uint64, blockC
 			}
 			txList = append(txList, txn)
 			switch transaction.Type(tx.Type) {
-			case transaction.TypeCreateSwapPool:
-				err := s.liquidityPoolService.CreateLiquidityPool(tx)
-				if err != nil {
-					return err
-				}
+			//case transaction.TypeCreateSwapPool:
+			//	err := s.liquidityPoolService.CreateLiquidityPool(tx)
+			//	if err != nil {
+			//		return err
+			//	}
 			case transaction.TypeDelegate,
 				transaction.TypeUnbond:
 				s.broadcastService.StakeChannel() <- tx
@@ -163,7 +164,7 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 		if err != nil {
 			s.logger.Error(err)
 		}
-		s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
+		//s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
 		s.GetSaveTxsOutputJobChannel() <- transactions
 		s.broadcastService.TransactionsChannel() <- transactions
 	}
@@ -559,7 +560,7 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 		case transaction.TypeSellSwapPool,
 			transaction.TypeBuySwapPool,
 			transaction.TypeSellAllSwapPool:
-			lpList, err := s.liquidityPoolService.GetPoolsByTxTags(tx.Tags)
+			lpList, err := s.lpRepository.GetPoolsByTxTags(tx.Tags)
 			if err != nil {
 				return nil, err
 			}
@@ -580,7 +581,7 @@ func (s *Service) getLinksLiquidityPool(transactions []*models.Transaction) ([]*
 			})
 		case transaction.TypeRemoveLiquidity,
 			transaction.TypeAddLiquidity:
-			lp, err := s.liquidityPoolService.GetPoolByPairString(tx.Tags["tx.pair_ids"])
+			lp, err := s.lpRepository.GetPoolByPairString(tx.Tags["tx.pair_ids"])
 			if err != nil {
 				return nil, err
 			}
