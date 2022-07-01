@@ -154,16 +154,16 @@ func (s *Service) SaveTransactionsWorker(jobs <-chan []*models.Transaction) {
 			}
 		}
 
-		//lpLinks, err := s.getLinksLiquidityPool(transactions)
-		//if err != nil {
-		//	s.logger.Error(err)
-		//}
-		//if len(lpLinks) > 0 {
-		//	err = s.txRepository.LinkWithLiquidityPool(lpLinks)
-		//}
-		//if err != nil {
-		//	s.logger.Error(err)
-		//}
+		lpLinks, err := s.getLinksLiquidityPool(transactions)
+		if err != nil {
+			s.logger.Error(err)
+		}
+		if len(lpLinks) > 0 {
+			err = s.txRepository.LinkWithLiquidityPool(lpLinks)
+		}
+		if err != nil {
+			s.logger.Error(err)
+		}
 		//s.liquidityPoolService.LiquidityPoolTradesChannel() <- transactions
 		s.GetSaveTxsOutputJobChannel() <- transactions
 		s.broadcastService.TransactionsChannel() <- transactions

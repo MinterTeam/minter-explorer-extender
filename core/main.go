@@ -328,7 +328,7 @@ func (ext *Extender) Run() {
 		go ext.handleEventResponse(height, blockResponse)
 
 		if len(blockResponse.Transactions) > 0 {
-			ext.lpWorkerChannel <- blockResponse
+			//ext.lpWorkerChannel <- blockResponse
 			ext.orderBookChannel <- blockResponse
 		}
 
