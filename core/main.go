@@ -38,20 +38,19 @@ const ChasingModDiff = 121
 var Version string
 
 type Extender struct {
-	Metrics             *metrics.Metrics
-	env                 *env.ExtenderEnvironment
-	nodeApi             *grpc_client.Client
-	blockService        *block.Service
-	addressService      *address.Service
-	blockRepository     *block.Repository
-	validatorService    *validator.Service
-	validatorRepository *validator.Repository
-	transactionService  *transaction.Service
-	eventService        *events.Service
-	balanceService      *balance.Service
-	coinService         *coin.Service
-	broadcastService    *broadcast.Service
-	//liquidityPoolService *liquidity_pool.Service
+	Metrics              *metrics.Metrics
+	env                  *env.ExtenderEnvironment
+	nodeApi              *grpc_client.Client
+	blockService         *block.Service
+	addressService       *address.Service
+	blockRepository      *block.Repository
+	validatorService     *validator.Service
+	validatorRepository  *validator.Repository
+	transactionService   *transaction.Service
+	eventService         *events.Service
+	balanceService       *balance.Service
+	coinService          *coin.Service
+	broadcastService     *broadcast.Service
 	orderBookService     *orderbook.Service
 	chasingMode          bool
 	startBlockHeight     uint64
@@ -227,7 +226,7 @@ func NewExtender(env *env.ExtenderEnvironment) *Extender {
 		eventService:        eventService,
 		blockRepository:     blockRepository,
 		validatorService:    validatorService,
-		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUpdateWaitListJobChannel(), validatorService.GetUnbondSaverJobChannel(), liquidityPoolRepository, validatorService.GetMoveStakeJobChannel()),
+		transactionService:  transaction.NewService(env, transactionRepository, addressRepository, validatorRepository, coinRepository, coinService, broadcastService, contextLogger, validatorService.GetUnbondSaverJobChannel(), liquidityPoolRepository, validatorService.GetMoveStakeJobChannel()),
 		addressService:      addressService,
 		validatorRepository: validatorRepository,
 		balanceService:      balanceService,
@@ -325,7 +324,6 @@ func (ext *Extender) Run() {
 		go ext.handleEventResponse(height, blockResponse)
 
 		if len(blockResponse.Transactions) > 0 {
-			//ext.lpWorkerChannel <- blockResponse
 			ext.orderBookChannel <- blockResponse
 		}
 
