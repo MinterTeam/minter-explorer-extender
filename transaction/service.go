@@ -37,7 +37,6 @@ type Service struct {
 	jobSaveTxsOutput    chan []*models.Transaction
 	jobSaveValidatorTxs chan []*models.TransactionValidator
 	jobSaveInvalidTxs   chan []*models.InvalidTransaction
-	jobUpdateWaitList   chan *models.Transaction
 	jobUnbondSaver      chan *models.Transaction
 	jobMoveStake        chan *api_pb.TransactionResponse
 	logger              *logrus.Entry
@@ -45,7 +44,7 @@ type Service struct {
 
 func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRepository *address.Repository,
 	validatorRepository *validator.Repository, coinRepository *coin.Repository, coinService *coin.Service,
-	broadcastService *broadcast.Service, logger *logrus.Entry, jobUpdateWaitList chan *models.Transaction,
+	broadcastService *broadcast.Service, logger *logrus.Entry,
 	jobUnbondSaver chan *models.Transaction, liquidityPoolRepository *liquidity_pool.Repository,
 	jobMoveStake chan *api_pb.TransactionResponse) *Service {
 
@@ -62,7 +61,6 @@ func NewService(env *env.ExtenderEnvironment, repository *Repository, addressRep
 		jobSaveTxsOutput:    make(chan []*models.Transaction, env.WrkSaveTxsOutputCount),
 		jobSaveValidatorTxs: make(chan []*models.TransactionValidator, env.WrkSaveValidatorTxsCount),
 		jobSaveInvalidTxs:   make(chan []*models.InvalidTransaction, env.WrkSaveInvTxsCount),
-		jobUpdateWaitList:   jobUpdateWaitList,
 		jobUnbondSaver:      jobUnbondSaver,
 		jobMoveStake:        jobMoveStake,
 		logger:              logger,
@@ -365,10 +363,6 @@ func (s *Service) SaveAllTxOutputs(txList []*models.Transaction) error {
 
 		if transaction.Type(tx.Type) == transaction.TypeUnbond {
 			s.jobUnbondSaver <- tx
-			s.jobUpdateWaitList <- tx
-		}
-		if transaction.Type(tx.Type) == transaction.TypeDelegate {
-			s.jobUpdateWaitList <- tx
 		}
 	}
 
